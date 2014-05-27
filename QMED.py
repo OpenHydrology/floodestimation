@@ -3,8 +3,7 @@ Created on 27 Apr 2014
 
 @author: NUT67271
 '''
-import wx
-import sys
+import wx,os,sys
 from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin, ColumnSorterMixin
 import feh_statistical,AMAX
 
@@ -29,6 +28,8 @@ class Fpanel(wx.Panel):
       self.calc_obs_amax_btn = wx.Button(self, -1, ' QMED AMAX OBS ')
       self.calc_obs_pot_btn = wx.Button(self, -1, ' QMED POT OBS ')  
       self.calc_geom_btn = wx.Button(self, -1, ' Channel Width ')
+      
+      self.qmed_notes = wx.TextCtrl(self, -1, "Notes on QMED", size=(350,210),style=wx.TE_MULTILINE)
       
       self.user_qmed_label = wx.StaticText(self, -1, "User QMED")
       self.selected_unadj_qmed_label = wx.StaticText(self, -1, "Selected unadjusted QMED")
@@ -81,6 +82,11 @@ class Fpanel(wx.Panel):
       self.locally_adjusted_qmed_label = wx.StaticText(self, -1, "Locally adjusted QMED")
       self.locally_adjusted_qmed = wx.TextCtrl(self, -1, "-", style =wx.TE_READONLY)
       
+      self.update_for_urb_chk = wx.CheckBox(self,-1,'Update for urbanisation')
+
+      self.adopted_qmed_label = wx.StaticText(self, -1, "Adopted QMED")
+      self.adopted_qmed = wx.TextCtrl(self, -1, "-", style =wx.TE_READONLY)
+      
       sizer = wx.GridBagSizer(vgap=5, hgap=10)
       sizer.Add(self.calc_cds2008_btn, pos=(0,0))
       sizer.Add(self.calc_cds1999_btn, pos=(1,0))
@@ -88,6 +94,8 @@ class Fpanel(wx.Panel):
       sizer.Add(self.calc_obs_amax_btn, pos=(3,0))
       sizer.Add(self.calc_obs_pot_btn, pos=(4,0))
       sizer.Add(self.calc_geom_btn, pos=(5,0))
+      
+      sizer.Add(self.qmed_notes, pos=(0,3), span=(7,3))
       
       sizer.Add(self.user_qmed_label,pos=(6,0))
       sizer.Add(self.selected_unadj_qmed_label,pos=(7,0))
@@ -138,6 +146,11 @@ class Fpanel(wx.Panel):
       sizer.Add(self.locally_adjusted_qmed_label, pos=(14,0),span=(1,1))
       sizer.Add(self.locally_adjusted_qmed, pos=(14,1),span=(1,1))
       
+      sizer.Add(self.update_for_urb_chk,pos=(15,1),span=(1,1))
+      
+      sizer.Add(self.adopted_qmed_label, pos=(16,0),span=(1,1))
+      sizer.Add(self.adopted_qmed, pos=(16,1),span=(1,1))
+      
       #  Assign actions to buttons
       self.calc_cds2008_btn.Bind(wx.EVT_BUTTON, self.calcCds2008)
       self.calc_cds1999_btn.Bind(wx.EVT_BUTTON, self.calcCds1999)
@@ -152,8 +165,31 @@ class Fpanel(wx.Panel):
       self.Fit()
       
     def findStations(self):
-          self.qmed_databse = "C:\\Users\\nut67271\\workspace\\RandomNumberGenerator\\qmed_db.csv"
-          f = open(self.qmed_databse,'r')
+          #self.qmed_databse = "C:\\Users\\nut67271\\workspace\\StatisticalFloodEstimationTool\\qmed_db.csv"
+          if os.path.isfile('preferences.txt')==False:
+            '''Initialise preferences '''
+            import Preferences
+            Preferences.PreferencesFrame(self).Show()
+      
+            self.Refresh()
+            self.Update()  
+          else:
+            pf = open('preferences.txt','r')
+            lines = pf.readlines()
+            
+            for line in lines:
+              if line.startswith('#'):
+                pass
+              elif line.startswith('qmed_cds_dbs_path'):
+                self.qmed_cds_dbs_path = line.split(':')[-1].replace('\n','')          
+                if os.path.isfile(self.qmed_cds_dbs_path) == False:
+                  self.OnQMedDatabseError()
+                  print 'QMED DB not found, need to raise error'
+                  self.stations = list()
+                  return
+      
+            
+          f = open(self.qmed_cds_dbs_path,'r')
           lines = f.readlines()
           
           headers = lines[0].split(',')
@@ -177,7 +213,7 @@ class Fpanel(wx.Panel):
               try:
                 station_cds[field]=float(entries[i])
               except:
-                station_cds[field]=entries[i]
+                pass
               i=i+1
             
             
@@ -186,7 +222,8 @@ class Fpanel(wx.Panel):
             self.location_centroid_x =float(self.p.centroid_x.GetValue())
             self.location_centroid_y = float(self.p.centroid_y.GetValue())
             
-            station_cds['distance'] = 0.001*(((station_cds['centroid_x']-self.location_centroid_x)**2.0+(station_cds['centroid_y']-self.location_centroid_y))**2.0)**0.5        
+            
+            station_cds['distance'] = 0.001*(((station_cds['centroidx']-self.location_centroid_x)**2.0+(station_cds['centroidy']-self.location_centroid_y))**2.0)**0.5        
             station_cds['user_added'] = None
             
             self.stations.append(station_cds)
@@ -210,18 +247,18 @@ class Fpanel(wx.Panel):
     def refreshStations(self):
       self.search_distance =float(self.station_search_distance.GetValue())
       for station_cds in self.stations:
-            station_cds['distance'] = 0.001*(((station_cds['centroid_x']-self.location_centroid_x)**2.0+(station_cds['centroid_y']-self.location_centroid_y)**2.0))**0.5
+            station_cds['distance'] = 0.001*(((station_cds['centroidx']-self.location_centroid_x)**2.0+(station_cds['centroidy']-self.location_centroid_y)**2.0))**0.5
             if station_cds['distance'] > self.search_distance and station_cds['user_added'] != True:
               pass
             elif station_cds['user_added'] == False:
               pass
             else:
               if bool(self.rb1.GetValue()) == True:
-                qmed_cds = feh_statistical.qmed_cds2008(station_cds['dtm_area'],station_cds['saar'],station_cds['farl'],station_cds['bfihost'])
+                qmed_cds = feh_statistical.qmed_cds2008(station_cds['dtmarea'],station_cds['saar'],station_cds['farl'],station_cds['bfihost'])
               if bool(self.rb2.GetValue()) == True:
-                qmed_cds = feh_statistical.qmed_cds1999(station_cds['dtm_area'],station_cds['saar'],station_cds['farl'],station_cds['sprhost'],station_cds['bfihost'])
+                qmed_cds = feh_statistical.qmed_cds1999(station_cds['dtmarea'],station_cds['saar'],station_cds['farl'],station_cds['sprhost'],station_cds['bfihost'])
               if bool(self.rb3.GetValue()) == True:
-                qmed_cds = feh_statistical.area_based_qmed(station_cds['dtm_area'])
+                qmed_cds = feh_statistical.area_based_qmed(station_cds['dtmarea'])
               if bool(self.rb4.GetValue()) == True:
                 qmed_cds = station_cds['qmed_obs']
               if bool(self.rb5.GetValue()) == True:
@@ -239,7 +276,7 @@ class Fpanel(wx.Panel):
   
               index = self.list.InsertStringItem(sys.maxint, str(int(station_cds['station'])))
               self.list.SetStringItem(index, 1, str(station_cds['distance']))
-              self.list.SetStringItem(index, 2, str(station_cds['dtm_area']))
+              self.list.SetStringItem(index, 2, str(station_cds['dtmarea']))
               self.list.SetStringItem(index, 3, str(station_cds['saar']))
               self.list.SetStringItem(index, 4, str(station_cds['bfihost']))
               self.list.SetStringItem(index, 5, str(station_cds['farl']))
@@ -407,7 +444,7 @@ class Fpanel(wx.Panel):
       To be pop up window for user to load/see flow series and set a POT threshold, possibly with graph showing trend in data
       Possibly a means of assisting the user in selecting a POT threshold and a means of detecting clustering
       '''
-      self.qmed_obs_amax.SetLabel("Not implemented")
+      self.qmed_obs_pot.SetLabel("Not implemented")
       self.Refresh()
       self.Update()   
     
@@ -424,4 +461,10 @@ class Fpanel(wx.Panel):
       self.qmed_geom.SetLabel(str(qmed))
       self.Refresh()
       self.Update()  
+      
+    def OnQMedDatabseError(self):
+        # Create a message dialog box
+        dlg = wx.MessageDialog(self, "QMED and CDS database not found.  This must be generated before the software can be used.", "Database error", wx.OK)
+        dlg.ShowModal() # Shows it
+        dlg.Destroy() # finally destroy it when finished.
       

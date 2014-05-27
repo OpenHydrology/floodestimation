@@ -12,8 +12,8 @@ class Fpanel(wx.Panel):
         self.title_label = wx.StaticText(self, -1, "Title" ) 
         purpose_label = wx.StaticText(self, -1, "Purpose of assessment" )         
 
-        self.author_signature = wx.TextCtrl(self, -1, "Not signed",size=(400,25), style =wx.TE_READONLY)
-        self.checker_signature = wx.TextCtrl(self, -1, "Not signed",size=(400,25), style =wx.TE_READONLY)
+        self.author_signature = wx.TextCtrl(self, -1, "Not signed",size=(500,25), style =wx.TE_READONLY)
+        self.checker_signature = wx.TextCtrl(self, -1, "Not signed",size=(500,25), style =wx.TE_READONLY)
         
           
         self.author_sgn_btn = wx.Button(self, -1, ' Sign as author ')

@@ -49,7 +49,9 @@ class MainFrame(wx.Frame):
 
         # Defining the edit menu
         editMenu = wx.Menu()
-        mPreferences = wx.MenuItem(editMenu, wx.ID_ANY, '&Preferences')     
+        mPreferences = wx.MenuItem(editMenu, wx.ID_ANY, '&Preferences')
+        editMenu.AppendItem(mPreferences)
+        self.Bind(wx.EVT_MENU,self.OnPreferences,mPreferences)     
         
         # Defining the help menu
         helpMenu = wx.Menu()
@@ -110,17 +112,36 @@ class MainFrame(wx.Frame):
         
     def OnAbout(self,e):
         # Create a message dialog box
-        dlg = wx.MessageDialog(self, " FEH application tool \n developed in wxPython \n \n Prepare by Neil Nutt \n without warranty", "FEH application tool", wx.OK)
+        dlg = wx.MessageDialog(self, " FEH application tool \n developed in wxPython \n \n Prepare by Neil Nutt \n without warranty\n\n Visit wiki at https://github.com/OpenHydrology/StatisticalFloodEstimationTool/wiki", "FEH application tool", wx.OK)
         dlg.ShowModal() # Shows it
         dlg.Destroy() # finally destroy it when finished.
+
+    def OnPreferences(self,e):
+      '''
+      Load up preferences screen
+      '''
+      import Preferences
+      
+      Preferences.PreferencesFrame(self).Show()
+
+      self.Refresh()
+      self.Update()   
+
 
     def OnFileOpen(self, e):
         """ File|Open event - Open dialog box. """
         dlg = wx.FileDialog(self, "Open", self.dirName, self.fileName,
-                           "Text Files (*.txt)|*.txt|All Files|*.*", wx.OPEN)
+                           "Text Files (*.hyd)|*.hyd|All Files|*.*", wx.OPEN)
         if (dlg.ShowModal() == wx.ID_OK):
             self.fileName = dlg.GetFilename()
             self.dirName = dlg.GetDirectory()
+
+            import shelve
+            
+            shelveObject=shelve.open(os.path.join(self.dirName, self.fileName))
+            for key in shelveObject:
+              globals()[key]=shelveObject[key]
+            shelveObject.close()
 
             ### - this will read in Unicode files (since I'm using Unicode wxPython
             #if self.rtb.LoadFile(os.path.join(self.dirName, self.fileName)):
@@ -131,34 +152,42 @@ class MainFrame(wx.Frame):
             #    self.SetStatusText("Error in opening file.", SB_INFO)
 
             ### - but we want just plain ASCII files, so:
-            try:
-                f = file(os.path.join(self.dirName, self.fileName), 'r')
-                self.page1.title.SetValue(f.read())
-                self.SetTitle(self.page1.title)
+            #try:
+                #f = file(os.path.join(self.dirName, self.fileName), 'r')
+                #self.page1.title.SetValue(f.read())
+                #self.SetTitle(self.page1.title)
                 #self.SetStatusText("Opened file: " + str(self.title.GetLastPosition()) +" characters.", SB_INFO)
-                self.ShowPos()
-                f.close()
-            except:
-                print "Failed"
+                #self.ShowPos()
+                #f.close()
+            #except:
+                #print "Failed"
                 #self.PushStatusText("Error in opening file.", SB_INFO)
         dlg.Destroy()
 
 #---------------------------------------
     def OnFileSave(self, e):
         """ File|Save event - Just Save it if it's got a name. """
+        import shelve
         if (self.fileName != "") and (self.dirName != ""):
-            try:
-                f = file(os.path.join(self.dirName, self.fileName), 'w')
-                f.write(self.page1.title.GetValue())
+            #try:
+                shelveObject = shelve.open(os.path.join(self.dirName, self.fileName),'n')
+                for key in dir():
+                  try:
+                    shelveObject[key] = globals()[key]
+                  except:
+                    pass # __builtins__ and shelveObject cannot be shelved
+                shelveObject.close()
+                #f = file(os.path.join(self.dirName, self.fileName), 'w')
+                #f.write(self.page1.title.GetValue())
                 #self.PushStatusText("Saved file: " + str(self.rtb.GetLastPosition()) + " characters.", SB_INFO)
-                f.close()
-                return True
-            except:
+                #f.close()
+                #return True
+            #except:
                 #self.PushStatusText("Error in saving file.", SB_INFO)
-                print "Save failed"
-                pass
+                #print "Save failed"
+                #pass
                 
-                return False
+                #return False
         else:
             ### - If no name yet, then use the OnFileSaveAs to get name/directory
             return self.OnFileSaveAs(e)
@@ -168,7 +197,7 @@ class MainFrame(wx.Frame):
         """ File|SaveAs event - Prompt for File Name. """
         ret = False
         dlg = wx.FileDialog(self, "Save As", self.dirName, self.fileName,
-                           "Text Files (*.txt)|*.txt|All Files|*.*", wx.SAVE)
+                           "Text Files (*.hyd)|*.hyd|All Files|*.*", wx.SAVE)
         if (dlg.ShowModal() == wx.ID_OK):
             self.fileName = dlg.GetFilename()
             self.dirName = dlg.GetDirectory()

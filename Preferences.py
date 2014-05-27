@@ -216,7 +216,7 @@ class PreferencesFrame(wx.Frame):
         self.amax_db_label = wx.StaticText(self.panel, -1, "AMAX databse")
         self.amax_db = wx.TextCtrl(self.panel, -1, self.amax_db_path)
         
-        self.hiflows_dataset_label = wx.StaticText(self.panel, -1, "For copyright the Hiflows dataset must be downloaded")
+        self.hiflows_dataset_label = wx.StaticText(self.panel, -1, "For copyright the Hiflows dataset must be downloaded from \n http://www.ceh.ac.uk/data/nrfa/peakflow_overview.html")
         
         self.generate_qmed_cds_dbs_btn = wx.Button(self.panel, -1, ' Create QMED & CDS database ')
         self.generate_amax_dbs_btn = wx.Button(self.panel, -1, ' Create AMAX database ')
