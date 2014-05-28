@@ -83,7 +83,14 @@ class Fpanel(wx.Panel):
       self.locally_adjusted_qmed = wx.TextCtrl(self, -1, "-", style =wx.TE_READONLY)
       
       self.update_for_urb_chk = wx.CheckBox(self,-1,'Update for urbanisation')
-
+      self.urban_expansion_factor_label = wx.StaticText(self, -1, "Urban expansion factor")
+      self.adjusted_urbext_label = wx.StaticText(self, -1, "Adjusted URBEXT")
+      self.urban_adjustment_factor_label = wx.StaticText(self, -1, "Urban adjustment factor")
+      
+      self.urban_expansion_factor = wx.TextCtrl(self, -1, "-", style =wx.TE_READONLY)
+      self.adjusted_urbext = wx.TextCtrl(self, -1, "-", style =wx.TE_READONLY)
+      self.urban_adjustment_factor = wx.TextCtrl(self, -1, "-", style =wx.TE_READONLY)
+      
       self.adopted_qmed_label = wx.StaticText(self, -1, "Adopted QMED")
       self.adopted_qmed = wx.TextCtrl(self, -1, "-", style =wx.TE_READONLY)
       
@@ -143,13 +150,20 @@ class Fpanel(wx.Panel):
       sizer.Add(self.distance_decay_update, pos=(12,0),span=(1,2))
       sizer.Add(self.direct_transfer_update, pos=(13,0),span=(1,2))
       
-      sizer.Add(self.locally_adjusted_qmed_label, pos=(14,0),span=(1,1))
-      sizer.Add(self.locally_adjusted_qmed, pos=(14,1),span=(1,1))
+      sizer.Add(self.locally_adjusted_qmed_label, pos=(13,2),span=(1,1))
+      sizer.Add(self.locally_adjusted_qmed, pos=(13,3),span=(1,1))
       
-      sizer.Add(self.update_for_urb_chk,pos=(15,1),span=(1,1))
+      sizer.Add(self.update_for_urb_chk,pos=(15,0),span=(1,1))
+      sizer.Add(self.urban_expansion_factor,pos=(16,1),span=(1,1))
+      sizer.Add(self.adjusted_urbext,pos=(17,1),span=(1,1))
+      sizer.Add(self.urban_adjustment_factor,pos=(18,1),span=(1,1))
+      sizer.Add(self.urban_expansion_factor_label,pos=(16,0),span=(1,1))
+      sizer.Add(self.adjusted_urbext_label,pos=(17,0),span=(1,1))
+      sizer.Add(self.urban_adjustment_factor_label,pos=(18,0),span=(1,1))
       
-      sizer.Add(self.adopted_qmed_label, pos=(16,0),span=(1,1))
-      sizer.Add(self.adopted_qmed, pos=(16,1),span=(1,1))
+      sizer.Add(self.adopted_qmed_label, pos=(18,4),span=(1,1))
+      sizer.Add(self.adopted_qmed, pos=(18,5),span=(1,1))
+      
       
       #  Assign actions to buttons
       self.calc_cds2008_btn.Bind(wx.EVT_BUTTON, self.calcCds2008)
