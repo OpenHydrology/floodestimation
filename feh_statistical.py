@@ -5,16 +5,16 @@ def channel_width_qmed(width):
         return qmed
 
 def area_based_qmed(carea):
-        import math
-        ae = 1.0 - 0.015 * math.log(carea/0.5)
+        from math import log
+        ae = 1.0 - 0.015 * log(carea/0.5)
         
         qmed = 1.172 * (carea ** ae)
         return qmed
         
 def qmed_cds1999(carea,saar,farl,sprhost,bfihost):
-        import math
+        from math import log
         reshost = bfihost +1.3*(sprhost/100.0)-0.987
-        ae = 1.0 - 0.015 * math.log(carea/0.5)
+        ae = 1.0 - 0.015 * log(carea/0.5)
         
         qmed = 1.172 * (carea ** ae)*((saar/1000.0)**1.560)*(farl**2.642)*((sprhost/100.0)**1.211)*0.0198**reshost
         return qmed
@@ -31,3 +31,20 @@ def calc_asg(d):
 def distance_decaying_weighting_factor(qmed_error,asg):
     f = qmed_error**asg
     return f
+
+def calc_uef(year):
+  from math import atan
+  uef =0.7851+0.2124*(atan((year-1967.5)/20.32))
+  
+  if uef < 1.0:
+    uef = 1.0
+  
+  return uef
+
+def calc_pruaf (urbext,bfihost):
+  pruaf = 1 + 0.47 * urbext*(bfihost/(1-bfihost))
+  return pruaf
+
+def calc_uaf(urbext,pruaf):
+  uaf = ((1+urbext)**0.37)*((pruaf)**2.16)
+  return uaf

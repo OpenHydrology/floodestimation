@@ -7,13 +7,14 @@ Created on 7 May 2014
 import wx,os
 import numpy as np
 
-def createDatabase(searchPath,outfile):
+def createCdsDatabase(searchPath,outfile):
   f = open(outfile,'w')
-  f.write("VERSION, STATION, NAME, GRID, IHDTM X, IHDTM Y , CENTROID X, CENTROID Y, DTM AREA, ALTBAR, ASPBAR, BFIHOST, DPLBAR, DPSBAR, FARL, FPEXT, LDP, PROPWET, RMED1H, RMED1D, RMED2D, SAAR, SAAR4170, SPRHOST, URBCONC1990, URBEXT1990, URBLOC1990, URBCONC2000, URBEXT2000, URBLOC2000,SUIT QMED, SUIT POOL, QMed_obs,\n")
+  f.write("VERSION, STATION, NAME, GRID, IHDTM X, IHDTM Y , CENTROID X, CENTROID Y, DTM AREA, ALTBAR, ASPBAR, BFIHOST, DPLBAR, DPSBAR, FARL, FPEXT, LDP, PROPWET, RMED1H, RMED1D, RMED2D, SAAR, SAAR4170, SPRHOST, URBCONC1990, URBEXT1990, URBLOC1990, URBCONC2000, URBEXT2000, URBLOC2000,SUIT QMED, SUIT POOL, QMed_obs, AMAX,\n")
 
   searchForDirectories(searchPath,f)
   
   f.close()
+
 
 def searchForDirectories(searchPath,f):
   list = os.listdir(searchPath)
@@ -51,7 +52,7 @@ def qmedFromAmFile(file):
   except:
     print file,amaxSeries
   
-  return qmed
+  return qmed,amaxSeries
   
 def readFile(filePath,f):
             FILE = open(filePath,"r") 
@@ -171,11 +172,15 @@ def readFile(filePath,f):
             
             amFile = filePath[:-3]+'AM'
             
-            qmed = qmedFromAmFile(amFile)
+            qmed,amaxSeries = qmedFromAmFile(amFile)
+            
+            amaxStr =''
+            for a in amaxSeries:
+              amaxStr=amaxStr+str(a)+', '
            
             #if filename[-3:]  == suffix:
             try:
-              f.write(str(VERSION)+","+str(STATION)+","+str(NAME)+","+str(GRID)+","+str(IHDTM_NGR)+","+str(CENTROID_NGR)+","+str(AREA)+","+str(ALTBAR)+","+str(ASPBAR)+","+str(BFIHOST)+","+str(DPLBAR)+","+str(DPSBAR)+","+str(FARL)+","+str(FPEXT)+","+str(LDP)+","+str(PROPWET)+","+str(RMED1H)+","+str(RMED1D)+","+str(RMED2D)+","+str(SAAR)+","+str(SAAR4170)+","+str(SPRHOST)+","+str(URBCONC1990)+","+str(URBEXT1990)+","+str(URBLOC1990)+","+str(URBCONC2000)+","+str(URBEXT2000)+","+str(URBLOC2000)+","+str(SUIT_QMED)+","+str(SUIT_POOL)+","+str(qmed)+', \n')
+              f.write(str(VERSION)+","+str(STATION)+","+str(NAME)+","+str(GRID)+","+str(IHDTM_NGR)+","+str(CENTROID_NGR)+","+str(AREA)+","+str(ALTBAR)+","+str(ASPBAR)+","+str(BFIHOST)+","+str(DPLBAR)+","+str(DPSBAR)+","+str(FARL)+","+str(FPEXT)+","+str(LDP)+","+str(PROPWET)+","+str(RMED1H)+","+str(RMED1D)+","+str(RMED2D)+","+str(SAAR)+","+str(SAAR4170)+","+str(SPRHOST)+","+str(URBCONC1990)+","+str(URBEXT1990)+","+str(URBLOC1990)+","+str(URBCONC2000)+","+str(URBEXT2000)+","+str(URBLOC2000)+","+str(SUIT_QMED)+","+str(SUIT_POOL)+","+str(qmed)+', '+amaxStr+' \n')
             except:
               pass
 
@@ -213,28 +218,28 @@ class PreferencesFrame(wx.Frame):
         
         self.qmed_cds_dbs_label = wx.StaticText(self.panel, -1, "CDS and QMED database")
         self.qmed_cds_dbs = wx.TextCtrl(self.panel, -1, self.qmed_cds_dbs_path)
-        self.amax_db_label = wx.StaticText(self.panel, -1, "AMAX databse")
-        self.amax_db = wx.TextCtrl(self.panel, -1, self.amax_db_path)
+        #self.amax_db_label = wx.StaticText(self.panel, -1, "AMAX databse")
+        #self.amax_db = wx.TextCtrl(self.panel, -1, self.amax_db_path)
         
         self.hiflows_dataset_label = wx.StaticText(self.panel, -1, "For copyright the Hiflows dataset must be downloaded from \n http://www.ceh.ac.uk/data/nrfa/peakflow_overview.html")
         
         self.generate_qmed_cds_dbs_btn = wx.Button(self.panel, -1, ' Create QMED & CDS database ')
-        self.generate_amax_dbs_btn = wx.Button(self.panel, -1, ' Create AMAX database ')
+        #self.generate_amax_dbs_btn = wx.Button(self.panel, -1, ' Create AMAX database ')
         self.cancel_btn = wx.Button(self.panel, -1, ' Cancel ')
         self.save_btn = wx.Button(self.panel, -1, ' Save ')
         self.generate_qmed_cds_dbs_btn.Bind(wx.EVT_BUTTON, self.OnGenerateQmedCdsDb)
-        self.generate_amax_dbs_btn.Bind(wx.EVT_BUTTON, self.OnGenerateAmaxDb)
+        #self.generate_amax_dbs_btn.Bind(wx.EVT_BUTTON, self.OnGenerateAmaxDb)
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnCancel)
         self.save_btn.Bind(wx.EVT_BUTTON, self.OnSave)
         
         sizer = wx.GridBagSizer(vgap=10, hgap=10)
         sizer.Add(self.qmed_cds_dbs_label, pos=(0, 0), span=(1,1))
         sizer.Add(self.qmed_cds_dbs, pos=(0, 1), span=(1,1))
-        sizer.Add(self.amax_db_label, pos=(1, 0), span=(1,1))
-        sizer.Add(self.amax_db, pos=(1, 1), span=(1,1))
+        #sizer.Add(self.amax_db_label, pos=(1, 0), span=(1,1))
+        #sizer.Add(self.amax_db, pos=(1, 1), span=(1,1))
         
         sizer.Add(self.generate_qmed_cds_dbs_btn, pos=(0, 2), span=(1,1))
-        sizer.Add(self.generate_amax_dbs_btn, pos=(1, 2), span=(1,1))
+        #sizer.Add(self.generate_amax_dbs_btn, pos=(1, 2), span=(1,1))
         sizer.Add(self.hiflows_dataset_label,pos=(2,0), span=(1,3))
         sizer.Add(self.cancel_btn, pos=(4, 3), span=(1,1))
         sizer.Add(self.save_btn, pos=(4, 4), span=(1,1))
@@ -254,11 +259,11 @@ class PreferencesFrame(wx.Frame):
       if loadBox.ShowModal() == wx.ID_OK:
         searchPath = loadBox.GetPath()  
         outfile = 'qmed_database.csv'
-        createDatabase(searchPath,outfile)
+        createCdsDatabase(searchPath,outfile)
         self.qmed_cds_dbs.SetLabel(outfile)
     
-    def OnGenerateAmaxDb(self,event):
-      pass        
+    #def OnGenerateAmaxDb(self,event):
+      #pass        
     
     def OnCancel(self,event):
       self.Destroy()

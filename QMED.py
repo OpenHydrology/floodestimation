@@ -83,6 +83,7 @@ class Fpanel(wx.Panel):
       self.locally_adjusted_qmed = wx.TextCtrl(self, -1, "-", style =wx.TE_READONLY)
       
       self.update_for_urb_chk = wx.CheckBox(self,-1,'Update for urbanisation')
+      self.Bind(wx.EVT_CHECKBOX, self.SetUrbanChk, id=self.update_for_urb_chk.GetId())
       self.urban_expansion_factor_label = wx.StaticText(self, -1, "Urban expansion factor")
       self.adjusted_urbext_label = wx.StaticText(self, -1, "Adjusted URBEXT")
       self.urban_adjustment_factor_label = wx.StaticText(self, -1, "Urban adjustment factor")
@@ -340,6 +341,40 @@ class Fpanel(wx.Panel):
           self.Refresh()
           self.Update()
     
+    def SetUef(self):
+      year = int(self.p.assessment_year.GetValue())
+      uef = feh_statistical.calc_uef(year) 
+      
+      self.urban_expansion_factor.SetLabel(str(uef))
+    
+    def SetUaf(self):
+      unadj_urbext = float(self.p.urbext2000.GetValue())
+      uef = float(self.urban_expansion_factor.GetValue())
+      
+      adj_urbext = unadj_urbext*uef
+      
+      self.adjusted_urbext.SetLabel(str(adj_urbext))
+      
+      bfihost = float(self.p.bfihost.GetValue())
+      pruaf = feh_statistical.calc_pruaf(adj_urbext, bfihost)
+      
+      uaf = feh_statistical.calc_uaf(adj_urbext, pruaf)
+      self.urban_adjustment_factor.SetLabel(str(uaf))
+    
+    def SetAdoptedQmed(self):
+      # find the value of the urban adjustment check box
+      adjustForUrbanisation = bool(self.update_for_urb_chk.GetValue())
+      if adjustForUrbanisation == True:
+        flow = float(self.locally_adjusted_qmed.GetValue())
+        urb_adj = float(self.urban_adjustment_factor.GetValue())
+        self.adopted_qmed.SetLabel(str(flow*urb_adj))
+      else:
+        flow = float(self.locally_adjusted_qmed.GetValue())
+        self.adopted_qmed.SetLabel(str(flow))  
+    
+    def SetUrbanChk(self,event):
+      self.update_flows()
+    
     def SetUpdate(self,event):
       qmed_cds = float(self.selected_unadj_qmed.GetValue())
       f=list()
@@ -371,6 +406,9 @@ class Fpanel(wx.Panel):
       
       if bool(self.dont_update.GetValue()) == True:
         self.locally_adjusted_qmed.SetLabel(str(qmed_cds))
+      
+      self.update_flows()
+      
       self.Refresh()
       self.Update()
     
@@ -481,4 +519,9 @@ class Fpanel(wx.Panel):
         dlg = wx.MessageDialog(self, "QMED and CDS database not found.  This must be generated before the software can be used.", "Database error", wx.OK)
         dlg.ShowModal() # Shows it
         dlg.Destroy() # finally destroy it when finished.
+  
+    def update_flows(self):
       
+      self.SetUef()
+      self.SetUaf()
+      self.SetAdoptedQmed()
