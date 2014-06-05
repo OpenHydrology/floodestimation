@@ -1,7 +1,29 @@
 '''
 Created on 7 May 2014
 
-@author: NUT67271
+@author: Neil Nutt, neilnutt[at]googlemail[dot]com
+
+
+Preferences window, also looks after generation of the QMED/cds database
+
+    Statistical Flood Estimation Tool
+    Copyright (C) 2014  Neil Nutt, neilnutt[at]googlemail[dot]com
+    https://github.com/OpenHydrology/StatisticalFloodEstimationTool
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
 '''
 
 import wx,os
@@ -14,7 +36,6 @@ def createCdsDatabase(searchPath,outfile):
   searchForDirectories(searchPath,f)
   
   f.close()
-
 
 def searchForDirectories(searchPath,f):
   list = os.listdir(searchPath)
@@ -167,12 +188,24 @@ def readFile(filePath,f):
             #filecount = filecount + 1
             FILE.close()
             
-            if GRID.lower() !='gb' or SUIT_QMED.lower() != 'yes':
+            print filePath
+            
+            try:
+              if SUIT_QMED.lower() != 'yes':
+                return
+            except:
+                SUIT_QMED = 'not attributed'
+            
+            if GRID.lower() !='gb': 
               return
             
             amFile = filePath[:-3]+'AM'
             
-            qmed,amaxSeries = qmedFromAmFile(amFile)
+            try:
+              qmed,amaxSeries = qmedFromAmFile(amFile)
+            except IOError:
+              qmed='No .am file'
+              amaxSeries=[]
             
             amaxStr =''
             for a in amaxSeries:
@@ -221,7 +254,10 @@ class PreferencesFrame(wx.Frame):
         #self.amax_db_label = wx.StaticText(self.panel, -1, "AMAX databse")
         #self.amax_db = wx.TextCtrl(self.panel, -1, self.amax_db_path)
         
-        self.hiflows_dataset_label = wx.StaticText(self.panel, -1, "For copyright the Hiflows dataset must be downloaded from \n http://www.ceh.ac.uk/data/nrfa/peakflow_overview.html")
+        self.hiflows_dataset_label = wx.StaticText(self.panel, -1, "For copyright the latest dataset must be downloaded from the Hiflows website")
+        self.url = 'http://www.ceh.ac.uk/data/nrfa/data/peakflow_retrieval.html'
+        self.hiflows_url = wx.HyperlinkCtrl(self.panel,-1,self.url,self.url)
+        
         
         self.generate_qmed_cds_dbs_btn = wx.Button(self.panel, -1, ' Create QMED & CDS database ')
         #self.generate_amax_dbs_btn = wx.Button(self.panel, -1, ' Create AMAX database ')
@@ -231,6 +267,7 @@ class PreferencesFrame(wx.Frame):
         #self.generate_amax_dbs_btn.Bind(wx.EVT_BUTTON, self.OnGenerateAmaxDb)
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.OnCancel)
         self.save_btn.Bind(wx.EVT_BUTTON, self.OnSave)
+        self.hiflows_url.Bind(wx.EVT_HYPERLINK,self.OnClickUrl)
         
         sizer = wx.GridBagSizer(vgap=10, hgap=10)
         sizer.Add(self.qmed_cds_dbs_label, pos=(0, 0), span=(1,1))
@@ -241,6 +278,7 @@ class PreferencesFrame(wx.Frame):
         sizer.Add(self.generate_qmed_cds_dbs_btn, pos=(0, 2), span=(1,1))
         #sizer.Add(self.generate_amax_dbs_btn, pos=(1, 2), span=(1,1))
         sizer.Add(self.hiflows_dataset_label,pos=(2,0), span=(1,3))
+        sizer.Add(self.hiflows_url,pos=(3,0),span=(1,3))
         sizer.Add(self.cancel_btn, pos=(4, 3), span=(1,1))
         sizer.Add(self.save_btn, pos=(4, 4), span=(1,1))
         
@@ -251,6 +289,10 @@ class PreferencesFrame(wx.Frame):
         
         self.panel.Layout()
         self.panel.Refresh()
+    
+    def OnClickUrl(self,event):
+      from webbrowser import open
+      open(self.url)
     
     def OnGenerateQmedCdsDb(self,event):
       loadBox = wx.DirDialog(self, "Hiflows data directory ...","", wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
@@ -270,11 +312,11 @@ class PreferencesFrame(wx.Frame):
     
     def OnSave(self,event):
       self.qmed_cds_dbs_path = self.qmed_cds_dbs.GetValue()
-      self.amax_db_path = self.amax_db.GetValue()
+      #self.amax_db_path = self.amax_db.GetValue()
       
       pf = open('preferences.txt','w')
       
-      pf.write('amax_db_path:'+str(self.amax_db_path)+'\n')
+      #pf.write('amax_db_path:'+str(self.amax_db_path)+'\n')
       pf.write('qmed_cds_dbs_path:'+str(self.qmed_cds_dbs_path))
       
       pf.close()

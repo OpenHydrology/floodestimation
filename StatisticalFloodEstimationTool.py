@@ -1,7 +1,28 @@
 '''
 Created on 27 Apr 2014
 
-@author: NUT67271
+@author: Neil Nutt, neilnutt[at]googlemail[dot]com
+
+Main body, to be called first
+
+    Statistical Flood Estimation Tool
+    Copyright (C) 2014  Neil Nutt, neilnutt[at]googlemail[dot]com
+    https://github.com/OpenHydrology/StatisticalFloodEstimationTool
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
 '''
 import wx,os
 import FrontPage,CatchmentDescriptors,QMED,GrowthCurve,Summary
@@ -11,7 +32,7 @@ import FrontPage,CatchmentDescriptors,QMED,GrowthCurve,Summary
 
 class MainFrame(wx.Frame):
     def __init__(self, parent):
-      super(MainFrame, self).__init__(parent,title="Hydrology tools",size=(600,600))
+      super(MainFrame, self).__init__(parent,title="Statistical Flood Estimation Tool",size=(600,600))
 
       # --- initialize other settings
       self.dirName = ""
@@ -75,7 +96,8 @@ class MainFrame(wx.Frame):
         self.page1 = FrontPage.Fpanel(nb)
         self.page2 = CatchmentDescriptors.Fpanel(nb,self.page1)
         self.page3 = QMED.Fpanel(nb,self.page2)
-        self.page4 = GrowthCurve.Fpanel(nb)
+        #self.page4 = GrowthCurve.PoolingPanel(nb,self.page2,self.page3)
+        self.page4 = GrowthCurve.MainPanel(nb,self.page2,self.page3)
         self.page5 = Summary.Fpanel(nb)
 
         # add the pages to the notebook with the label to show on the tab
@@ -110,11 +132,65 @@ class MainFrame(wx.Frame):
       #self.Update()
       e.Skip() 
         
-    def OnAbout(self,e):
+    '''def OnAbout(self,e):
         # Create a message dialog box
         dlg = wx.MessageDialog(self, " FEH application tool \n developed in wxPython \n \n Prepare by Neil Nutt \n without warranty\n\n Visit wiki at https://github.com/OpenHydrology/StatisticalFloodEstimationTool/wiki", "FEH application tool", wx.OK)
         dlg.ShowModal() # Shows it
         dlg.Destroy() # finally destroy it when finished.
+'''
+
+    def OnAbout(self, e):
+        
+        description = """        The Statistical Flood Estimation Tool is a means of implementing current statistical
+        procedures for estimating the magnitude of flood flows in the United Kingdom using the methods 
+        detailed in the Flood Estimation Handbook and subsequent updates.  This is an early development
+        version, it is intended that additional features will be implemented in the coming months and years.
+"""
+
+        licence = """The Statistical Flood Estimation Tool is free software; you can redistribute 
+it and/or modify it under the terms of the GNU General Public License as 
+published by the Free Software Foundation; either version 2 of the License, 
+or (at your option) any later version.
+
+The Statistical Flood Estimation Tool is distributed in the hope that it will be useful, 
+but WITHOUT ANY WARRANTY; without even the implied warranty of 
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+See the GNU General Public License for more details. You should have 
+received a copy of the GNU General Public License along with File Hunter; 
+if not, write to the Free Software Foundation, Inc., 59 Temple Place, 
+Suite 330, Boston, MA  02111-1307  USA
+
+EXCEPTION CLAUSE:
+
+A. Organisations (commercial, academic, educational, private individual or
+  any other body) must publicly state via this software project's website
+  that they have undertaken a validation process of this software prior to 
+  its use.  In submitting their public declaration, organisations should 
+  provide details of the findings of their review including any caveats or
+  exclusions of use.  Organisations must record errors or bugs they find within
+  the software project's issue reporting system. This exclusion of use permits 
+  reasonable use of the software by organisations for testing and validation.
+  
+  Software project website:
+  https://github.com/OpenHydrology/StatisticalFloodEstimationTool/wiki
+
+
+"""
+
+
+
+        info = wx.AboutDialogInfo()
+
+        #info.SetIcon(wx.Icon('icon.png', wx.BITMAP_TYPE_PNG))
+        info.SetName('Statistical Flood Estimation Tool')
+        info.SetVersion('Pre-release 0.0.1')
+        info.SetDescription(description)
+        info.SetCopyright('(C) 2014 Neil Nutt')
+        info.SetWebSite('https://github.com/OpenHydrology/StatisticalFloodEstimationTool')
+        info.SetLicence(licence)
+        info.AddDeveloper('Neil Nutt neilnutt{at]googlemail[dot]com')
+
+        wx.AboutBox(info)
 
     def OnPreferences(self,e):
       '''

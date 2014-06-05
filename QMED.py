@@ -1,10 +1,31 @@
 '''
 Created on 27 Apr 2014
 
-@author: NUT67271
+@author: Neil Nutt, neilnutt[at]googlemail[dot]com
+
+Tab for calculating QMED
+
+    Statistical Flood Estimation Tool
+    Copyright (C) 2014  Neil Nutt, neilnutt[at]googlemail[dot]com
+    https://github.com/OpenHydrology/StatisticalFloodEstimationTool
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
 '''
 import wx,os,sys
-from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin, ColumnSorterMixin
+from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
 import feh_statistical,AMAX
 
 class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
@@ -12,7 +33,6 @@ class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
         wx.ListCtrl.__init__(self, parent, -1,size=(750,200), style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         CheckListCtrlMixin.__init__(self)
         ListCtrlAutoWidthMixin.__init__(self)
-        #ColumnSorterMixin.__init__(self,8)
 
 class Fpanel(wx.Panel):
     def __init__(self, parent,p):
@@ -183,6 +203,13 @@ class Fpanel(wx.Panel):
           #self.qmed_databse = "C:\\Users\\nut67271\\workspace\\StatisticalFloodEstimationTool\\qmed_db.csv"
           if os.path.isfile('preferences.txt')==False:
             '''Initialise preferences '''
+            pf = open('preferences.txt','w')
+      
+            self.qmed_cds_dbs_path = '-'
+            pf.write('qmed_cds_dbs_path:'+str(self.qmed_cds_dbs_path))
+      
+            pf.close()
+            
             import Preferences
             Preferences.PreferencesFrame(self).Show()
       
@@ -227,7 +254,9 @@ class Fpanel(wx.Panel):
             for field in station_cds_index:
               try:
                 station_cds[field]=float(entries[i])
-              except:
+              except ValueError:
+                station_cds[field]=str(entries[i])
+              except IndexError:
                 pass
               i=i+1
             
@@ -292,7 +321,7 @@ class Fpanel(wx.Panel):
               index = self.list.InsertStringItem(sys.maxint, str(int(station_cds['station'])))
               self.list.SetStringItem(index, 1, str(station_cds['distance']))
               self.list.SetStringItem(index, 2, str(station_cds['dtmarea']))
-              self.list.SetStringItem(index, 3, str(station_cds['saar']))
+              self.list.SetStringItem(index, 3, str(int(station_cds['saar'])))
               self.list.SetStringItem(index, 4, str(station_cds['bfihost']))
               self.list.SetStringItem(index, 5, str(station_cds['farl']))
               self.list.SetStringItem(index, 6, str(station_cds['qmed_obs']))
