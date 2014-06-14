@@ -93,7 +93,7 @@ class StandardPanel(wx.Panel):
       self.cds_tab=cds_tab
       
       
-      self.fgc_notes = wx.TextCtrl(self, -1, "Notes on FGC", size=(400,210),style=wx.TE_MULTILINE)
+      self.fgc_notes = wx.TextCtrl(self, -1, "Notes on FGC", size=(200,210),style=wx.TE_MULTILINE)
 
       
       standard_flood_growth_curve_names=['1','2','3','4','5','6','7']
@@ -104,7 +104,7 @@ class StandardPanel(wx.Panel):
       sizer.Add(self.fgc_notes, pos=(0,0), span=(7,4))
 
 
-      sizer.Add(self.floodGrowthCurveSelector, pos=(0,4),span=(3,3))
+      sizer.Add(self.floodGrowthCurveSelector, pos=(0,4),span=(3,2))
     
       
       border = wx.BoxSizer()
@@ -118,7 +118,7 @@ class StandardPanel(wx.Panel):
 
 class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
     def __init__(self, parent):
-        wx.ListCtrl.__init__(self, parent, -1,size=(750,200), style=wx.LC_REPORT | wx.SUNKEN_BORDER)
+        wx.ListCtrl.__init__(self, parent, -1,size=(750,150), style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         CheckListCtrlMixin.__init__(self)
         ListCtrlAutoWidthMixin.__init__(self)
 
@@ -129,8 +129,12 @@ class PoolingPanel(wx.Panel):
       
       #self.data_series = None
       #self.amax_data_series = None
+      self.subject_saar = float(self.cds_tab.saar.GetValue())
+      self.subject_carea = float(self.cds_tab.carea.GetValue())
+      self.subject_farl = float(self.cds_tab.farl.GetValue())
+      self.subject_fpext = float(self.cds_tab.fpext.GetValue())
       
-      self.fgc_notes = wx.TextCtrl(self, -1, "Notes on FGC", size=(400,210),style=wx.TE_MULTILINE)
+      self.fgc_notes = wx.TextCtrl(self, -1, "Notes on FGC", size=(400,100),style=wx.TE_MULTILINE)
       
       self.station_search_distance_label = wx.StaticText(self, -1, "Station search distance")
       
@@ -138,85 +142,111 @@ class PoolingPanel(wx.Panel):
       self.selected_years_of_record = wx.TextCtrl(self, -1, "-", style =wx.TE_READONLY)
       self.selected_stations_count_label = wx.StaticText(self, -1, "Number of stations")
       self.selected_stations_count = wx.TextCtrl(self, -1, "-", style =wx.TE_READONLY)
+      self.pooled_lcv_label = wx.StaticText(self, -1, "L-CV")
+      self.pooled_lcv = wx.TextCtrl(self, -1, "-", style =wx.TE_READONLY)
+      self.pooled_lskew_label = wx.StaticText(self, -1, "L-SKEW")
+      self.pooled_lskew = wx.TextCtrl(self, -1, "-", style =wx.TE_READONLY)      
+      self.goodness_of_fit_label = wx.StaticText(self, -1, "Goodness of fit")
+      self.goodness_of_fit = wx.TextCtrl(self, -1, "-", style =wx.TE_READONLY)
+      self.heterogeneity_label = wx.StaticText(self, -1, "Heterogeneity")
+      self.heterogeneity = wx.TextCtrl(self, -1, "-", style =wx.TE_READONLY)
 
-      self.add_next_best_station_btn = wx.Button(self, -1, ' Add next best station ')
-      self.remove_worst_station_btn = wx.Button(self, -1, ' Remove worst station ')
+      self.delete_tab_btn = wx.Button(self, -1, ' Delete tab ')
+      self.duplicate_tab_btn = wx.Button(self, -1, ' Duplicate tab ')
+
+      self.sort_by_geo_dist_btn = wx.Button(self, -1, 'Sort by geo dist')
+      self.sort_by_hyd_dist_btn = wx.Button(self, -1, 'Sort by hyd dist')
+      self.sort_by_user_dist_btn = wx.Button(self, -1, 'Sort by user dist')
       self.station_search_distance = wx.TextCtrl(self, -1, "1000.0")
       self.refresh_stations_btn = wx.Button(self, -1, ' Refresh stations ')
       self.add_station_btn = wx.Button(self, -1, ' Add station ')  
       self.remove_station_btn = wx.Button(self, -1, ' Remove station ')
       self.clear_user_stations_btn = wx.Button(self, -1, ' Clear add/removes ')
+      self.refresh_pooling_group_btn = wx.Button(self, -1, ' Refresh pooling ')
       
+      self.refresh_pooling_group_btn.Bind(wx.EVT_BUTTON, self.OnRefreshPoolingGroup)
       self.refresh_stations_btn.Bind(wx.EVT_BUTTON, self.OnRefreshStations)
       self.add_station_btn.Bind(wx.EVT_BUTTON, self.OnAddStation)
       self.remove_station_btn.Bind(wx.EVT_BUTTON, self.OnRemoveStation)
       self.clear_user_stations_btn.Bind(wx.EVT_BUTTON, self.OnClearUser)
+      self.delete_tab_btn.Bind(wx.EVT_BUTTON, self.OnDeleteTab)
+      self.duplicate_tab_btn.Bind(wx.EVT_BUTTON, self.OnDuplicateTab)
+      self.sort_by_geo_dist_btn.Bind(wx.EVT_BUTTON, self.SortByGeoDist)
+      self.sort_by_hyd_dist_btn.Bind(wx.EVT_BUTTON, self.SortByHydDist)
+      self.sort_by_user_dist_btn.Bind(wx.EVT_BUTTON, self.SortByUserDist)
       
-      self.winfap_2008_weighting = wx.RadioButton(self, -1, 'WINFAP 2008 weighting', style=wx.RB_GROUP)
-      self.feh_1999_weighting = wx.RadioButton(self, -1, "FEH 1999 weighting")
-      self.distance_weighting  = wx.RadioButton(self, -1, 'Distance weighting')
-      self.equal_weighting  = wx.RadioButton(self, -1, 'Equal weighting')
-      self.user_weighting  = wx.RadioButton(self, -1, 'User weighting')
+      self.winfap3_weighting = wx.RadioButton(self, -1, 'WINFAP3 hyd dist weighting', style=wx.RB_GROUP)
+      self.geo_distance_weighting  = wx.RadioButton(self, -1, 'Geo dist weighting')
+      self.user_dist_weighting  = wx.RadioButton(self, -1, 'User dist weighting')
       
-      self.Bind(wx.EVT_RADIOBUTTON, self.SetWeightingUpdate, id=self.winfap_2008_weighting.GetId())
-      self.Bind(wx.EVT_RADIOBUTTON, self.SetWeightingUpdate, id=self.feh_1999_weighting.GetId())
-      self.Bind(wx.EVT_RADIOBUTTON, self.SetWeightingUpdate, id=self.distance_weighting.GetId())
-      self.Bind(wx.EVT_RADIOBUTTON, self.SetWeightingUpdate, id=self.equal_weighting.GetId())
-      self.Bind(wx.EVT_RADIOBUTTON, self.SetWeightingUpdate, id=self.user_weighting.GetId())
+      self.Bind(wx.EVT_RADIOBUTTON, self.SetWeightingUpdate, id=self.winfap3_weighting.GetId())
+      self.Bind(wx.EVT_RADIOBUTTON, self.SetWeightingUpdate, id=self.geo_distance_weighting.GetId())
+      self.Bind(wx.EVT_RADIOBUTTON, self.SetWeightingUpdate, id=self.user_dist_weighting.GetId())
       
-      self.Bind(wx.EVT_RADIOBUTTON, self.AddNextBestStation, id=self.user_weighting.GetId())
-      self.Bind(wx.EVT_RADIOBUTTON, self.RemoveWorstStation, id=self.user_weighting.GetId())
-       
+
       
       fitting_methods=['L-moments median (L-MED)','L-moments mean (L-MOM)','Generalised extreme variable (GEV)']
       self.fittingMethodSelector = wx.ListBox(self, id=-1, size=(200,50),style=wx.LB_SINGLE, choices=fitting_methods, name='Fitting method')
       self.fittingMethodSelector.SetSelection(0)
           
       sizer = wx.GridBagSizer(vgap=5, hgap=10)
-      sizer.Add(self.fgc_notes, pos=(0,0), span=(7,4))
+      sizer.Add(self.fgc_notes, pos=(0,0), span=(3,4))
       
       self.table = wx.Panel(self, -1)
       self.list = CheckListCtrl(self.table)
       self.list.InsertColumn(0, 'STATION')
-      self.list.InsertColumn(1, 'DISTANCE')
-      self.list.InsertColumn(2, 'AREA')
-      self.list.InsertColumn(3, 'SAAR')
-      self.list.InsertColumn(4, 'BFIHOST')
-      self.list.InsertColumn(5, 'FARL')
-      self.list.InsertColumn(6, 'FPEXT')
-      self.list.InsertColumn(7, 'RECORDS')
-      self.list.InsertColumn(8, 'QMED?')
-      self.list.InsertColumn(9, 'POOLING?')
-      self.list.InsertColumn(10, 'L-CV')
-      self.list.InsertColumn(11, 'W1')
-      self.list.InsertColumn(12, 'L-SKEW')
-      self.list.InsertColumn(13, 'W2')
+      self.list.InsertColumn(1, 'GEO DIST')
+      self.list.InsertColumn(2,'HYD DIST')
+      self.list.InsertColumn(3, 'AREA')
+      self.list.InsertColumn(4, 'SAAR')
+      self.list.InsertColumn(5, 'BFIHOST')
+      self.list.InsertColumn(6, 'FARL')
+      self.list.InsertColumn(7, 'FPEXT')
+      self.list.InsertColumn(8, 'RECORDS')
+      self.list.InsertColumn(9, 'QMED?')
+      self.list.InsertColumn(10, 'POOLING?')
+      self.list.InsertColumn(11, 'L-CV')
+      self.list.InsertColumn(12, 'L-CV W')
+      self.list.InsertColumn(13, 'L-SKEW')
+      self.list.InsertColumn(14, 'L-SKEW W')
       
       self.findStations()
       self.refreshStations()
       
-      sizer.Add(self.table, pos=(9,0),span=(1,6),flag=wx.EXPAND)
+      sizer.Add(self.table, pos=(5,0),span=(4,6),flag=wx.EXPAND)
       sizer.Add(self.station_search_distance_label, pos=(10,0),span=(1,1))
       sizer.Add(self.station_search_distance, pos=(10,1),span=(1,1))
       sizer.Add(self.refresh_stations_btn, pos=(10,2),span=(1,1))
       sizer.Add(self.add_station_btn, pos=(10,3),span=(1,1))
       sizer.Add(self.remove_station_btn, pos=(10,4),span=(1,1))
       sizer.Add(self.clear_user_stations_btn, pos=(10,5),span=(1,1))        
-      sizer.Add(self.winfap_2008_weighting, pos=(11,0),span=(1,2))
-      sizer.Add(self.feh_1999_weighting, pos=(12,0),span=(1,2))
-      sizer.Add(self.equal_weighting, pos=(13,0),span=(1,2))
-      sizer.Add(self.distance_weighting, pos=(14,0),span=(1,2))
-      sizer.Add(self.user_weighting, pos=(15,0),span=(1,2))
+      sizer.Add(self.winfap3_weighting, pos=(12,0),span=(1,2))
+      sizer.Add(self.geo_distance_weighting, pos=(13,0),span=(1,2))
+      sizer.Add(self.user_dist_weighting, pos=(14,0),span=(1,2))
       
-      sizer.Add(self.fittingMethodSelector, pos=(0,4),span=(3,3))
+      sizer.Add(self.fittingMethodSelector, pos=(0,4),span=(3,2))
+  
+      sizer.Add(self.sort_by_geo_dist_btn, pos=(5,7),span=(1,1))
+      sizer.Add(self.sort_by_hyd_dist_btn, pos=(6,7),span=(1,1))
+      sizer.Add(self.sort_by_user_dist_btn, pos=(7,7),span=(1,1))  
+      sizer.Add(self.refresh_pooling_group_btn,pos=(8,7),span=(1,1))
       
       sizer.Add(self.selected_years_of_record_label, pos=(12,4),span=(1,1))
       sizer.Add(self.selected_years_of_record, pos=(12,5),span=(1,1))
       sizer.Add(self.selected_stations_count_label, pos=(13,4),span=(1,1))
       sizer.Add(self.selected_stations_count, pos=(13,5),span=(1,1))
+      sizer.Add(self.pooled_lcv_label,pos=(14,4),span=(1,1))
+      sizer.Add(self.pooled_lcv,pos=(14,5),span=(1,1))
+      sizer.Add(self.pooled_lskew_label,pos=(15,4),span=(1,1))
+      sizer.Add(self.pooled_lskew,pos=(15,5),span=(1,1))
 
-      sizer.Add(self.add_next_best_station_btn, pos=(4,6),span=(1,1))
-      sizer.Add(self.remove_worst_station_btn, pos=(5,6),span=(1,1))
+      sizer.Add(self.goodness_of_fit_label ,pos=(16,4),span=(1,1))
+      sizer.Add(self.goodness_of_fit ,pos=(16,5),span=(1,1))
+      sizer.Add(self.heterogeneity_label,pos=(17,4),span=(1,1))     
+      sizer.Add(self.heterogeneity,pos=(17,5),span=(1,1)) 
+      
+      sizer.Add(self.delete_tab_btn ,pos=(1,7),span=(1,1))
+      sizer.Add(self.duplicate_tab_btn ,pos=(0,7),span=(1,1))
       
       border = wx.BoxSizer()
       border.Add(sizer, 0, wx.ALL, 20)
@@ -287,18 +317,29 @@ class PoolingPanel(wx.Panel):
             self.location_centroid_y = float(self.cds_tab.centroid_y.GetValue())
             station_cds['distance'] = 0.001*(((station_cds['centroidx']-self.location_centroid_x)**2.0+(station_cds['centroidy']-self.location_centroid_y))**2.0)**0.5        
             
-            
             station_cds['records']=len(station_cds['amaxList'])
-            station_cds['l-cv']=0.0
-            station_cds['l-skew']=0.0
-            station_cds['w1']=1.0
-            station_cds['w2']=1.0
+            
+            station_cds['hy_dist'] = feh_statistical.calc_feh_hyd_dist(self,station_cds)
+            
+            try:            
+              QMed,kappa,beta_GL_LMED,location  = feh_statistical.fitGLbyLMED(station_cds['amaxList'])
+              station_cds['l-cv']=beta_GL_LMED
+              station_cds['l-skew']=-kappa
+              lcv_w,lskew_w = feh_statistical.calc_weights(station_cds['hy_dist'],station_cds['records'])
+              station_cds['lcv_w']=lcv_w
+              station_cds['lskew_w']=lskew_w
+            
+              station_cds['user_added'] = None
+            
+              self.stations.append(station_cds)
+              
+            except ZeroDivisionError:
+              print station_cds['station']
+              
+            except ValueError:
+              print station_cds['station']
+      
 
-            
-            station_cds['user_added'] = None
-            
-            self.stations.append(station_cds)
-       
     def OnClearUser(self,event):
         i=0
         for station_cds in self.stations:
@@ -324,39 +365,37 @@ class PoolingPanel(wx.Panel):
             elif station_cds['user_added'] == False:
               pass
             else:
-              if bool(self.feh_1999_weighting.GetValue()) == True:
-                pass
-                #qmed_cds = feh_statistical.qmed_cds2008(station_cds['dtmarea'],station_cds['saar'],station_cds['farl'],station_cds['bfihost'])
-              if bool(self.winfap_2008_weighting.GetValue()) == True:
+              if bool(self.winfap3_weighting.GetValue()) == True:
                 pass
                 #qmed_cds = feh_statistical.qmed_cds1999(station_cds['dtmarea'],station_cds['saar'],station_cds['farl'],station_cds['sprhost'],station_cds['bfihost'])
-              if bool(self.equal_weighting.GetValue()) == True:
+              if bool(self.geo_distance_weighting.GetValue()) == True:
                 pass
                 #qmed_cds = feh_statistical.area_based_qmed(station_cds['dtmarea'])
-              if bool(self.user_weighting.GetValue()) == True:
+              if bool(self.user_dist_weighting.GetValue()) == True:
                 pass
                 #qmed_cds = station_cds['qmed_obs']
-              
+              '''
               try:
                 station_cds['qmed_error'] = station_cds['qmed_obs']/qmed_cds
               except:
                 station_cds['qmed_error'] = 0.0
               station_cds['asg'] = feh_statistical.calc_asg(station_cds['distance'])
-  
+              '''
               index = self.list.InsertStringItem(sys.maxint, str(int(station_cds['station'])))
               self.list.SetStringItem(index, 1, str(station_cds['distance']))
-              self.list.SetStringItem(index, 2, str(station_cds['dtmarea']))
-              self.list.SetStringItem(index, 3, str(int(station_cds['saar'])))
-              self.list.SetStringItem(index, 4, str(station_cds['bfihost']))
-              self.list.SetStringItem(index, 5, str(station_cds['farl']))
-              self.list.SetStringItem(index, 6, str(station_cds['fpext']))
-              self.list.SetStringItem(index, 7, str(station_cds['records']))
-              self.list.SetStringItem(index, 8, str(station_cds['suitqmed']))
-              self.list.SetStringItem(index, 9, str(station_cds['suitpool']))
-              self.list.SetStringItem(index, 10, str(station_cds['l-cv']))
-              self.list.SetStringItem(index, 11, str(station_cds['w1']))             
-              self.list.SetStringItem(index, 12, str(station_cds['l-skew']))
-              self.list.SetStringItem(index, 13, str(station_cds['w2']))
+              self.list.SetStringItem(index, 2, str(station_cds['hy_dist']))
+              self.list.SetStringItem(index, 3, str(station_cds['dtmarea']))
+              self.list.SetStringItem(index, 4, str(int(station_cds['saar'])))
+              self.list.SetStringItem(index, 5, str(station_cds['bfihost']))
+              self.list.SetStringItem(index, 6, str(station_cds['farl']))
+              self.list.SetStringItem(index, 7, str(station_cds['fpext']))
+              self.list.SetStringItem(index, 8, str(station_cds['records']))
+              self.list.SetStringItem(index, 9, str(station_cds['suitqmed']))
+              self.list.SetStringItem(index, 10, str(station_cds['suitpool']))
+              self.list.SetStringItem(index, 11, str(station_cds['l-cv']))
+              self.list.SetStringItem(index, 12, str(station_cds['lcv_w']))             
+              self.list.SetStringItem(index, 13, str(station_cds['l-skew']))
+              self.list.SetStringItem(index, 14, str(station_cds['lskew_w']))
 
 
     def OnAddStation(self,event):
@@ -377,6 +416,8 @@ class PoolingPanel(wx.Panel):
           self.refreshStations()
           self.Refresh()
           self.Update()
+
+
 
     def OnRemoveStation(self,event):
         stations_txt = list()
@@ -399,15 +440,65 @@ class PoolingPanel(wx.Panel):
           self.Refresh()
           self.Update()
           
+    def OnRefreshPoolingGroup(self,event):
+      self.calcWeights()
+
+    def calcWeights(self):   ####
+      weighted_lcvs=list()
+      lcv_weights=list()
+      weighted_lskews=list()
+      lskew_weights=list()
+      years_of_data=list()
+      stations = self.list.GetItemCount()
+      
+      if True == True:
+      #if bool(self.distance_decay_update.GetValue()) == True: 
+        for i in range(stations):
+          if bool(self.list.IsChecked(i)) == True:
+            years = int(self.list.GetItem(i,8).GetText())
+            lcv = float(self.list.GetItem(i,11).GetText())
+            lcv_w = float(self.list.GetItem(i,12).GetText())
+            lskew = float(self.list.GetItem(i,13).GetText())
+            lskew_w = float(self.list.GetItem(i,14).GetText())
+            weighted_lcvs.append(lcv*lcv_w)
+            lcv_weights.append(lcv_w)
+            weighted_lskews.append(lskew*lskew_w)
+            lskew_weights.append(lskew_w)
+            years_of_data.append(years)
+        if len(weighted_lcvs) == 0:
+          raise "No stations selected"
+        else:
+          weighted_lcv = sum(weighted_lcvs)/sum(lcv_weights)
+          weighted_lskew = sum(weighted_lskews)/sum(lskew_weights)
+          years_of_data = sum(years_of_data)
+          number_of_stations = len(weighted_lcvs)
+        self.pooled_lcv.SetLabel(str(weighted_lcv))
+        self.pooled_lskew.SetLabel(str(weighted_lskew))
+        self.selected_years_of_record.SetLabel(str(years_of_data))
+        self.selected_stations_count.SetLabel(str(number_of_stations))
+        
+      
+      self.Refresh()
+      self.Update()
+
+          
     def SetWeightingUpdate(self,event):
       pass
     
-    def AddNextBestStation(self,event):
+    def SortByGeoDist(self,event):
       pass
     
-    def RemoveWorstStation(self,event):
+    def SortByHydDist(self,event):
       pass
-        
+  
+    def SortByUserDist(self,event):
+      pass
+   
+    def OnDeleteTab(self,event):
+        pass
+    
+    def OnDuplicateTab(self,event):
+        pass
         
 
       

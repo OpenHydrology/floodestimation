@@ -71,3 +71,90 @@ def calc_pruaf (urbext,bfihost):
 def calc_uaf(urbext,pruaf):
   uaf = ((1+urbext)**0.37)*((pruaf)**2.16)
   return uaf
+
+
+def calc_feh_hyd_dist(self,station_cds):
+            from math import log
+            try:          
+              a =  3.2*((log(station_cds['dtmarea'])-log(self.subject_carea))/1.28)**2
+            except ValueError:
+              a = 1.0
+            try:
+              b = 0.5 *((log(station_cds['saar'])-log(self.subject_saar))/0.37)**2
+            except ValueError:
+              b = 1.0
+            try:
+              c = 0.1 *((log(station_cds['farl'])-log(self.subject_farl))/0.05)**2
+            except ValueError:
+              c = 1.0
+            try:
+              d = 0.2 *((log(station_cds['fpext'])-log(self.subject_fpext))/0.04)**2  
+            except ValueError:
+              d = 1.0  
+            hy_dist = (a+b+c+d)**0.5
+            
+            return hy_dist
+
+def fitGLbyLMED(AMAXseries):
+    from numpy import min,median,mean
+    import math    
+    AMAXseries.sort()
+    QMin=min(AMAXseries)
+    QMed=median(AMAXseries)
+    QBar=mean(AMAXseries)
+    recordLength=len(AMAXseries)     
+
+
+    # Fit GL distribution
+    b0 = QBar
+    b1_list=[0]
+    b2_list=[0,0]
+    b3_list=[0,0,0]                    
+        
+    for x in range(1,len(AMAXseries)+1):
+         b1_list.append(AMAXseries[x-1] * (x - 1) / (len(AMAXseries) - 1))
+    b1 = sum(b1_list) / len(AMAXseries)
+
+    for x in range(2,len(AMAXseries)+1):
+         b2_list.append(b1_list[x] * (x - 2) / (len(AMAXseries) - 2))                         
+    b2 = sum(b2_list) / len(AMAXseries)
+    
+    for x in range(3,len(AMAXseries)+1):
+         b3_list.append(b2_list[x] * (x - 3) / (len(AMAXseries) - 3))
+    b3 = sum(b3_list) / len(AMAXseries)
+
+    l1 = b0
+    l2 = 2 * b1 - b0
+    l3 = 6 * b2 - 6 * b1 + b0
+    l4 = 20 * b3 -30 * b2 + 12 * b1 - b0
+
+    t2 = l2 / l1  ## L-CV or beta
+    t3 = l3 / l2  ## L-skewness or -kappa
+    t4 = l4 / l2  ## L-Kurtosis
+
+    kappa = -t3
+    beta_GL_LMOM = t2
+    beta_GL_LMED = t2 * kappa * math.sin( math.pi * kappa ) / ( kappa * math.pi * (kappa + t2 ) - (t2 * math.sin ( math.pi * kappa )))
+    location = beta_GL_LMOM / beta_GL_LMED
+    
+    return QMed,kappa,beta_GL_LMED,location
+
+def calc_weights(hyd_dist,n_records):
+    lcvb = 0.0047*((hyd_dist)**0.5)+0.0023/2.0
+    lskewb = 0.00219*(1.0-2.718**(-hyd_dist/0.2360))
+    
+    lcvc = 0.02609/(n_records-1.0)
+    lskewc = 0.2743/(n_records-2.0)
+    
+    lcv_cjbj= (lcvb+lcvc)**-1.0
+    lskew_cjbj=(lskewb+lskewc)**-1.0
+    
+    return lcv_cjbj,lskew_cjbj
+  
+def calculateGrowthFactor_GL_LMED(beta,kappa,rp):
+    if rp<1.0:
+      #assume an aep has been provided
+      rp = 1.0/rp
+    # Calculate flows for return period list and print       
+    gf = QMed*(1. +(beta/kappa)*(1.0 - (rp - 1.0)**-kappa))
+    return gf
