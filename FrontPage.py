@@ -25,10 +25,12 @@ Front page tab for calculation, used to hold catchment title, author and checkin
 
 '''
 import wx,time,os
+import config
 
 class Fpanel(wx.Panel):
-    def __init__(self, parent):
+    def __init__(self, parent,p):
         wx.Panel.__init__(self, parent)
+        self.p=p
         #panel = wx.Panel(self, -1)
         self.title_label = wx.StaticText(self, -1, "Title" ) 
         purpose_label = wx.StaticText(self, -1, "Purpose of assessment" )         
@@ -84,9 +86,10 @@ class Fpanel(wx.Panel):
         self.Fit()
     
     def generateSignature(self):
-      username=os.environ['USERNAME']
+      #username=os.environ['USERNAME']
+      username=wx.GetUserName() 
       sign_time = time.asctime(time.localtime())
-      qmed = 0.0
+      qmed = config.adopted_qmed
       signature = "Adopted QMED="+str(qmed)+" "+str(username)+" "+str(sign_time)
       return signature
     
