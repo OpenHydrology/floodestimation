@@ -25,6 +25,7 @@ Tab used to store/collect catchment descriptors
 
 '''
 import wx,os,cds_reader,time
+import config
 
 class Fpanel(wx.Panel):
     def __init__(self, parent,p):

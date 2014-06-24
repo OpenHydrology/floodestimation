@@ -26,7 +26,7 @@ Tab for calculating QMED
 '''
 import wx,os,sys
 from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
-import feh_statistical,AMAX
+import feh_statistical,AMAX,config
 
 class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
     def __init__(self, parent):
@@ -41,6 +41,8 @@ class Fpanel(wx.Panel):
       
       self.data_series = None
       self.amax_data_series = None
+      
+      self.adoptedQmed = '-'
       
       self.calc_cds2008_btn = wx.Button(self, -1, ' QMED CDS 2008 ')
       self.calc_cds1999_btn = wx.Button(self, -1, ' QMED CDS 1999 ')
@@ -80,7 +82,7 @@ class Fpanel(wx.Panel):
       self.Bind(wx.EVT_RADIOBUTTON, self.SetVal, id=self.rb6.GetId())
       self.Bind(wx.EVT_RADIOBUTTON, self.SetVal, id=self.rb7.GetId())
 
-      self.station_search_distance = wx.TextCtrl(self, -1, "25.0")
+      self.station_search_distance = wx.TextCtrl(self, -1, "100.0")
       self.refresh_stations_btn = wx.Button(self, -1, ' Refresh stations ')
       self.add_station_btn = wx.Button(self, -1, ' Add station ')  
       self.remove_station_btn = wx.Button(self, -1, ' Remove station ')
@@ -205,7 +207,7 @@ class Fpanel(wx.Panel):
             '''Initialise preferences '''
             pf = open('preferences.txt','w')
       
-            self.qmed_cds_dbs_path = '-'
+            self.qmed_cds_dbs_path = 'qmed_database.csv'
             pf.write('qmed_cds_dbs_path:'+str(self.qmed_cds_dbs_path))
       
             pf.close()
@@ -229,7 +231,6 @@ class Fpanel(wx.Panel):
                   print 'QMED DB not found, need to raise error'
                   self.stations = list()
                   return
-      
             
           f = open(self.qmed_cds_dbs_path,'r')
           lines = f.readlines()
@@ -290,6 +291,9 @@ class Fpanel(wx.Panel):
       
     def refreshStations(self):
       self.search_distance =float(self.station_search_distance.GetValue())
+      
+      self.stations.sort(key = lambda station_cds: station_cds['distance'])
+      
       for station_cds in self.stations:
             station_cds['distance'] = 0.001*(((station_cds['centroidx']-self.location_centroid_x)**2.0+(station_cds['centroidy']-self.location_centroid_y)**2.0))**0.5
             if station_cds['distance'] > self.search_distance and station_cds['user_added'] != True:
@@ -325,7 +329,10 @@ class Fpanel(wx.Panel):
               self.list.SetStringItem(index, 4, str(station_cds['bfihost']))
               self.list.SetStringItem(index, 5, str(station_cds['farl']))
               self.list.SetStringItem(index, 6, str(station_cds['qmed_obs']))
-              self.list.SetStringItem(index, 7, str(station_cds['qmed_error']))
+              try:
+                self.list.SetStringItem(index, 7, str(station_cds['qmed_error']))
+              except KeyError:
+                pass
               self.list.SetStringItem(index, 8, str(station_cds['asg']))
 
     def OnAddStation(self,event):
@@ -390,16 +397,20 @@ class Fpanel(wx.Panel):
       uaf = feh_statistical.calc_uaf(adj_urbext, pruaf)
       self.urban_adjustment_factor.SetLabel(str(uaf))
     
+      
     def SetAdoptedQmed(self):
       # find the value of the urban adjustment check box
       adjustForUrbanisation = bool(self.update_for_urb_chk.GetValue())
       if adjustForUrbanisation == True:
         flow = float(self.locally_adjusted_qmed.GetValue())
         urb_adj = float(self.urban_adjustment_factor.GetValue())
-        self.adopted_qmed.SetLabel(str(flow*urb_adj))
+        self.adoptedQmed = flow*urb_adj
+        self.adopted_qmed.SetLabel(str(self.adoptedQmed))
+        config.adopted_qmed = self.adoptedQmed
       else:
-        flow = float(self.locally_adjusted_qmed.GetValue())
-        self.adopted_qmed.SetLabel(str(flow))  
+        self.adoptedQmed = float(self.locally_adjusted_qmed.GetValue())
+        self.adopted_qmed.SetLabel(str(self.adoptedQmed))
+        config.adopted_qmed = self.adoptedQmed  
     
     def SetUrbanChk(self,event):
       self.update_flows()

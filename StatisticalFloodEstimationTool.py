@@ -93,7 +93,7 @@ class MainFrame(wx.Frame):
         nb = wx.Notebook(self.panel)
 
         # create the page windows as children of the notebook
-        self.page1 = FrontPage.Fpanel(nb)
+        self.page1 = FrontPage.Fpanel(nb,self)
         self.page2 = CatchmentDescriptors.Fpanel(nb,self.page1)
         self.page3 = QMED.Fpanel(nb,self.page2)
         #self.page4 = GrowthCurve.PoolingPanel(nb,self.page2,self.page3)

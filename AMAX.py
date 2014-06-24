@@ -27,6 +27,7 @@ Called from within the QMED tab
 
 import wx
 import numpy as np
+import config
 
 class AmaxFrame(wx.Frame):
     def __init__(self, parent):

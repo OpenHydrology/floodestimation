@@ -156,5 +156,5 @@ def calculateGrowthFactor_GL_LMED(beta,kappa,rp):
       #assume an aep has been provided
       rp = 1.0/rp
     # Calculate flows for return period list and print       
-    gf = QMed*(1. +(beta/kappa)*(1.0 - (rp - 1.0)**-kappa))
+    gf = (1. +(beta/kappa)*(1.0 - (rp - 1.0)**-kappa))
     return gf

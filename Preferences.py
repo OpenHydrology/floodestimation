@@ -28,6 +28,7 @@ Preferences window, also looks after generation of the QMED/cds database
 
 import wx,os
 import numpy as np
+import config
 
 def createCdsDatabase(searchPath,outfile):
   f = open(outfile,'w')
@@ -249,9 +250,9 @@ class PreferencesFrame(wx.Frame):
         self.p = parent
         
         
-        self.qmed_cds_dbs_label = wx.StaticText(self.panel, -1, "CDS and QMED database")
+        self.qmed_cds_dbs_label = wx.StaticText(self.panel, -1, "CDS and flows database")
         self.qmed_cds_dbs = wx.TextCtrl(self.panel, -1, self.qmed_cds_dbs_path)
-        #self.amax_db_label = wx.StaticText(self.panel, -1, "AMAX databse")
+        #self.amax_db_label = wx.StaticText(self.panel, -1, "AMAX database")
         #self.amax_db = wx.TextCtrl(self.panel, -1, self.amax_db_path)
         
         self.hiflows_dataset_label = wx.StaticText(self.panel, -1, "For copyright the latest dataset must be downloaded from the Hiflows website")
@@ -259,7 +260,7 @@ class PreferencesFrame(wx.Frame):
         self.hiflows_url = wx.HyperlinkCtrl(self.panel,-1,self.url,self.url)
         
         
-        self.generate_qmed_cds_dbs_btn = wx.Button(self.panel, -1, ' Create QMED & CDS database ')
+        self.generate_qmed_cds_dbs_btn = wx.Button(self.panel, -1, ' Create CDS & flow database ')
         #self.generate_amax_dbs_btn = wx.Button(self.panel, -1, ' Create AMAX database ')
         self.cancel_btn = wx.Button(self.panel, -1, ' Cancel ')
         self.save_btn = wx.Button(self.panel, -1, ' Save ')
