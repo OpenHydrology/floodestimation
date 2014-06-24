@@ -26,7 +26,8 @@ Tab for generating the flood growth curve
 '''
 import wx,os,sys
 from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
-import feh_statistical
+import wx.lib.plot as plot
+import feh_statistical,config
 
 
 class MainPanel(wx.Panel):
@@ -93,25 +94,82 @@ class StandardPanel(wx.Panel):
       self.cds_tab=cds_tab
       
       
-      self.fgc_notes = wx.TextCtrl(self, -1, "Notes on FGC", size=(200,210),style=wx.TE_MULTILINE)
+      self.fgc_notes = wx.TextCtrl(self, -1, "Notes on use of standard FSR growth curve", size=(400,100),style=wx.TE_MULTILINE)
 
       
-      standard_flood_growth_curve_names=['1','2','3','4','5','6','7']
-      self.floodGrowthCurveSelector = wx.ListBox(self, id=-1, size=(200,50),style=wx.LB_SINGLE, choices=standard_flood_growth_curve_names, name='Standard curve')
+      standard_flood_growth_curve_names=['1','2','3','4','5','6','7','8','9','10']
+      self.floodGrowthCurveSelector = wx.ListBox(self, id=-1, size=(200,100),style=wx.LB_SINGLE, choices=standard_flood_growth_curve_names, name='Standard curve')
       self.floodGrowthCurveSelector.SetSelection(0)
       
+      self.list_ctrl = wx.ListCtrl(self, size=(350,200),style=wx.LC_REPORT|wx.BORDER_SUNKEN)
+      self.list_ctrl.InsertColumn(0, 'RP (yr)', width=100)
+      self.list_ctrl.InsertColumn(1, 'AEP (%)', width=100)
+      self.list_ctrl.InsertColumn(2, 'Growth factor', width=100)
+      
+      self.addStardardRPs()
+      self.floodGrowthCurveSelector.Bind(wx.EVT_LISTBOX, self.onChangeGrowthCurve)
+      
       sizer = wx.GridBagSizer(vgap=5, hgap=10)
-      sizer.Add(self.fgc_notes, pos=(0,0), span=(7,4))
-
+      sizer.Add(self.fgc_notes, pos=(0,0), span=(1,4))
+      sizer.Add(self.list_ctrl,pos=(1,0),span=(1,4))
 
       sizer.Add(self.floodGrowthCurveSelector, pos=(0,4),span=(3,2))
-    
+      
+      self.updateFloodGrowthCurves()
       
       border = wx.BoxSizer()
       border.Add(sizer, 0, wx.ALL, 20)
       self.SetSizerAndFit(border)
       self.Fit()
+      
+    def onChangeGrowthCurve(self,event):    
+      self.updateFloodGrowthCurves()
 
+      
+    def updateFloodGrowthCurves(self):
+      # Find out what growth curve is selected
+      from numpy import interp
+      i = self.floodGrowthCurveSelector.GetSelection()
+      fgcName =self.floodGrowthCurveSelector.GetString(i)
+      #fgcName = self.list_ctrl.GetItemText(0)
+      yrs = [2,5,10,25,50,100,500]
+      
+      
+      if fgcName == '1':   
+        fgcfs = [1.0,1.33,1.61,2.01,2.36,2.76,3.61]
+      elif fgcName == '2':
+        fgcfs = [1.0,1.22,1.56,1.99,2.38,2.89,3.79]
+      elif fgcName == '3':
+        fgcfs = [1.0,1.33,1.54,1.81,2.02,2.21,2.90]
+      elif fgcName == '4':
+        fgcfs = [1.0,1.38,1.67,2.10,2.47,2.89,4.07]
+      elif fgcName == '5':
+        fgcfs = [1.0,1.45,1.85,2.53,3.18,4.00,5.64]
+      elif fgcName == '6':
+        fgcfs = [1.0,1.45,1.84,2.43,2.98,3.63,5.10]
+      elif fgcName == '7':
+        fgcfs = [1.0,1.45,1.84,2.43,2.98,3.63,5.10]        
+      elif fgcName == '8':
+        fgcfs = [1.0,1.40,1.69,2.09,2.41,2.75,3.88]       
+      elif fgcName == '9':
+        fgcfs = [1.0,1.30,1.53,1.84,2.09,2.34,3.08]      
+      elif fgcName == '10':
+        fgcfs = [1.0,1.28,1.48,1.76,1.99,2.24,2.94] 
+
+        
+      for i in range(self.list_ctrl.GetItemCount()):
+        rp = float(self.list_ctrl.GetItem(i,0).GetText())
+        growthFactor = round(interp(rp,yrs,fgcfs),3)
+        self.list_ctrl.SetStringItem(i, 2, str(growthFactor))
+      
+    def  addStardardRPs(self):
+      events = [[2.0,0.5],[10.0,0.1],[50.0,0.02],[100.0,0.01],[200.0,0.05],[500.0,0.002]]
+      self.index =0
+      for rp,aep, in events:     
+        index = self.list_ctrl.InsertStringItem(sys.maxint, str(rp))
+        self.list_ctrl.SetStringItem(index, 1, str(aep))
+        self.list_ctrl.SetStringItem(index, 2, str('-'))
+        self.index += 1
 
 
 
@@ -164,6 +222,18 @@ class PoolingPanel(wx.Panel):
       self.clear_user_stations_btn = wx.Button(self, -1, ' Clear add/removes ')
       self.refresh_pooling_group_btn = wx.Button(self, -1, ' Refresh pooling ')
       
+      self.list_ctrl = wx.ListCtrl(self, size=(350,200),style=wx.LC_REPORT|wx.BORDER_SUNKEN)
+      self.list_ctrl.InsertColumn(0, 'RP (yr)', width=100)
+      self.list_ctrl.InsertColumn(1, 'AEP (%)', width=100)
+      self.list_ctrl.InsertColumn(2, 'Growth factor', width=100)
+      
+      self.addStardardRPs()
+
+      self.add_rp_btn = wx.Button(self, label="Add RP")
+      self.add_rp_btn.Bind(wx.EVT_BUTTON, self.add_rp)
+      self.plot_pooling_group = wx.Button(self, label="Plot pooling group")
+      self.plot_pooling_group.Bind(wx.EVT_BUTTON, self.onPlotPoolingGroup)
+      
       self.refresh_pooling_group_btn.Bind(wx.EVT_BUTTON, self.OnRefreshPoolingGroup)
       self.refresh_stations_btn.Bind(wx.EVT_BUTTON, self.OnRefreshStations)
       self.add_station_btn.Bind(wx.EVT_BUTTON, self.OnAddStation)
@@ -185,7 +255,7 @@ class PoolingPanel(wx.Panel):
       
 
       
-      fitting_methods=['L-moments median (L-MED)','L-moments mean (L-MOM)','Generalised extreme variable (GEV)']
+      fitting_methods=['L-moments median (L-MED)','L-moments mean (L-MOM) - not implemented','Generalised extreme variable (GEV) - not implemented']
       self.fittingMethodSelector = wx.ListBox(self, id=-1, size=(200,50),style=wx.LB_SINGLE, choices=fitting_methods, name='Fitting method')
       self.fittingMethodSelector.SetSelection(0)
           
@@ -248,10 +318,45 @@ class PoolingPanel(wx.Panel):
       sizer.Add(self.delete_tab_btn ,pos=(1,7),span=(1,1))
       sizer.Add(self.duplicate_tab_btn ,pos=(0,7),span=(1,1))
       
+      sizer.Add(self.list_ctrl,pos=(12,6),span=(4,4))
+      sizer.Add(self.add_rp_btn,pos=(10,7),span=(1,1))
+      sizer.Add(self.plot_pooling_group,pos=(10,8),span=(1,1))
+      
       border = wx.BoxSizer()
       border.Add(sizer, 0, wx.ALL, 20)
       self.SetSizerAndFit(border)
       self.Fit()
+      
+    def  addStardardRPs(self):
+      events = [[2.0,0.5],[10.0,0.1],[50.0,0.02],[100.0,0.01],[200.0,0.05],[1000.0,0.001]]
+      self.index =0
+      for rp,aep, in events:     
+        index = self.list_ctrl.InsertStringItem(sys.maxint, str(rp))
+        self.list_ctrl.SetStringItem(index, 1, str(aep))
+        self.list_ctrl.SetStringItem(index, 2, str('-'))
+        self.index += 1
+    
+    def onPlotPoolingGroup(self,event):  
+      frm = wx.Frame(self, -1, 'Flood growth curve', size=(600,450))
+      client = plot.PlotCanvas(frm)
+      client.SetEnableLegend(True)
+      self.data_a = [(2,1), (2.5,1.4), (10,2), (30,2.7), (50,3), (100,3.5)]
+      self.data_b = [(2,1), (2.5,1.7), (3,1.9), (40,2.8), (5,2.9), (70,3.2), (150,3.3)]
+      
+      #circle dot square triangle triangle_down cross plus 
+      station_a = plot.PolyMarker(self.data_a, legend='Dummy Station A', colour='green', marker='square', size=1)
+      station_b = plot.PolyMarker(self.data_b, legend='Dummy Station B', colour='blue', marker='circle', size=1)
+      fitted_line = plot.PolyLine(self.fitted_fgc_tupples, legend='Fitted FGC', colour='black', width=1)
+      gc = plot.PlotGraphics([station_a,station_b,fitted_line], 'Flood growth curve', 'Return period (1 in x yrs)', 'Flood growth factor (unitless)')
+      client.Draw(gc, xAxis=(2,1000), yAxis=(0,5.0))
+      frm.Show(True)
+                
+    def add_rp(self, event):
+      line = "Line %s" % self.index
+      self.list_ctrl.InsertStringItem(self.index, "?")
+      self.list_ctrl.SetStringItem(self.index, 1, "?")
+      self.list_ctrl.SetStringItem(self.index, 2, "?")
+      self.index += 1
       
     def findStations(self):
           #self.qmed_databse = "C:\\Users\\nut67271\\workspace\\StatisticalFloodEstimationTool\\qmed_db.csv"
@@ -334,7 +439,8 @@ class PoolingPanel(wx.Panel):
               self.stations.append(station_cds)
               
             except ZeroDivisionError:
-              print station_cds['station']
+              pass
+              #print station_cds['station']
               
             except ValueError:
               print station_cds['station']
@@ -358,6 +464,9 @@ class PoolingPanel(wx.Panel):
       
     def refreshStations(self):
       self.search_distance =float(self.station_search_distance.GetValue())
+      
+      self.stations.sort(key = lambda station_cds: station_cds['hy_dist'])
+      
       for station_cds in self.stations:
             station_cds['distance'] = 0.001*(((station_cds['centroidx']-self.location_centroid_x)**2.0+(station_cds['centroidy']-self.location_centroid_y)**2.0))**0.5
             if station_cds['distance'] > self.search_distance and station_cds['user_added'] != True:
@@ -442,6 +551,17 @@ class PoolingPanel(wx.Panel):
           
     def OnRefreshPoolingGroup(self,event):
       self.calcWeights()
+      self.updateFloodGrowthCurves()
+
+    def updateFloodGrowthCurves(self):
+      beta = self.weighted_lcv
+      kappa = -self.weighted_lskew
+      self.fitted_fgc_tupples=list()
+      for i in range(self.list_ctrl.GetItemCount()):
+        rp = float(self.list_ctrl.GetItem(i,0).GetText())
+        growthFactor = feh_statistical.calculateGrowthFactor_GL_LMED(beta,kappa,rp)
+        self.list_ctrl.SetStringItem(i, 2, str(growthFactor))
+        self.fitted_fgc_tupples.append((rp,growthFactor))
 
     def calcWeights(self):   ####
       weighted_lcvs=list()
@@ -468,12 +588,12 @@ class PoolingPanel(wx.Panel):
         if len(weighted_lcvs) == 0:
           raise "No stations selected"
         else:
-          weighted_lcv = sum(weighted_lcvs)/sum(lcv_weights)
-          weighted_lskew = sum(weighted_lskews)/sum(lskew_weights)
+          self.weighted_lcv = sum(weighted_lcvs)/sum(lcv_weights)
+          self.weighted_lskew = sum(weighted_lskews)/sum(lskew_weights)
           years_of_data = sum(years_of_data)
           number_of_stations = len(weighted_lcvs)
-        self.pooled_lcv.SetLabel(str(weighted_lcv))
-        self.pooled_lskew.SetLabel(str(weighted_lskew))
+        self.pooled_lcv.SetLabel(str(self.weighted_lcv))
+        self.pooled_lskew.SetLabel(str(self.weighted_lskew))
         self.selected_years_of_record.SetLabel(str(years_of_data))
         self.selected_stations_count.SetLabel(str(number_of_stations))
         
