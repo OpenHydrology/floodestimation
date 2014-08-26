@@ -1,6 +1,7 @@
 """
 This module provides catchment related objects and methods.
 """
+from math import log
 
 
 class Catchment(object):
@@ -42,7 +43,10 @@ class Catchment(object):
         :return: QMED in m³/s
         :type: float
         """
-        return 0.182 * self.channel_width ** 1.98
+        try:
+            return 0.182 * self.channel_width ** 1.98
+        except TypeError:
+            raise Exception("Catchment `channel_width` attribute must be set first.")
 
     def qmed_from_channel_area(self):
         """
@@ -53,4 +57,6 @@ class Catchment(object):
         :return: QMED in m³/s
         :type: float
         """
-        return
+        ae = 1 - 0.015 * log(self.channel_area/0.5)
+        return 1.172 * self.channel_area ** ae
+

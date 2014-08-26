@@ -17,3 +17,8 @@ class TestCatchmentQmed(unittest.TestCase):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.channel_width = 50
         self.assertEqual(round(catchment.qmed_from_channel_width(), 4), 420.7576)
+
+    def test_channel_no_width(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        with self.assertRaises(Exception):
+            qmed = catchment.qmed_from_channel_width()
