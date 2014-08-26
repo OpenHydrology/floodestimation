@@ -37,6 +37,8 @@ class Catchment(object):
         """
         Return QMED estimate based on watercourse channel width.
 
+        TODO: add source of method
+
         :return: QMED in m³/s
         :type: float
         """
@@ -45,6 +47,8 @@ class Catchment(object):
     def qmed_from_channel_area(self):
         """
         Return QMED estimate based on watercourse channel cross-sectional area.
+
+        TODO: add source of method
 
         :return: QMED in m³/s
         :type: float
