@@ -57,6 +57,8 @@ class Catchment(object):
         :return: QMED in m³/s
         :type: float
         """
-        ae = 1 - 0.015 * log(self.channel_area/0.5)
-        return 1.172 * self.channel_area ** ae
-
+        try:
+            ae = 1 - 0.015 * log(self.channel_area/0.5)  # this is ln(2*A)
+            return 1.172 * self.channel_area ** ae
+        except TypeError:
+            raise Exception("Catchment `channel_area` attribute must be set first.")
