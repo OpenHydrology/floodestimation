@@ -23,22 +23,22 @@ class TestCatchmentQmed(unittest.TestCase):
         with self.assertRaises(Exception):
             qmed = catchment.qmed_from_channel_width()
 
-    def test_channel_area_1(self):
+    def test_area_1(self):
         catchment = Catchment("Aberdeen", "River Dee")
-        catchment.channel_area = 1
-        self.assertEqual(catchment.qmed_from_channel_area(), 1.172)
+        catchment.descriptors['area'] = 1
+        self.assertEqual(catchment.qmed_from_area(), 1.172)
 
-    def test_channel_area_2(self):
+    def test_area_2(self):
         catchment = Catchment("Aberdeen", "River Dee")
-        catchment.channel_area = 2.345
-        self.assertEqual(round(catchment.qmed_from_channel_area(), 4), 2.6946)
+        catchment.descriptors['area'] = 2.345
+        self.assertEqual(round(catchment.qmed_from_area(), 4), 2.6946)
 
-    def test_channel_area_2(self):
+    def test_area_3(self):
         catchment = Catchment("Aberdeen", "River Dee")
-        catchment.channel_area = 100
-        self.assertEqual(round(catchment.qmed_from_channel_area(), 4), 81.2790)
+        catchment.descriptors['area'] = 100
+        self.assertEqual(round(catchment.qmed_from_area(), 4), 81.2790)
 
-    def test_channel_no_width(self):
+    def test_no_area(self):
         catchment = Catchment("Aberdeen", "River Dee")
         with self.assertRaises(Exception):
-            qmed = catchment.qmed_from_channel_area()
+            qmed = catchment.qmed_from_area()
