@@ -1,5 +1,6 @@
 import unittest
-from floodestimation.catchment import Catchment
+from datetime import date
+from floodestimation.catchment import Catchment, AmaxRecord
 
 
 class TestCatchmentQmed(unittest.TestCase):
@@ -84,12 +85,15 @@ class TestCatchmentQmed(unittest.TestCase):
     def test_all(self):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.channel_width = 1
+        catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 1.0, 0.5),
+                                  AmaxRecord(date(2000, 12, 31), 1.0, 0.5)]
         catchment.descriptors = {'area': 1,
                                  'bfihost': 0.50,
                                  'sprhost': 50,
                                  'saar': 1000,
                                  'farl': 1}
         qmeds = catchment.qmed_all()
+        self.assertEqual(qmeds['amax_records'], 1)
         self.assertEqual(qmeds['channel_width'], 0.182)
         self.assertEqual(qmeds['area'], 1.172)
         self.assertEqual(round(qmeds['descriptors_1999'], 4), 0.2671)

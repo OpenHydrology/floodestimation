@@ -21,7 +21,7 @@ class Catchment(object):
     """
 
     #: Methods available to estimate QMED
-    qmed_methods = ('channel_width', 'area', 'descriptors_1999')
+    qmed_methods = ('amax_records', 'channel_width', 'area', 'descriptors_1999')
 
     def __init__(self, location, watercourse=None):
         #: Catchment outlet location name, e.g. `Aberdeen`
@@ -31,6 +31,8 @@ class Catchment(object):
         self.descriptors = {}
         #: Width of the watercourse channel at the catchment outlet in m.
         self.channel_width = None
+        #: List of annual maximum flow records as :class:`AmaxRecord` objects
+        self.amax_records = []
 
     @property
     def watercourse(self):
@@ -54,6 +56,22 @@ class Catchment(object):
             except:
                 result[method] = None
         return result
+
+    def qmed_from_amax_records(self):
+        """
+        Return QMED estimate based on annual maximum flow records.
+
+        :return: QMED in m³/s
+        :type: float
+        """
+
+        # Avoid numpy dependency at this stage...
+        flow_sorted = sorted([record.flow for record in self.amax_records])
+        length = len(flow_sorted)
+        if not length % 2:
+            return (flow_sorted[int(length / 2)] + flow_sorted[int(length / 2) - 1]) / 2.0
+        else:
+            return flow_sorted[int(length / 2)]
 
     def _ae(self):
         return 1 - 0.015 * log(self.descriptors['area'] / 0.5)  # this is ln(2*A)
@@ -102,3 +120,38 @@ class Catchment(object):
                    0.0198 ** reshost
         except (TypeError, KeyError):
             raise Exception("Catchment `descriptors` attribute must be set first.")
+
+
+class AmaxRecord(object):
+    """
+    A single annual maximum flow record.
+
+    Example:
+
+    >>> from floodestimation.catchment import AmaxRecord
+    >>> from datetime import date
+    >>> record = AmaxRecord(date=date(1999,12,31), flow=51.2, stage=1.23)
+
+    """
+
+    WATER_YEAR_FIRST_MONTH = 10
+
+    def __init__(self, date, flow, stage):
+        """
+
+        :param date: date of maximum flow occuring
+        :type: :class:`datetime.date`
+        :param flow: observed flow in  m³/s
+        :type: float
+        :param stage: observed water level in m above local datum
+        :type: float
+        """
+        self.date = date
+
+        #: Water year corresponding with :attr:`date`
+        self.water_year = date.year
+        if date.month < self.WATER_YEAR_FIRST_MONTH:
+            self.water_year = date.year - 1
+
+        self.flow = flow
+        self.stage = stage
