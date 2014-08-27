@@ -92,8 +92,50 @@ class TestCatchmentQmed(unittest.TestCase):
                                  'sprhost': 50,
                                  'saar': 1000,
                                  'farl': 1}
-        qmeds = catchment.qmed_all()
+        qmeds = catchment.qmed_all_methods()
         self.assertEqual(qmeds['amax_records'], 1)
         self.assertEqual(qmeds['channel_width'], 0.182)
         self.assertEqual(qmeds['area'], 1.172)
         self.assertEqual(round(qmeds['descriptors_1999'], 4), 0.2671)
+
+    def test_best_method_none(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        self.assertIsNone(catchment.qmed())
+
+    def test_best_method_channel_width(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.channel_width = 1
+        self.assertEqual(catchment.qmed(), 0.182)
+
+    def test_best_method_area(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.descriptors['area'] = 1
+        self.assertEqual(catchment.qmed(), 1.172)
+
+    def test_best_method_descriptors(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.channel_width = 1
+        catchment.descriptors = {'area': 1,
+                                 'bfihost': 0.50,
+                                 'sprhost': 50,
+                                 'saar': 1000,
+                                 'farl': 1}
+        self.assertEqual(round(catchment.qmed(), 4), 0.2671)
+
+    def test_best_method_amax(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 1.0, 0.5),
+                                  AmaxRecord(date(2000, 12, 31), 1.0, 0.5)]
+        self.assertEqual(catchment.qmed(), 1.0)
+
+    def test_best_method_order(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.channel_width = 1
+        catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 1.0, 0.5),
+                                  AmaxRecord(date(2000, 12, 31), 1.0, 0.5)]
+        catchment.descriptors = {'area': 1,
+                                 'bfihost': 0.50,
+                                 'sprhost': 50,
+                                 'saar': 1000,
+                                 'farl': 1}
+        self.assertEqual(catchment.qmed(), 1.0)

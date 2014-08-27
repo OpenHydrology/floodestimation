@@ -14,14 +14,15 @@ class Catchment(object):
     >>> catchment = Catchment("Aberdeen", "River Dee")
     >>> catchment.channel_width = 1
     >>> catchment.descriptors = {'area': 1, 'bfihost': 0.50, 'sprhost': 50, 'saar': 1000, 'farl': 1}
-    >>> catchment.qmed_all()
+    >>> catchment.qmed_all_methods()
     {'area': 1.172, 'descriptors_1999': 0.2671386414098229, 'channel_width': 0.182}
-
+    >>> catchment.qmed()
+    0.2671386414098229
 
     """
 
-    #: Methods available to estimate QMED
-    qmed_methods = ('amax_records', 'channel_width', 'area', 'descriptors_1999')
+    #: Methods available to estimate QMED, in order of best/preferred method
+    qmed_methods = ('amax_records', 'descriptors_1999', 'area', 'channel_width')
 
     def __init__(self, location, watercourse=None):
         #: Catchment outlet location name, e.g. `Aberdeen`
@@ -48,7 +49,16 @@ class Catchment(object):
     def watercourse(self, value):
         self._watercourse = value
 
-    def qmed_all(self):
+    def qmed_all_methods(self):
+        """
+        Returns a dict of QMED methods using all available methods.
+
+        Available methods are defined in :attr:`qmed_methods`. The returned dict keys contain the method name, e.g.
+        `amax_record` with value representing the corresponding QMED estimate in m³/s.
+
+        :return: dict of QMED estimates
+        :rtype: dict
+        """
         result = {}
         for method in self.qmed_methods:
             try:
@@ -56,6 +66,33 @@ class Catchment(object):
             except:
                 result[method] = None
         return result
+
+    def qmed(self, method='best'):
+        """
+        Returns QMED estimate using best available methodology depending on what catchment attributes are available.
+
+        The preferred/best order of methods is defined by :attr:`qmed_methods`. Alternatively, a method can be supplied
+        e.g. `method='descriptors_1999'` to force the use of a particular method.
+
+        :param method: methodology to use to estimate QMED. Default: automatically choose best method.
+        :type: str
+        :return: QMED in m³/s
+        :type: float
+        """
+        if method == 'best':
+            for method in self.qmed_methods:
+                try:
+                    # Return the first method that works
+                    return getattr(self, 'qmed_from_' + method)()
+                except:
+                    pass
+            # In case none of them worked
+            return None
+        else:
+            try:
+                return getattr(self, 'qmed_from_' + method)()
+            except:
+                raise Exception("Method `{}` to estimate QMED does not exist.")
 
     def qmed_from_amax_records(self):
         """
@@ -66,8 +103,10 @@ class Catchment(object):
         """
 
         # Avoid numpy dependency at this stage...
+        length = len(self.amax_records)
+        if length < 2:
+            raise Exception("Insufficient annual maximum flow records available.")
         flow_sorted = sorted([record.flow for record in self.amax_records])
-        length = len(flow_sorted)
         if not length % 2:
             return (flow_sorted[int(length / 2)] + flow_sorted[int(length / 2) - 1]) / 2.0
         else:
