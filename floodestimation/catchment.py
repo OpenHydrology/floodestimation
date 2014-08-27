@@ -1,7 +1,7 @@
 """
 This module provides catchment related objects and methods.
 """
-from math import log
+from floodestimation.analysis import QmedAnalysis
 
 
 class Catchment(object):
@@ -14,18 +14,13 @@ class Catchment(object):
     >>> catchment = Catchment("Aberdeen", "River Dee")
     >>> catchment.channel_width = 1
     >>> catchment.descriptors = {'area': 1, 'bfihost': 0.50, 'sprhost': 50, 'saar': 1000, 'farl': 1}
-    >>> catchment.qmed_all_methods()
-    {'area': 1.172, 'descriptors_1999': 0.2671386414098229, 'channel_width': 0.182}
     >>> catchment.qmed()
     0.2671386414098229
 
     """
 
-    #: Methods available to estimate QMED, in order of best/preferred method
-    qmed_methods = ('amax_records', 'descriptors_1999', 'area', 'channel_width')
-
     def __init__(self, location, watercourse=None):
-        #: Catchment outlet location name, e.g. `Aberdeen`
+        # : Catchment outlet location name, e.g. `Aberdeen`
         self.location = location
         self._watercourse = watercourse
         #: FEH catchment descriptors as a dict
@@ -49,116 +44,14 @@ class Catchment(object):
     def watercourse(self, value):
         self._watercourse = value
 
-    def qmed_all_methods(self):
-        """
-        Returns a dict of QMED methods using all available methods.
-
-        Available methods are defined in :attr:`qmed_methods`. The returned dict keys contain the method name, e.g.
-        `amax_record` with value representing the corresponding QMED estimate in m³/s.
-
-        :return: dict of QMED estimates
-        :rtype: dict
-        """
-        result = {}
-        for method in self.qmed_methods:
-            try:
-                result[method] = getattr(self, 'qmed_from_' + method)()
-            except:
-                result[method] = None
-        return result
-
-    def qmed(self, method='best'):
+    def qmed(self):
         """
         Returns QMED estimate using best available methodology depending on what catchment attributes are available.
 
-        The preferred/best order of methods is defined by :attr:`qmed_methods`. Alternatively, a method can be supplied
-        e.g. `method='descriptors_1999'` to force the use of a particular method.
-
-        :param method: methodology to use to estimate QMED. Default: automatically choose best method.
-        :type: str
         :return: QMED in m³/s
         :type: float
         """
-        if method == 'best':
-            for method in self.qmed_methods:
-                try:
-                    # Return the first method that works
-                    return getattr(self, 'qmed_from_' + method)()
-                except:
-                    pass
-            # In case none of them worked
-            return None
-        else:
-            try:
-                return getattr(self, 'qmed_from_' + method)()
-            except:
-                raise Exception("Method `{}` to estimate QMED does not exist.")
-
-    def qmed_from_amax_records(self):
-        """
-        Return QMED estimate based on annual maximum flow records.
-
-        :return: QMED in m³/s
-        :type: float
-        """
-
-        # Avoid numpy dependency at this stage...
-        length = len(self.amax_records)
-        if length < 2:
-            raise Exception("Insufficient annual maximum flow records available.")
-        flow_sorted = sorted([record.flow for record in self.amax_records])
-        if not length % 2:
-            return (flow_sorted[int(length / 2)] + flow_sorted[int(length / 2) - 1]) / 2.0
-        else:
-            return flow_sorted[int(length / 2)]
-
-    def _ae(self):
-        return 1 - 0.015 * log(self.descriptors['area'] / 0.5)  # this is ln(2*A)
-
-    def qmed_from_channel_width(self):
-        """
-        Return QMED estimate based on watercourse channel width.
-
-        TODO: add source of method
-
-        :return: QMED in m³/s
-        :type: float
-        """
-        try:
-            return 0.182 * self.channel_width ** 1.98
-        except TypeError:
-            raise Exception("Catchment `channel_width` attribute must be set first.")
-
-    def qmed_from_area(self):
-        """
-        Return QMED estimate based on catchment area.
-
-        TODO: add source of method
-
-        :return: QMED in m³/s
-        :type: float
-        """
-        try:
-            return 1.172 * self.descriptors['area'] ** self._ae()  # Area in km²
-        except (TypeError, KeyError):
-            raise Exception("Catchment `descriptors` attribute must be set first.")
-
-    def qmed_from_descriptors_1999(self):
-        """
-        Return QMED estimation based on FEH catchment descriptors, 1999 methodology.
-
-        :return: QMED in m³/s
-        :type: float
-        """
-        try:
-            reshost = self.descriptors['bfihost'] + 1.3 * (self.descriptors['sprhost'] / 100.0) - 0.987
-            return 1.172 * self.descriptors['area'] ** self._ae() \
-                   * (self.descriptors['saar'] / 1000.0) ** 1.560 \
-                   * self.descriptors['farl'] ** 2.642 \
-                   * (self.descriptors['sprhost'] / 100.0) ** 1.211 * \
-                   0.0198 ** reshost
-        except (TypeError, KeyError):
-            raise Exception("Catchment `descriptors` attribute must be set first.")
+        return QmedAnalysis(self).qmed()
 
 
 class AmaxRecord(object):
@@ -187,7 +80,7 @@ class AmaxRecord(object):
         """
         self.date = date
 
-        #: Water year corresponding with :attr:`date`
+        # : Water year corresponding with :attr:`date`
         self.water_year = date.year
         if date.month < self.WATER_YEAR_FIRST_MONTH:
             self.water_year = date.year - 1

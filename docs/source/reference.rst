@@ -10,4 +10,8 @@ Reference manual
 .. autoclass:: floodestimation.catchment.AmaxRecord
    :members:
 
+:mod:`floodestimation.analysis`
+--------------------------------
 
+.. autoclass:: floodestimation.analysis.QmedAnalysis
+   :members:
