@@ -13,7 +13,7 @@ class Catchment(object):
     >>> from floodestimation.catchment import Catchment
     >>> catchment = Catchment("Aberdeen", "River Dee")
     >>> catchment.channel_width = 1
-    >>> catchment.descriptors = {'area': 1, 'bfihost': 0.50, 'sprhost': 50, 'saar': 1000, 'farl': 1}
+    >>> catchment.descriptors = {'area': 1, 'bfihost': 0.50, 'sprhost': 50, 'saar': 1000, 'farl': 1, 'urbext': 0}
     >>> catchment.qmed()
     0.2671386414098229
 
