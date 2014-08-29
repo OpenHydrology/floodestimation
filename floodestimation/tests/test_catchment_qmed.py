@@ -146,13 +146,22 @@ class TestCatchmentQmed(unittest.TestCase):
                                  'urbext': 1}
         self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors_2008', as_rural=False), 4), 1.3087)
 
-
     def test_no_descriptors_2008(self):
         catchment = Catchment("Aberdeen", "River Dee")
         try:
             QmedAnalysis(catchment).qmed(method='descriptors_2008')
         except InsufficientDataError as e:
             self.assertEqual(str(e), "Catchment `descriptors` attribute must be set first.")
+
+    def test_descriptors_alias(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.descriptors = {'area': 1,
+                                 'bfihost': 0.50,
+                                 'sprhost': 50,
+                                 'saar': 1000,
+                                 'farl': 1,
+                                 'urbext': 1}
+        self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors', as_rural=True), 4), 0.5909)
 
     def test_amax_odd_records(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -242,3 +251,38 @@ class TestCatchmentQmed(unittest.TestCase):
             QmedAnalysis(catchment).qmed(method='abc')
         except AttributeError as e:
             self.assertEqual(str(e), "Method `abc` to estimate QMED does not exist.")
+
+
+class TestQmedDonor(unittest.TestCase):
+    catchment = Catchment("Dundee", "River Tay")
+    catchment.descriptors = {'area': 2.345,
+                             'bfihost': 0,
+                             'sprhost': 100,
+                             'saar': 2000,
+                             'farl': 0.5,
+                             'urbext': 0,
+                             'centroid': (0, 0)}
+    # QMED descr rural = 0.6173
+
+    donor_catchment = Catchment("Aberdeen", "River Dee")
+    donor_catchment.descriptors = {'area': 1,
+                                   'bfihost': 0.50,
+                                   'sprhost': 50,
+                                   'saar': 1000,
+                                   'farl': 1,
+                                   'urbext': 1,
+                                   'centroid': (0, 0)}
+    donor_catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 1.0, 0.5),
+                                    AmaxRecord(date(2000, 12, 31), 1.0, 0.5)]
+    # donor QMED descr rural = .5909
+    # donor QMED amax = 1.0
+
+    def test_donor_adjustment_factor(self):
+        # 1.0/ 0.5909
+        self.assertEqual(round(QmedAnalysis(self.catchment)._donor_adj_factor(self.donor_catchment), 4), 1.6925)
+
+    def test_donor_corrected_qmed(self):
+        # 0.6173 * 1.6925
+        self.assertEqual(
+            round(QmedAnalysis(self.catchment).qmed(method='descriptors_2008', donor_catchment=self.donor_catchment),
+                  4), 1.0448)

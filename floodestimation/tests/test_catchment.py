@@ -16,3 +16,12 @@ class TestCatchmentObject(unittest.TestCase):
     def test_catchment_no_location(self):
         with self.assertRaises(TypeError):
             catchment = Catchment()
+
+    def test_catchment_distance(self):
+        catchment_1 = Catchment("Aberdeen", "River Dee")
+        catchment_1.descriptors['centroid'] = (0, 0)
+
+        catchment_2 = Catchment("Dundee", "River Tay")
+        catchment_2.descriptors['centroid'] = (3, 4)
+
+        self.assertEqual(catchment_1.distance_to(catchment_2), 5)

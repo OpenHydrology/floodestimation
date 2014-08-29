@@ -1,7 +1,8 @@
 """
 This module provides catchment related objects and methods.
 """
-from floodestimation.analysis import QmedAnalysis
+from floodestimation.analysis import QmedAnalysis, InsufficientDataError
+from math import hypot
 
 
 class Catchment(object):
@@ -20,7 +21,7 @@ class Catchment(object):
     """
 
     def __init__(self, location, watercourse=None):
-        # : Catchment outlet location name, e.g. `Aberdeen`
+        #: Catchment outlet location name, e.g. `Aberdeen`
         self.location = location
         self._watercourse = watercourse
         #: FEH catchment descriptors as a dict
@@ -49,9 +50,24 @@ class Catchment(object):
         Returns QMED estimate using best available methodology depending on what catchment attributes are available.
 
         :return: QMED in m³/s
-        :type: float
+        :rtype: float
         """
         return QmedAnalysis(self).qmed()
+
+    def distance_to(self, other_catchment):
+        """
+        Returns the distance between the centroids of two catchments.
+
+        :param other_catchment: Catchment to calculate distance to
+        :type other_catchment: :class:`Catchment`
+        :return: Distance between the catchments in m.
+        :rtype: float
+        """
+        try:
+            return hypot(self.descriptors['centroid'][0] - other_catchment.descriptors['centroid'][0],
+                         self.descriptors['centroid'][1] - other_catchment.descriptors['centroid'][1])
+        except (TypeError, KeyError):
+            raise InsufficientDataError("Catchment `descriptors` attribute must be set first.")
 
 
 class AmaxRecord(object):
@@ -72,15 +88,15 @@ class AmaxRecord(object):
         """
 
         :param date: date of maximum flow occuring
-        :type: :class:`datetime.date`
+        :type date: :class:`datetime.date`
         :param flow: observed flow in  m³/s
-        :type: float
+        :type flow: float
         :param stage: observed water level in m above local datum
-        :type: float
+        :rtype: float
         """
         self.date = date
 
-        # : Water year corresponding with :attr:`date`
+        #: Water year corresponding with :attr:`date`
         self.water_year = date.year
         if date.month < self.WATER_YEAR_FIRST_MONTH:
             self.water_year = date.year - 1
