@@ -4,17 +4,17 @@ import os
 
 
 class TestDatabase(unittest.TestCase):
-    @unittest.skip
+    #@unittest.skip
     def test_a_clear_cache(self):
         fehdata.clear_cache()
         self.assertFalse(os.listdir(fehdata.CACHE_FOLDER))
 
-    @unittest.skip
+    #@unittest.skip
     def test_b_download(self):
         fehdata.download_data()
         self.assertTrue(os.path.isfile(os.path.join(fehdata.CACHE_FOLDER, fehdata.CACHE_ZIP)))
 
-    @unittest.skip
+    #@unittest.skip
     def test_c_unzip(self):
         fehdata.unzip_data()
         self.assertTrue(os.path.isdir(os.path.join(fehdata.CACHE_FOLDER, 'Not suitable for QMED or Pooling')))
