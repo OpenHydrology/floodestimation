@@ -3,7 +3,7 @@ import floodestimation.fehdata as fehdata
 from floodestimation.catchment import Catchment, AmaxRecord
 import os
 
-skip_long = False
+skip_long = True
 
 
 class TestDatabase(unittest.TestCase):
@@ -63,15 +63,18 @@ class TestCd3(unittest.TestCase):
     def test_location(self):
         self.assertEqual(self.catchment.location, 'Leven')
 
+    def test_country(self):
+        self.assertEqual(self.catchment.country, 'gb')
+
     def test_area(self):
         self.assertEqual(self.catchment.area, 424.0)
 
     def test_coordinate(self):
-        self.assertEqual(self.catchment.coordinate, (336900, 700600, 'gb'))
+        self.assertEqual(self.catchment.coordinate, (336900, 700600))
 
     def test_descriptors(self):
-        self.assertEqual(self.catchment.descriptors['ihdtm ngr'], (336950, 700550, 'gb'))
-        self.assertEqual(self.catchment.descriptors['centroid ngr'], (317325, 699832, 'gb'))
+        self.assertEqual(self.catchment.descriptors['ihdtm ngr'], (336950, 700550))
+        self.assertEqual(self.catchment.descriptors['centroid ngr'], (317325, 699832))
         self.assertEqual(self.catchment.descriptors['dtm area'], 416.56)
         self.assertEqual(self.catchment.descriptors['altbar'], 151)
         self.assertEqual(self.catchment.descriptors['aspbar'], 123)
@@ -96,3 +99,33 @@ class TestCd3(unittest.TestCase):
         self.assertEqual(self.catchment.descriptors['urbext2000'], 0.0361)
         self.assertEqual(self.catchment.descriptors['urbloc2000'], 0.702)
 
+    def test_suitability(self):
+        self.assertTrue(self.catchment.suitability_qmed)
+        self.assertFalse(self.catchment.suitability_pooling)
+
+    def test_comments(self):
+        self.assertEqual(self.catchment.comments['station'],
+                         'Velocity-area station on a straight reach of river with artificially heightened and steeped '
+                         'banks. The control was formerly a gravel bar, in Sep 1977 stabilised with gabions to form an '
+                         'irregular broad-crested weir. Possible movement in control, evident at low flows. Weir is '
+                         'thought to be modular throughout range. All flows contained to date. RATING COMMENTS:Rating '
+                         'derived from current meter gaugings up to 1.6m (about QMED), simple extrapolation beyond.')
+
+    def test_comment_count(self):
+        self.assertEqual(len(self.catchment.comments), 4)
+
+
+class TestCd3Ireland(unittest.TestCase):
+    parser = fehdata.Cd3Parser()
+    file = 'floodestimation/tests/data/201002.CD3'
+    catchment = parser.parse(file)
+
+    def test_country(self):
+        self.assertEqual(self.catchment.country, 'ni')
+
+    def test_coordinate(self):
+        self.assertEqual(self.catchment.coordinate, (240500, 375700))
+
+    def test_descriptors(self):
+        self.assertEqual(self.catchment.descriptors['ihdtm ngr'], (240500, 375700))
+        self.assertEqual(self.catchment.descriptors['centroid ngr'], (232140, 375415))

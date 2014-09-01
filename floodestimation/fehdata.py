@@ -129,8 +129,8 @@ class Cd3Parser(FehFileParser):
         elif row[0].lower() == 'nominal area':
             self.object.area = float(row[1])
         elif row[0].lower() == 'nominal ngr':
-            # (E, N, coordinate system). For this attribute CD3 file does not provide coordinate system.
-            self.object.coordinate = (100*int(row[1]), 100*int(row[2]), None)
+            # (E, N) in meters.
+            self.object.coordinate = (100*int(row[1]), 100*int(row[2]))
 
     def _section_descriptors(self, line):
         row = [s.strip() for s in line.split(',')]
@@ -138,14 +138,20 @@ class Cd3Parser(FehFileParser):
         if row[0] not in ['ihdtm ngr', 'centroid ngr']:
             self.object.descriptors[row[0]] = float(row[1])
         else:
-            # (E, N, coordinate system)
-            self.object.descriptors[row[0]] = (int(row[2]), int(row[3]), row[1].lower())
-            if not self.object.coordinate[2]:
-                # Assume the same coordinate system for `coordinate`
-                self.object.coordinate = (self.object.coordinate[0], self.object.coordinate[1], row[1].lower())
+            # (E, N) in meters.
+            self.object.descriptors[row[0]] = (int(row[2]), int(row[3]))
+            # Set country using info provided as part of coordinates.
+            country_mapping = {'gb': 'gb',
+                               'ireland': 'ni'}
+            self.object.country = country_mapping[row[1].lower()]
 
     def _section_suitability(self, line):
-        pass
+        row = [s.strip().lower() for s in line.split(',')]
+        bool_mapping = {'yes': True, 'no': False}
+        # E.g. object.suitability_qmed = True
+        self.object.__setattr__('suitability_' + row[0], bool_mapping[row[1]])
 
     def _section_comments(self, line):
-        pass
+        row = [s.strip() for s in line.split(',', 1)]
+        # E.g. object.comments = {'station': "Velocity-area station on a straight reach ..."}
+        self.object.comments[row[0].lower()] = row[1]

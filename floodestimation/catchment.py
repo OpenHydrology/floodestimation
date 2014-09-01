@@ -33,6 +33,7 @@ class Catchment(object):
         self.channel_width = None
         #: List of annual maximum flow records as :class:`AmaxRecord` objects
         self.amax_records = []
+        self.comments = {}
 
     def qmed(self):
         """

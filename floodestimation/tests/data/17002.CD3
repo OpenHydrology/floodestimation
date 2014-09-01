@@ -39,8 +39,8 @@ URBEXT2000,0.0361
 URBLOC2000, 0.702
 [END]
 [SUITABILITY]
-QMED,NO
-POOLING,NO
+QMED,Yes
+POOLING,No
 [END]
 [COMMENTS]
 STATION,Velocity-area station on a straight reach of river with artificially heightened and steeped banks. The control was formerly a gravel bar, in Sep 1977 stabilised with gabions to form an irregular broad-crested weir. Possible movement in control, evident at low flows. Weir is thought to be modular throughout range. All flows contained to date. RATING COMMENTS:Rating derived from current meter gaugings up to 1.6m (about QMED), simple extrapolation beyond.
