@@ -11,11 +11,7 @@ class TestCatchmentObject(unittest.TestCase):
     def test_catchment_location_only(self):
         catchment = Catchment("Aberdeen")
         self.assertEqual(catchment.location, "Aberdeen")
-        self.assertEqual(catchment.watercourse, "Unknown watercourse")
-
-    def test_catchment_no_location(self):
-        with self.assertRaises(TypeError):
-            catchment = Catchment()
+        self.assertEqual(catchment.watercourse, None)
 
     def test_catchment_distance(self):
         catchment_1 = Catchment("Aberdeen", "River Dee")

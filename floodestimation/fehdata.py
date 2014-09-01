@@ -2,7 +2,9 @@ from urllib.request import urlopen
 from appdirs import AppDirs
 import os
 import shutil
+import time, datetime
 from zipfile import ZipFile
+from floodestimation.catchment import Catchment, AmaxRecord
 
 DOWNLOAD_URL = 'http://www.ceh.ac.uk/data/nrfa/peak_flow/WINFAP-FEH_v3.3.4.zip'
 CACHE_FOLDER = AppDirs(__name__, appauthor='OpenHydrology').user_cache_dir
@@ -43,3 +45,107 @@ def update_database():
 
     :return:
     """
+
+
+class FehFileParser(object):
+    """
+    Generic parser for FEH file format.
+
+    File consists typically of multiple sections as follows::
+
+        [Section Name]
+        field, value
+        another field, value 1, value 2
+        [End]
+
+    """
+    parsed_object = object
+
+    def __init__(self):
+        #: Object that will be returned at end of parsing.
+        self.object = None
+
+    def parse(self, file_name):
+        """
+        Parse entire file and return relevant object.
+
+        :param file_name: File path
+        :type file_name: str
+        :return: Parsed object
+        """
+        self.object = self.parsed_object()
+        with open(file_name) as f:
+            in_section = None
+            for line in f:
+                if line.lower().startswith('[end]'):
+                    in_section = None
+                elif line.startswith('['):
+                    in_section = line.strip().strip('[]').lower().replace(' ', '_')
+                elif in_section:
+                    try:
+                        getattr(self, '_section_' + in_section)(line.strip())
+                    except AttributeError:
+                        pass  # Skip unsupported section
+        return self.object
+
+
+class AmaxParser(FehFileParser):
+    #: Class to be returned by :meth:`parse`. In this case a list of :class:`AmaxRecord` objects.
+    parsed_object = list
+
+    def _section_station_number(self, line):
+        # Store station number (not used)
+        self.station_number = line
+
+    def _section_am_values(self, line):
+        # Spit line in columns
+        row = [s.strip() for s in line.split(',')]
+        # Date in first column
+        date = datetime.date(*time.strptime(row[0], "%d %b %Y")[0:3])  # :class:`datetime.date`
+        # Flow rate in second column
+        flow = float(row[1])
+        if flow < 0:
+            flow = None
+        # Stage in last column
+        stage = float(row[2])
+        if stage < 0:
+            stage = None
+        # Create :class:`AmaxRecord` and add to object
+        self.object.append(AmaxRecord(date, flow, stage))
+
+
+class Cd3Parser(FehFileParser):
+    parsed_object = Catchment
+
+    def _section_station_number(self, line):
+        self.object.id = int(line)
+
+    def _section_cds_details(self, line):
+        row = [s.strip() for s in line.split(',')]
+        if row[0].lower() == 'name':
+            self.object.watercourse = row[1]
+        elif row[0].lower() == 'location':
+            self.object.location = row[1]
+        elif row[0].lower() == 'nominal area':
+            self.object.area = float(row[1])
+        elif row[0].lower() == 'nominal ngr':
+            # (E, N, coordinate system). For this attribute CD3 file does not provide coordinate system.
+            self.object.coordinate = (100*int(row[1]), 100*int(row[2]), None)
+
+    def _section_descriptors(self, line):
+        row = [s.strip() for s in line.split(',')]
+        row[0] = row[0].lower()
+        if row[0] not in ['ihdtm ngr', 'centroid ngr']:
+            self.object.descriptors[row[0]] = float(row[1])
+        else:
+            # (E, N, coordinate system)
+            self.object.descriptors[row[0]] = (int(row[2]), int(row[3]), row[1].lower())
+            if not self.object.coordinate[2]:
+                # Assume the same coordinate system for `coordinate`
+                self.object.coordinate = (self.object.coordinate[0], self.object.coordinate[1], row[1].lower())
+
+    def _section_suitability(self, line):
+        pass
+
+    def _section_comments(self, line):
+        pass

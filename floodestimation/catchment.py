@@ -20,30 +20,19 @@ class Catchment(object):
 
     """
 
-    def __init__(self, location, watercourse=None):
+    def __init__(self, location=None, watercourse=None):
+        #: Gauging station number
+        self.id = None
         #: Catchment outlet location name, e.g. `Aberdeen`
         self.location = location
-        self._watercourse = watercourse
+        #: Name of watercourse at the catchment outlet, e.g. `River Dee`
+        self.watercourse = watercourse
         #: FEH catchment descriptors as a dict
         self.descriptors = {}
         #: Width of the watercourse channel at the catchment outlet in m.
         self.channel_width = None
         #: List of annual maximum flow records as :class:`AmaxRecord` objects
         self.amax_records = []
-
-    @property
-    def watercourse(self):
-        """
-        Name of watercourse at the catchment outlet, e.g. `River Dee`
-        """
-        if self._watercourse:
-            return self._watercourse
-        else:
-            return "Unknown watercourse"
-
-    @watercourse.setter
-    def watercourse(self, value):
-        self._watercourse = value
 
     def qmed(self):
         """
@@ -95,11 +84,17 @@ class AmaxRecord(object):
         :rtype: float
         """
         self.date = date
-
-        #: Water year corresponding with :attr:`date`
-        self.water_year = date.year
-        if date.month < self.WATER_YEAR_FIRST_MONTH:
-            self.water_year = date.year - 1
-
+        if date:
+            self.water_year = date.year
+            if date.month < self.WATER_YEAR_FIRST_MONTH:
+                self.water_year -= 1
+        else:
+            self.water_year = None
         self.flow = flow
         self.stage = stage
+
+    def __str__(self):
+        return("{}: {:.1f} m³/s".format(self.water_year, self.flow))
+
+    def __repr__(self):
+        return str(self)
