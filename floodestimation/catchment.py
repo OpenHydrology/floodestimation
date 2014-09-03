@@ -27,6 +27,8 @@ class Catchment(object):
         self.location = location
         #: Name of watercourse at the catchment outlet, e.g. `River Dee`
         self.watercourse = watercourse
+        #: Abbreviation of country, e.g. `gb`, `ni`.
+        self.country = None
         #: FEH catchment descriptors as a dict
         self.descriptors = {}
         #: Width of the watercourse channel at the catchment outlet in m.
@@ -54,8 +56,12 @@ class Catchment(object):
         :rtype: float
         """
         try:
-            return hypot(self.descriptors['centroid'][0] - other_catchment.descriptors['centroid'][0],
-                         self.descriptors['centroid'][1] - other_catchment.descriptors['centroid'][1])
+            if self.country == other_catchment.country:
+                return hypot(self.descriptors['centroid ngr'][0] - other_catchment.descriptors['centroid ngr'][0],
+                             self.descriptors['centroid ngr'][1] - other_catchment.descriptors['centroid ngr'][1])
+            else:
+                # If the catchments are in a different country (e.g. `ni` versus `gb`) then set distance to infinity.
+                return float('+inf')
         except (TypeError, KeyError):
             raise InsufficientDataError("Catchment `descriptors` attribute must be set first.")
 

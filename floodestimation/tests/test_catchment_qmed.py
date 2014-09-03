@@ -261,7 +261,7 @@ class TestQmedDonor(unittest.TestCase):
                              'saar': 2000,
                              'farl': 0.5,
                              'urbext': 0,
-                             'centroid': (0, 0)}
+                             'centroid ngr': (0, 0)}
     # QMED descr rural = 0.6173
 
     donor_catchment = Catchment("Aberdeen", "River Dee")
@@ -271,7 +271,7 @@ class TestQmedDonor(unittest.TestCase):
                                    'saar': 1000,
                                    'farl': 1,
                                    'urbext': 1,
-                                   'centroid': (0, 0)}
+                                   'centroid ngr': (0, 0)}
     donor_catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 1.0, 0.5),
                                     AmaxRecord(date(2000, 12, 31), 1.0, 0.5)]
     # donor QMED descr rural = .5909
