@@ -1,15 +1,35 @@
-from urllib.request import urlopen
+from urllib.request import urlopen, pathname2url
 from appdirs import AppDirs
 import os
 import shutil
 import time, datetime
+import json
 from zipfile import ZipFile
 from floodestimation.catchment import Catchment, AmaxRecord
 
-DOWNLOAD_URL = 'http://www.ceh.ac.uk/data/nrfa/peak_flow/WINFAP-FEH_v3.3.4.zip'
+OPEN_HYDROLOGY_JSON_URL = \
+    'https://github.com/OpenHydrology/StatisticalFloodEstimationTool/blob/master/floodestimation/fehdata.json'
+FEH_DATA_URL = 'http://www.ceh.ac.uk/data/nrfa/peak_flow/WINFAP-FEH_v3.3.4.zip'
 CACHE_FOLDER = AppDirs(__name__, appauthor='OpenHydrology').user_cache_dir
 os.makedirs(CACHE_FOLDER, exist_ok=True)
 CACHE_ZIP = 'FEH_data.zip'
+
+
+def retrieve_download_url():
+    """
+    Retrieves download location for FEH data zip file from hosted json configuration file.
+    :return:
+    """
+    try:
+        # Try to obtain the url from the Open Hydrology json config file.
+        with urlopen(OPEN_HYDROLOGY_JSON_URL, timeout=10) as f:
+            config = json.loads(f.read().decode('utf-8'))
+        if config['feh_data_url'].startswith('.'):
+            config['feh_data_url'] = 'file:' + pathname2url(os.path.abspath(config['feh_data_url']))
+        return config['feh_data_url']
+    except:
+        # If that fails (for whatever reason) use the fallback constant.
+        return FEH_DATA_URL
 
 
 def download_data():
@@ -17,7 +37,7 @@ def download_data():
     Downloads complete station dataset including catchment descriptors and amax records. And saves it into a cache
     folder.
     """
-    with urlopen(DOWNLOAD_URL) as f:
+    with urlopen(retrieve_download_url()) as f:
         with open(os.path.join(CACHE_FOLDER, CACHE_ZIP), "wb") as local_file:
             local_file.write(f.read())
 
@@ -35,6 +55,7 @@ def clear_cache():
 def amax_files():
     return [os.path.join(dp, f) for dp, dn, filenames in os.walk(CACHE_FOLDER)
             for f in filenames if os.path.splitext(f)[1].lower() == '.am']
+
 
 def cd3_files():
     return [os.path.join(dp, f) for dp, dn, filenames in os.walk(CACHE_FOLDER)

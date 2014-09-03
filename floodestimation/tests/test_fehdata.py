@@ -2,22 +2,27 @@ import unittest
 import floodestimation.fehdata as fehdata
 from floodestimation.catchment import Catchment, AmaxRecord
 import os
-
-skip_long = True
+from urllib.request import pathname2url
 
 
 class TestDatabase(unittest.TestCase):
-    @unittest.skipIf(skip_long, "")
+    # Tests in this test case must be run in order to test the full sequence of clearing the cache, downloading the
+    # data, unzipping the data and counting the number of am and cd3 files.
+
+    def setUp(self):
+        fehdata.OPEN_HYDROLOGY_JSON_URL = 'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
+
+    def test_0_download_url_retrieval(self):
+        self.assertTrue(fehdata.retrieve_download_url().endswith(r'/floodestimation/tests/data/FEH_data_small.zip'))
+
     def test_a_clear_cache(self):
         fehdata.clear_cache()
         self.assertFalse(os.listdir(fehdata.CACHE_FOLDER))
 
-    @unittest.skipIf(skip_long, "")
     def test_b_download(self):
         fehdata.download_data()
         self.assertTrue(os.path.isfile(os.path.join(fehdata.CACHE_FOLDER, fehdata.CACHE_ZIP)))
 
-    @unittest.skipIf(skip_long, "")
     def test_c_unzip(self):
         fehdata.unzip_data()
         self.assertTrue(os.path.isdir(os.path.join(fehdata.CACHE_FOLDER, 'Not suitable for QMED or Pooling')))
@@ -25,10 +30,10 @@ class TestDatabase(unittest.TestCase):
         self.assertTrue(os.path.isdir(os.path.join(fehdata.CACHE_FOLDER, 'Suitable for QMED')))
 
     def test_d_amax_files(self):
-        self.assertTrue(len(fehdata.amax_files()), 963)
+        self.assertEqual(len(fehdata.amax_files()), 6)
 
     def test_e_cd3_files(self):
-        self.assertTrue(len(fehdata.cd3_files()), 963)
+        self.assertEqual(len(fehdata.cd3_files()), 6)
 
 
 class TestAmax(unittest.TestCase):
