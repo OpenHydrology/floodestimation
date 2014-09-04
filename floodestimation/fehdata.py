@@ -24,6 +24,7 @@ def retrieve_download_url():
         # Try to obtain the url from the Open Hydrology json config file.
         with urlopen(OPEN_HYDROLOGY_JSON_URL, timeout=10) as f:
             config = json.loads(f.read().decode('utf-8'))
+        # This is just for testing, assuming a relative local file path starting with ./
         if config['feh_data_url'].startswith('.'):
             config['feh_data_url'] = 'file:' + pathname2url(os.path.abspath(config['feh_data_url']))
         return config['feh_data_url']
