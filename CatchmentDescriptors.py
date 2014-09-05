@@ -52,7 +52,7 @@ class Fpanel(wx.Panel):
         urbconc1990_label = wx.StaticText(self, -1, "URBCONC1990")
         urbconc2000_label = wx.StaticText(self, -1, "URBCONC2000")
         urbext1990_label = wx.StaticText(self, -1, "URBEXT1990")
-        urbext2000_label = wx.StaticText(self, -1, "URBEXT1990")
+        urbext2000_label = wx.StaticText(self, -1, "URBEXT2000")
         urbloc1990_label = wx.StaticText(self, -1, "URBLOC1990")
         urbloc2000_label = wx.StaticText(self, -1, "URBLOC2000")
         chnl_width_label = wx.StaticText(self, -1, "Channel width")
