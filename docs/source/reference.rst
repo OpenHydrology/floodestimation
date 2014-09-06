@@ -1,13 +1,25 @@
 Reference manual
 ================
 
-:mod:`floodestimation.catchment`
+:mod:`floodestimation.entities`
 --------------------------------
 
-.. autoclass:: floodestimation.catchment.Catchment
+:class:`Catchment`
+^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: floodestimation.entities.Catchment
    :members:
 
-.. autoclass:: floodestimation.catchment.AmaxRecord
+:class:`AmaxRecord`
+^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: floodestimation.entities.AmaxRecord
+   :members:
+
+:class:`Comment`
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: floodestimation.entities.Comment
    :members:
 
 :mod:`floodestimation.analysis`

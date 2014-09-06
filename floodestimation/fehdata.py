@@ -5,12 +5,12 @@ import shutil
 import time, datetime
 import json
 from zipfile import ZipFile
-from floodestimation.catchment import Catchment, AmaxRecord
+from floodestimation.entities import Catchment, AmaxRecord, Comment
 
 OPEN_HYDROLOGY_JSON_URL = \
     'https://github.com/OpenHydrology/StatisticalFloodEstimationTool/blob/master/floodestimation/fehdata.json'
 FEH_DATA_URL = 'http://www.ceh.ac.uk/data/nrfa/peak_flow/WINFAP-FEH_v3.3.4.zip'
-CACHE_FOLDER = AppDirs(__name__, appauthor='OpenHydrology').user_cache_dir
+CACHE_FOLDER = AppDirs('fehdata', appauthor='OpenHydrology').user_cache_dir
 os.makedirs(CACHE_FOLDER, exist_ok=True)
 CACHE_ZIP = 'FEH_data.zip'
 
@@ -60,13 +60,21 @@ def amax_files():
 
 def cd3_files():
     return [os.path.join(dp, f) for dp, dn, filenames in os.walk(CACHE_FOLDER)
-            for f in filenames if os.path.splitext(f)[1].lower() == '.am']
+            for f in filenames if os.path.splitext(f)[1].lower() == '.cd3']
 
-def update_database():
-    """
 
-    :return:
-    """
+def update_database(session):
+    clear_cache()
+    download_data()
+    unzip_data()
+    for cd3_file in cd3_files():
+        amax_file = os.path.splitext(cd3_file)[0] + '.AM'
+
+        catchment = Cd3Parser().parse(cd3_file)
+        catchment.amax_records = AmaxParser().parse(amax_file)
+
+        session.add(catchment)
+    session.commit()
 
 
 class FehFileParser(object):
@@ -152,16 +160,27 @@ class Cd3Parser(FehFileParser):
             self.object.area = float(row[1])
         elif row[0].lower() == 'nominal ngr':
             # (E, N) in meters.
-            self.object.coordinate = (100*int(row[1]), 100*int(row[2]))
+            self.object.point = (100*int(row[1]), 100*int(row[2]))
 
     def _section_descriptors(self, line):
         row = [s.strip() for s in line.split(',')]
-        row[0] = row[0].lower()
-        if row[0] not in ['ihdtm ngr', 'centroid ngr']:
-            self.object.descriptors[row[0]] = float(row[1])
+        # Make descriptor name a valid python variable, by lowercasing, replacing spaces and hypens with underscore,
+        # e.g. `CENTROID NGR` -> `centroid_ngr`
+        #      `RMED-1H`      -> `rmed_1h`
+        name = row[0].lower().replace(' ', '_').replace('-', '_')
+
+        # Standard numeric descriptors
+        if name not in ['ihdtm_ngr', 'centroid_ngr']:
+            value = float(row[1])
+            # Filter out null-values
+            if value == -9.999:
+                value = None
+            setattr(self.object.descriptors, name, value)
+
+        # Coordinates
         else:
             # (E, N) in meters.
-            self.object.descriptors[row[0]] = (int(row[2]), int(row[3]))
+            setattr(self.object.descriptors, name, (int(row[2]), int(row[3])))
             # Set country using info provided as part of coordinates.
             country_mapping = {'gb': 'gb',
                                'ireland': 'ni'}
@@ -170,10 +189,10 @@ class Cd3Parser(FehFileParser):
     def _section_suitability(self, line):
         row = [s.strip().lower() for s in line.split(',')]
         bool_mapping = {'yes': True, 'no': False}
-        # E.g. object.suitability_qmed = True
-        self.object.__setattr__('suitability_' + row[0], bool_mapping[row[1]])
+        # E.g. object.is_suitable_for_qmed = True
+        setattr(self.object, 'is_suitable_for_' + row[0], bool_mapping[row[1]])
 
     def _section_comments(self, line):
         row = [s.strip() for s in line.split(',', 1)]
-        # E.g. object.comments = {'station': "Velocity-area station on a straight reach ..."}
-        self.object.comments[row[0].lower()] = row[1]
+        # E.g. object.comments = [Comment("station", "Velocity-area station on a straight reach ...")]
+        self.object.comments.append(Comment(row[0].lower(), row[1]))

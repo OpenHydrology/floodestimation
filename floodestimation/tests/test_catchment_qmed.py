@@ -1,6 +1,6 @@
 import unittest
 from datetime import date
-from floodestimation.catchment import Catchment, AmaxRecord
+from floodestimation.entities import Catchment, AmaxRecord, Descriptors
 from floodestimation.analysis import QmedAnalysis, InsufficientDataError
 
 
@@ -29,17 +29,17 @@ class TestCatchmentQmed(unittest.TestCase):
 
     def test_area_1(self):
         catchment = Catchment("Aberdeen", "River Dee")
-        catchment.descriptors['area'] = 1
+        catchment.descriptors.dtm_area = 1
         self.assertEqual(QmedAnalysis(catchment).qmed(method='area'), 1.172)
 
     def test_area_2(self):
         catchment = Catchment("Aberdeen", "River Dee")
-        catchment.descriptors['area'] = 2.345
+        catchment.descriptors.dtm_area = 2.345
         self.assertEqual(round(QmedAnalysis(catchment).qmed(method='area'), 4), 2.6946)
 
     def test_area_3(self):
         catchment = Catchment("Aberdeen", "River Dee")
-        catchment.descriptors['area'] = 100
+        catchment.descriptors.dtm_area = 100
         self.assertEqual(round(QmedAnalysis(catchment).qmed(method='area'), 4), 81.2790)
 
     def test_no_area(self):
@@ -51,32 +51,32 @@ class TestCatchmentQmed(unittest.TestCase):
 
     def test_descriptors_1999_1(self):
         catchment = Catchment("Aberdeen", "River Dee")
-        catchment.descriptors = {'area': 1,
-                                 'bfihost': 0.50,
-                                 'sprhost': 50,
-                                 'saar': 1000,
-                                 'farl': 1,
-                                 'urbext': 0}
+        catchment.descriptors = Descriptors(dtm_area=1,
+                                            bfihost=0.50,
+                                            sprhost=50,
+                                            saar=1000,
+                                            farl=1,
+                                            urbext=0)
         self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors_1999'), 4), 0.2671)
 
     def test_descriptors_1999_2(self):
         catchment = Catchment("Aberdeen", "River Dee")
-        catchment.descriptors = {'area': 2.345,
-                                 'bfihost': 0,
-                                 'sprhost': 100,
-                                 'saar': 2000,
-                                 'farl': 0.5,
-                                 'urbext': 0}
+        catchment.descriptors = Descriptors(dtm_area=2.345,
+                                            bfihost=0,
+                                            sprhost=100,
+                                            saar=2000,
+                                            farl=0.5,
+                                            urbext=0)
         self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors_1999'), 4), 0.3729)
 
     def test_descriptors_1999_3(self):
         catchment = Catchment("Aberdeen", "River Dee")
-        catchment.descriptors = {'area': 100,
-                                 'bfihost': 0.50,
-                                 'sprhost': 50,
-                                 'saar': 1000,
-                                 'farl': 1,
-                                 'urbext': 0}
+        catchment.descriptors = Descriptors(dtm_area=100,
+                                            bfihost=0.50,
+                                            sprhost=50,
+                                            saar=1000,
+                                            farl=1,
+                                            urbext=0)
         self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors_1999'), 4), 18.5262)
 
     def test_no_descriptors_1999(self):
@@ -88,62 +88,62 @@ class TestCatchmentQmed(unittest.TestCase):
 
     def test_descriptors_2008_1(self):
         catchment = Catchment("Aberdeen", "River Dee")
-        catchment.descriptors = {'area': 1,
-                                 'bfihost': 0.50,
-                                 'sprhost': 50,
-                                 'saar': 1000,
-                                 'farl': 1,
-                                 'urbext': 0}
+        catchment.descriptors = Descriptors(dtm_area=1,
+                                            bfihost=0.50,
+                                            sprhost=50,
+                                            saar=1000,
+                                            farl=1,
+                                            urbext=0)
         self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors_2008'), 4), 0.5909)
 
     def test_descriptors_2008_2(self):
         catchment = Catchment("Aberdeen", "River Dee")
-        catchment.descriptors = {'area': 2.345,
-                                 'bfihost': 0,
-                                 'sprhost': 100,
-                                 'saar': 2000,
-                                 'farl': 0.5,
-                                 'urbext': 0}
+        catchment.descriptors = Descriptors(dtm_area=2.345,
+                                            bfihost=0,
+                                            sprhost=100,
+                                            saar=2000,
+                                            farl=0.5,
+                                            urbext=0)
         self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors_2008'), 4), 0.6173)
 
     def test_descriptors_2008_3(self):
         catchment = Catchment("Aberdeen", "River Dee")
-        catchment.descriptors = {'area': 100,
-                                 'bfihost': 0.50,
-                                 'sprhost': 50,
-                                 'saar': 1000,
-                                 'farl': 1,
-                                 'urbext': 0}
+        catchment.descriptors = Descriptors(dtm_area=100,
+                                            bfihost=0.50,
+                                            sprhost=50,
+                                            saar=1000,
+                                            farl=1,
+                                            urbext=0)
         self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors_2008'), 4), 29.7497)
 
     def test_descriptors_2008_rural(self):
         catchment = Catchment("Aberdeen", "River Dee")
-        catchment.descriptors = {'area': 1,
-                                 'bfihost': 0.50,
-                                 'sprhost': 50,
-                                 'saar': 1000,
-                                 'farl': 1,
-                                 'urbext': 1}
+        catchment.descriptors = Descriptors(dtm_area=1,
+                                            bfihost=0.50,
+                                            sprhost=50,
+                                            saar=1000,
+                                            farl=1,
+                                            urbext=1)
         self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors_2008', as_rural=True), 4), 0.5909)
 
     def test_descriptors_2008_urban_adjustment(self):
         catchment = Catchment("Aberdeen", "River Dee")
-        catchment.descriptors = {'area': 1,
-                                 'bfihost': 0.50,
-                                 'sprhost': 50,
-                                 'saar': 1000,
-                                 'farl': 1,
-                                 'urbext': 1}
+        catchment.descriptors = Descriptors(dtm_area=1,
+                                            bfihost=0.50,
+                                            sprhost=50,
+                                            saar=1000,
+                                            farl=1,
+                                            urbext=1)
         self.assertEqual(round(QmedAnalysis(catchment).urban_adj_factor(), 4), 2.215)
 
     def test_descriptors_2008_urban(self):
         catchment = Catchment("Aberdeen", "River Dee")
-        catchment.descriptors = {'area': 1,
-                                 'bfihost': 0.50,
-                                 'sprhost': 50,
-                                 'saar': 1000,
-                                 'farl': 1,
-                                 'urbext': 1}
+        catchment.descriptors = Descriptors(dtm_area=1,
+                                            bfihost=0.50,
+                                            sprhost=50,
+                                            saar=1000,
+                                            farl=1,
+                                            urbext=1)
         self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors_2008', as_rural=False), 4), 1.3087)
 
     def test_no_descriptors_2008(self):
@@ -155,19 +155,19 @@ class TestCatchmentQmed(unittest.TestCase):
 
     def test_descriptors_alias(self):
         catchment = Catchment("Aberdeen", "River Dee")
-        catchment.descriptors = {'area': 1,
-                                 'bfihost': 0.50,
-                                 'sprhost': 50,
-                                 'saar': 1000,
-                                 'farl': 1,
-                                 'urbext': 1}
+        catchment.descriptors = Descriptors(dtm_area=1,
+                                            bfihost=0.50,
+                                            sprhost=50,
+                                            saar=1000,
+                                            farl=1,
+                                            urbext=1)
         self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors', as_rural=True), 4), 0.5909)
 
     def test_amax_odd_records(self):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 3.0, 0.5),
                                   AmaxRecord(date(2000, 12, 31), 2.0, 0.5),
-                                  AmaxRecord(date(2000, 12, 31), 1.0, 0.5)]
+                                  AmaxRecord(date(2001, 12, 31), 1.0, 0.5)]
         self.assertEqual(QmedAnalysis(catchment).qmed(method='amax_records'), 2)
 
     def test_amax_even_records(self):
@@ -180,9 +180,9 @@ class TestCatchmentQmed(unittest.TestCase):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 5.0, 0.5),
                                   AmaxRecord(date(2000, 12, 31), 1.0, 0.5),
-                                  AmaxRecord(date(2000, 12, 31), 4.0, 0.5),
-                                  AmaxRecord(date(2000, 12, 31), 2.0, 0.5),
-                                  AmaxRecord(date(2000, 12, 31), 3.0, 0.5)]
+                                  AmaxRecord(date(2001, 12, 31), 4.0, 0.5),
+                                  AmaxRecord(date(2002, 12, 31), 2.0, 0.5),
+                                  AmaxRecord(date(2003, 12, 31), 3.0, 0.5)]
         self.assertEqual(QmedAnalysis(catchment).qmed(method='amax_records'), 3)
 
     def test_all(self):
@@ -190,12 +190,12 @@ class TestCatchmentQmed(unittest.TestCase):
         catchment.channel_width = 1
         catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 1.0, 0.5),
                                   AmaxRecord(date(2000, 12, 31), 1.0, 0.5)]
-        catchment.descriptors = {'area': 1,
-                                 'bfihost': 0.50,
-                                 'sprhost': 50,
-                                 'saar': 1000,
-                                 'farl': 1,
-                                 'urbext': 0}
+        catchment.descriptors = Descriptors(dtm_area=1,
+                                            bfihost=0.50,
+                                            sprhost=50,
+                                            saar=1000,
+                                            farl=1,
+                                            urbext=0)
         qmeds = QmedAnalysis(catchment).qmed_all_methods()
         self.assertEqual(qmeds['amax_records'], 1)
         self.assertEqual(qmeds['channel_width'], 0.182)
@@ -213,18 +213,18 @@ class TestCatchmentQmed(unittest.TestCase):
 
     def test_best_method_area(self):
         catchment = Catchment("Aberdeen", "River Dee")
-        catchment.descriptors['area'] = 1
+        catchment.descriptors = Descriptors(dtm_area=1)
         self.assertEqual(catchment.qmed(), 1.172)
 
     def test_best_method_descriptors(self):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.channel_width = 1
-        catchment.descriptors = {'area': 1,
-                                 'bfihost': 0.50,
-                                 'sprhost': 50,
-                                 'saar': 1000,
-                                 'farl': 1,
-                                 'urbext': 0}
+        catchment.descriptors = Descriptors(dtm_area=1,
+                                            bfihost=0.50,
+                                            sprhost=50,
+                                            saar=1000,
+                                            farl=1,
+                                            urbext=0)
         self.assertEqual(round(catchment.qmed(), 4), 0.5909)
 
     def test_best_method_amax(self):
@@ -238,11 +238,11 @@ class TestCatchmentQmed(unittest.TestCase):
         catchment.channel_width = 1
         catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 1.0, 0.5),
                                   AmaxRecord(date(2000, 12, 31), 1.0, 0.5)]
-        catchment.descriptors = {'area': 1,
-                                 'bfihost': 0.50,
-                                 'sprhost': 50,
-                                 'saar': 1000,
-                                 'farl': 1}
+        catchment.descriptors = Descriptors(dtm_area=1,
+                                            bfihost=0.50,
+                                            sprhost=50,
+                                            saar=1000,
+                                            farl=1)
         self.assertEqual(catchment.qmed(), 1.0)
 
     def test_unsupported_method(self):
@@ -255,23 +255,23 @@ class TestCatchmentQmed(unittest.TestCase):
 
 class TestQmedDonor(unittest.TestCase):
     catchment = Catchment("Dundee", "River Tay")
-    catchment.descriptors = {'area': 2.345,
-                             'bfihost': 0,
-                             'sprhost': 100,
-                             'saar': 2000,
-                             'farl': 0.5,
-                             'urbext': 0,
-                             'centroid ngr': (0, 0)}
+    catchment.descriptors = Descriptors(dtm_area=2.345,
+                                        bfihost=0.0,
+                                        sprhost=100,
+                                        saar=2000,
+                                        farl=0.5,
+                                        urbext=0,
+                                        centroid_ngr=(0, 0))
     # QMED descr rural = 0.6173
 
     donor_catchment = Catchment("Aberdeen", "River Dee")
-    donor_catchment.descriptors = {'area': 1,
-                                   'bfihost': 0.50,
-                                   'sprhost': 50,
-                                   'saar': 1000,
-                                   'farl': 1,
-                                   'urbext': 1,
-                                   'centroid ngr': (0, 0)}
+    donor_catchment.descriptors = Descriptors(dtm_area=1,
+                                              bfihost=0.50,
+                                              sprhost=50,
+                                              saar=1000,
+                                              farl=1,
+                                              urbext=1,
+                                              centroid_ngr=(0, 0))
     donor_catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 1.0, 0.5),
                                     AmaxRecord(date(2000, 12, 31), 1.0, 0.5)]
     # donor QMED descr rural = .5909

@@ -1,6 +1,7 @@
 import unittest
 import floodestimation.fehdata as fehdata
-from floodestimation.catchment import Catchment, AmaxRecord
+from floodestimation.db import create_new_db, Session
+from floodestimation.entities import Catchment, AmaxRecord
 import os
 from urllib.request import pathname2url
 
@@ -34,6 +35,11 @@ class TestDatabase(unittest.TestCase):
 
     def test_e_cd3_files(self):
         self.assertEqual(len(fehdata.cd3_files()), 6)
+
+    def test_f_update_database(self):
+        create_new_db()  # Force dropping all the tables first.
+        session = Session()
+        fehdata.update_database(session)
 
 
 class TestAmax(unittest.TestCase):
@@ -75,41 +81,42 @@ class TestCd3(unittest.TestCase):
         self.assertEqual(self.catchment.area, 424.0)
 
     def test_coordinate(self):
-        self.assertEqual(self.catchment.coordinate, (336900, 700600))
+        self.assertEqual(self.catchment.point, (336900, 700600))
 
     def test_descriptors(self):
-        self.assertEqual(self.catchment.descriptors['ihdtm ngr'], (336950, 700550))
-        self.assertEqual(self.catchment.descriptors['centroid ngr'], (317325, 699832))
-        self.assertEqual(self.catchment.descriptors['dtm area'], 416.56)
-        self.assertEqual(self.catchment.descriptors['altbar'], 151)
-        self.assertEqual(self.catchment.descriptors['aspbar'], 123)
-        self.assertEqual(self.catchment.descriptors['aspvar'], 0.22)
-        self.assertEqual(self.catchment.descriptors['bfihost'], 0.511)
-        self.assertEqual(self.catchment.descriptors['dplbar'], 26.93)
-        self.assertEqual(self.catchment.descriptors['dpsbar'], 62.9)
-        self.assertEqual(self.catchment.descriptors['farl'], 0.824)
-        self.assertEqual(self.catchment.descriptors['fpext'], 0.1009)
-        self.assertEqual(self.catchment.descriptors['ldp'], 48.74)
-        self.assertEqual(self.catchment.descriptors['propwet'], 0.45)
-        self.assertEqual(self.catchment.descriptors['rmed-1h'],  8.8)
-        self.assertEqual(self.catchment.descriptors['rmed-1d'], 35.5)
-        self.assertEqual(self.catchment.descriptors['rmed-2d'], 47.1)
-        self.assertEqual(self.catchment.descriptors['saar'], 947)
-        self.assertEqual(self.catchment.descriptors['saar4170'], 951)
-        self.assertEqual(self.catchment.descriptors['sprhost'], 34.62)
-        self.assertEqual(self.catchment.descriptors['urbconc1990'], 0.754)
-        self.assertEqual(self.catchment.descriptors['urbext1990'], 0.0173)
-        self.assertEqual(self.catchment.descriptors['urbloc1990'], 0.738)
-        self.assertEqual(self.catchment.descriptors['urbconc2000'], 0.830)
-        self.assertEqual(self.catchment.descriptors['urbext2000'], 0.0361)
-        self.assertEqual(self.catchment.descriptors['urbloc2000'], 0.702)
+        self.assertEqual(self.catchment.descriptors.ihdtm_ngr, (336950, 700550))
+        self.assertEqual(self.catchment.descriptors.centroid_ngr, (317325, 699832))
+        self.assertEqual(self.catchment.descriptors.dtm_area, 416.56)
+        self.assertEqual(self.catchment.descriptors.altbar, 151)
+        self.assertEqual(self.catchment.descriptors.aspbar, 123)
+        self.assertEqual(self.catchment.descriptors.aspvar, 0.22)
+        self.assertEqual(self.catchment.descriptors.bfihost, 0.511)
+        self.assertEqual(self.catchment.descriptors.dplbar, 26.93)
+        self.assertEqual(self.catchment.descriptors.dpsbar, 62.9)
+        self.assertEqual(self.catchment.descriptors.farl, 0.824)
+        self.assertEqual(self.catchment.descriptors.fpext, 0.1009)
+        self.assertEqual(self.catchment.descriptors.ldp, 48.74)
+        self.assertEqual(self.catchment.descriptors.propwet, 0.45)
+        self.assertEqual(self.catchment.descriptors.rmed_1h,  8.8)
+        self.assertEqual(self.catchment.descriptors.rmed_1d, 35.5)
+        self.assertEqual(self.catchment.descriptors.rmed_2d, 47.1)
+        self.assertEqual(self.catchment.descriptors.saar, 947)
+        self.assertEqual(self.catchment.descriptors.saar4170, 951)
+        self.assertEqual(self.catchment.descriptors.sprhost, 34.62)
+        self.assertEqual(self.catchment.descriptors.urbconc1990, 0.754)
+        self.assertEqual(self.catchment.descriptors.urbext1990, 0.0173)
+        self.assertEqual(self.catchment.descriptors.urbloc1990, 0.738)
+        self.assertEqual(self.catchment.descriptors.urbconc2000, 0.830)
+        self.assertEqual(self.catchment.descriptors.urbext2000, 0.0361)
+        self.assertEqual(self.catchment.descriptors.urbloc2000, 0.702)
 
     def test_suitability(self):
-        self.assertTrue(self.catchment.suitability_qmed)
-        self.assertFalse(self.catchment.suitability_pooling)
+        self.assertTrue(self.catchment.is_suitable_for_qmed)
+        self.assertFalse(self.catchment.is_suitable_for_pooling)
 
     def test_comments(self):
-        self.assertEqual(self.catchment.comments['station'],
+        comment = [comment.content for comment in self.catchment.comments if comment.title == 'station'][0]
+        self.assertEqual(comment,
                          'Velocity-area station on a straight reach of river with artificially heightened and steeped '
                          'banks. The control was formerly a gravel bar, in Sep 1977 stabilised with gabions to form an '
                          'irregular broad-crested weir. Possible movement in control, evident at low flows. Weir is '
@@ -129,8 +136,8 @@ class TestCd3Ireland(unittest.TestCase):
         self.assertEqual(self.catchment.country, 'ni')
 
     def test_coordinate(self):
-        self.assertEqual(self.catchment.coordinate, (240500, 375700))
+        self.assertEqual(self.catchment.point, (240500, 375700))
 
     def test_descriptors(self):
-        self.assertEqual(self.catchment.descriptors['ihdtm ngr'], (240500, 375700))
-        self.assertEqual(self.catchment.descriptors['centroid ngr'], (232140, 375415))
+        self.assertEqual(self.catchment.descriptors.ihdtm_ngr, (240500, 375700))
+        self.assertEqual(self.catchment.descriptors.centroid_ngr, (232140, 375415))
