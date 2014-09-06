@@ -340,15 +340,37 @@ class PoolingPanel(wx.Panel):
       frm = wx.Frame(self, -1, 'Flood growth curve', size=(600,450))
       client = plot.PlotCanvas(frm)
       client.SetEnableLegend(True)
-      self.data_a = [(2,1), (2.5,1.4), (10,2), (30,2.7), (50,3), (100,3.5)]
-      self.data_b = [(2,1), (2.5,1.7), (3,1.9), (40,2.8), (5,2.9), (70,3.2), (150,3.3)]
+      #self.data_a = [(2,1), (2.5,1.4), (10,2), (30,2.7), (50,3), (100,3.5)]
+      #self.data_b = [(2,1), (2.5,1.7), (3,1.9), (40,2.8), (5,2.9), (70,3.2), (150,3.3)]
+      graph_data = list()
       
+      colours = ['green','blue','red','orange','black','green','blue','red','orange','black','green','blue','pink','orange','black','green','blue','red','orange','black','green','blue','red','orange','black','green','blue','red','orange','black']
+      markers = ['square','circle','cross','triangle','plus','triangle_down','square','circle','cross','triangle','plus','triangle_down','square','circle','cross','triangle','plus','triangle_down','square','circle','cross','triangle','plus','triangle_down']
+      i=0
+      maxY = 0.0
+      maxX = 0.0
+      
+      for station_name,tupple_data, in self.listOfPoolingPlotData:
+               
       #circle dot square triangle triangle_down cross plus 
-      station_a = plot.PolyMarker(self.data_a, legend='Dummy Station A', colour='green', marker='square', size=1)
-      station_b = plot.PolyMarker(self.data_b, legend='Dummy Station B', colour='blue', marker='circle', size=1)
-      fitted_line = plot.PolyLine(self.fitted_fgc_tupples, legend='Fitted FGC', colour='black', width=1)
-      gc = plot.PlotGraphics([station_a,station_b,fitted_line], 'Flood growth curve', 'Return period (1 in x yrs)', 'Flood growth factor (unitless)')
-      client.Draw(gc, xAxis=(2,1000), yAxis=(0,5.0))
+        graph_data.append(plot.PolyMarker(tupple_data, legend=station_name, colour=colours[i], marker=markers[i], size=1))
+
+        i=i+1
+        for plottingPostion,flowDQmed in tupple_data:
+          if  plottingPostion > maxX:
+            maxX = plottingPostion
+          if flowDQmed > maxY:
+            maxY = flowDQmed
+      graph_data.append(plot.PolyLine(self.fitted_fgc_tupples, legend='Fitted FGC', colour='black', width=1))
+      
+      for plottingPostion,flowDQmed in self.fitted_fgc_tupples:
+          if  plottingPostion > maxX:
+            maxX = plottingPostion
+          if flowDQmed > maxY:
+            maxY = flowDQmed
+            
+      gc = plot.PlotGraphics(graph_data, 'Flood growth curve', 'Plotting position', 'Flood growth factor (unitless)')
+      client.Draw(gc, xAxis=(-maxX,maxX), yAxis=(0,maxY))
       frm.Show(True)
                 
     def add_rp(self, event):
@@ -554,14 +576,17 @@ class PoolingPanel(wx.Panel):
       self.updateFloodGrowthCurves()
 
     def updateFloodGrowthCurves(self):
+      import feh_statistical
       beta = self.weighted_lcv
       kappa = -self.weighted_lskew
       self.fitted_fgc_tupples=list()
+      
       for i in range(self.list_ctrl.GetItemCount()):
         rp = float(self.list_ctrl.GetItem(i,0).GetText())
+        plotting_position = feh_statistical.return_plotting_position(1/rp)
         growthFactor = feh_statistical.calculateGrowthFactor_GL_LMED(beta,kappa,rp)
         self.list_ctrl.SetStringItem(i, 2, str(growthFactor))
-        self.fitted_fgc_tupples.append((rp,growthFactor))
+        self.fitted_fgc_tupples.append((plotting_position,growthFactor))
 
     def calcWeights(self):   ####
       weighted_lcvs=list()
@@ -570,6 +595,8 @@ class PoolingPanel(wx.Panel):
       lskew_weights=list()
       years_of_data=list()
       stations = self.list.GetItemCount()
+      
+      self.listOfPoolingPlotData=list()
       
       if True == True:
       #if bool(self.distance_decay_update.GetValue()) == True: 
@@ -585,6 +612,22 @@ class PoolingPanel(wx.Panel):
             weighted_lskews.append(lskew*lskew_w)
             lskew_weights.append(lskew_w)
             years_of_data.append(years)
+            name=self.list.GetItem(i,0).GetText()
+            
+            
+            for station_data in self.stations:
+              fgf_tupples = list()
+              if str(int(station_data['station'])) == name:
+                station_data['amaxList'].sort(reverse=True)
+                i=0
+                count = len(station_data['amaxList'])
+                for flowDividedByQmed in station_data['amaxList']:
+                  i=i+1
+                  probability = feh_statistical.return_probability(i,count)
+                  plotting_position = feh_statistical.return_plotting_position(probability)
+                  fgf_tupples.append((plotting_position,flowDividedByQmed))
+                self.listOfPoolingPlotData.append([name,fgf_tupples])
+                  
         if len(weighted_lcvs) == 0:
           raise "No stations selected"
         else:
