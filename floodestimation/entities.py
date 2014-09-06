@@ -14,10 +14,10 @@ class Catchment(Base):
 
     Example:
 
-    >>> from floodestimation.entities import Catchment
+    >>> from floodestimation.entities import Catchment, Descriptors
     >>> catchment = Catchment("Aberdeen", "River Dee")
     >>> catchment.channel_width = 1
-    >>> catchment.descriptors = {'area': 1, 'bfihost': 0.50, 'sprhost': 50, 'saar': 1000, 'farl': 1, 'urbext': 0}
+    >>> catchment.descriptors = Descriptors(dtm_area=1, bfihost=0.50, sprhost=50, saar=1000, farl=1, urbext=0}
     >>> catchment.qmed()
     0.2671386414098229
 
@@ -48,10 +48,10 @@ class Catchment(Base):
     #: List of FEH catchment descriptors (one-to-one relationship)
     descriptors = relationship("Descriptors", uselist=False, backref="catchment")
 
-
     def __init__(self, location=None, watercourse=None):
         self.location = location
         self.watercourse = watercourse
+        # Start with empty set of scriptors, so we always do `catchment.descriptors.name = value`
         self.descriptors = Descriptors()
 
     def qmed(self):
@@ -84,6 +84,13 @@ class Catchment(Base):
 
 
 class Descriptors(Base):
+    """
+    Set of FEH catchment descriptors.
+
+    This is the complete set of name = value pairs in the `[DESCRIPTORS]` block in a CD3 file. All other parameters are
+    directly attributes of :class:`Catchment`.
+
+    """
     __tablename__ = 'descriptors'
     catchment_id = Column(Integer, ForeignKey('catchments.id'), primary_key=True, nullable=False)
     ihdtm_ngr = Column(PickleType)
@@ -149,15 +156,6 @@ class AmaxRecord(Base):
     WATER_YEAR_FIRST_MONTH = 10
 
     def __init__(self, date, flow, stage):
-        """
-
-        :param date: date at which maximum flow occured
-        :type date: :class:`datetime.date`
-        :param flow: observed flow in  m³/s
-        :type flow: float
-        :param stage: observed water level in m above local datum
-        :rtype: float
-        """
         self.date = date
         if date:
             self.water_year = date.year
@@ -169,11 +167,8 @@ class AmaxRecord(Base):
         self.flow = flow
         self.stage = stage
 
-    def __str__(self):
-        return "{}: {:.1f} m³/s".format(self.water_year, self.flow)
-
     def __repr__(self):
-        return str(self)
+        return "{}: {:.1f} m³/s".format(self.water_year, self.flow)
 
 
 class Comment(Base):
