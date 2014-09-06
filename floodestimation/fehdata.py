@@ -6,6 +6,7 @@ import time, datetime
 import json
 from zipfile import ZipFile
 from floodestimation.entities import Catchment, AmaxRecord, Comment
+from codecs import open
 
 OPEN_HYDROLOGY_JSON_URL = \
     'https://github.com/OpenHydrology/StatisticalFloodEstimationTool/blob/master/floodestimation/fehdata.json'
@@ -104,7 +105,7 @@ class FehFileParser(object):
         :return: Parsed object
         """
         self.object = self.parsed_object()
-        with open(file_name) as f:
+        with open(file_name, encoding='utf-8') as f:
             in_section = None
             for line in f:
                 if line.lower().startswith('[end]'):
