@@ -1,9 +1,12 @@
 import unittest
-import floodestimation.fehdata as fehdata
-from floodestimation.db import create_new_db, Session
-from floodestimation.entities import Catchment, AmaxRecord
 import os
 from urllib.request import pathname2url
+
+import floodestimation.settings as settings
+import floodestimation.fehdata as fehdata
+import floodestimation.parsers as parsers
+from floodestimation.db import create_new_db, Session
+from floodestimation.entities import Catchment
 
 
 class TestDatabase(unittest.TestCase):
@@ -11,24 +14,24 @@ class TestDatabase(unittest.TestCase):
     # data, unzipping the data and counting the number of am and cd3 files.
 
     def setUp(self):
-        fehdata.OPEN_HYDROLOGY_JSON_URL = 'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
+        settings.OPEN_HYDROLOGY_JSON_URL = 'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
 
     def test_0_download_url_retrieval(self):
         self.assertTrue(fehdata.retrieve_download_url().endswith(r'/floodestimation/tests/data/FEH_data_small.zip'))
 
     def test_a_clear_cache(self):
         fehdata.clear_cache()
-        self.assertFalse(os.listdir(fehdata.CACHE_FOLDER))
+        self.assertFalse(os.listdir(settings.CACHE_FOLDER))
 
     def test_b_download(self):
         fehdata.download_data()
-        self.assertTrue(os.path.isfile(os.path.join(fehdata.CACHE_FOLDER, fehdata.CACHE_ZIP)))
+        self.assertTrue(os.path.isfile(os.path.join(settings.CACHE_FOLDER, fehdata.CACHE_ZIP)))
 
     def test_c_unzip(self):
         fehdata.unzip_data()
-        self.assertTrue(os.path.isdir(os.path.join(fehdata.CACHE_FOLDER, 'Not suitable for QMED or Pooling')))
-        self.assertTrue(os.path.isdir(os.path.join(fehdata.CACHE_FOLDER, 'Suitable for Pooling')))
-        self.assertTrue(os.path.isdir(os.path.join(fehdata.CACHE_FOLDER, 'Suitable for QMED')))
+        self.assertTrue(os.path.isdir(os.path.join(settings.CACHE_FOLDER, 'Not suitable for QMED or Pooling')))
+        self.assertTrue(os.path.isdir(os.path.join(settings.CACHE_FOLDER, 'Suitable for Pooling')))
+        self.assertTrue(os.path.isdir(os.path.join(settings.CACHE_FOLDER, 'Suitable for QMED')))
 
     def test_d_amax_files(self):
         self.assertEqual(len(fehdata.amax_files()), 6)
@@ -43,7 +46,7 @@ class TestDatabase(unittest.TestCase):
 
 
 class TestAmax(unittest.TestCase):
-    parser = fehdata.AmaxParser()
+    parser = parsers.AmaxParser()
     file = 'floodestimation/tests/data/17002.AM'
     amax_records = parser.parse(file)
 
@@ -58,7 +61,7 @@ class TestAmax(unittest.TestCase):
 
 
 class TestCd3(unittest.TestCase):
-    parser = fehdata.Cd3Parser()
+    parser = parsers.Cd3Parser()
     file = 'floodestimation/tests/data/17002.CD3'
     catchment = parser.parse(file)
 
@@ -128,7 +131,7 @@ class TestCd3(unittest.TestCase):
 
 
 class TestCd3Ireland(unittest.TestCase):
-    parser = fehdata.Cd3Parser()
+    parser = parsers.Cd3Parser()
     file = 'floodestimation/tests/data/201002.CD3'
     catchment = parser.parse(file)
 

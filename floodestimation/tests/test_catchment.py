@@ -1,7 +1,6 @@
 import unittest
 from floodestimation.entities import Catchment
 
-
 class TestCatchmentObject(unittest.TestCase):
     def test_catchment_location_watercourse(self):
         catchment = Catchment("Aberdeen", "River Dee")

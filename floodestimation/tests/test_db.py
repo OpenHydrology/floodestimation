@@ -1,7 +1,8 @@
 import unittest
+from datetime import date
+
 from floodestimation.db import Session, create_new_db
 from floodestimation.entities import Catchment, AmaxRecord
-from datetime import date
 
 
 class TestDatabase(unittest.TestCase):

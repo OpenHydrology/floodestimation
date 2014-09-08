@@ -1,11 +1,13 @@
 """
 This module contains primary entities, including :class:`Catchment`, :class:`AmaxRecord` etc.
 """
+from math import hypot
+
+from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey, PickleType
+from sqlalchemy.orm import relationship
+
 from floodestimation.analysis import QmedAnalysis, InsufficientDataError
 from floodestimation.db import Base
-from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey, PickleType
-from sqlalchemy.orm import relationship, backref
-from math import hypot
 
 
 class Catchment(Base):
