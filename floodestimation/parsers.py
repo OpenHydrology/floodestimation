@@ -15,7 +15,8 @@
 
 import time
 import datetime
-import floodestimation.entities as entities
+# Current package imports
+from . import entities
 
 
 class FehFileParser(object):

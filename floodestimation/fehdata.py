@@ -19,9 +19,8 @@ import shutil
 import json
 from zipfile import ZipFile
 from codecs import open
-
-import floodestimation.parsers as parsers
-import floodestimation.settings as settings
+# Current package imports
+from . import settings
 
 
 CACHE_ZIP = 'FEH_data.zip'
@@ -56,34 +55,36 @@ def download_data():
 
 
 def unzip_data():
+    """
+    Extract all files from downloaded FEH data zip file.
+    """
     with ZipFile(os.path.join(settings.CACHE_FOLDER, CACHE_ZIP), 'r') as zf:
         zf.extractall(path=settings.CACHE_FOLDER)
 
 
 def clear_cache():
+    """
+    Delete all files from cache folder.
+    """
     shutil.rmtree(settings.CACHE_FOLDER)
     os.makedirs(settings.CACHE_FOLDER)
 
 
 def amax_files():
+    """
+    Return all annual maximum flow (*.am) files in cache folder and sub folders.
+    :return: List of file paths
+    :rtype: list
+    """
     return [os.path.join(dp, f) for dp, dn, filenames in os.walk(settings.CACHE_FOLDER)
             for f in filenames if os.path.splitext(f)[1].lower() == '.am']
 
 
 def cd3_files():
+    """
+    Return all catchment descriptor files (*.cd3) files in cache folder and sub folders.
+    :return: List of file paths
+    :rtype: list
+    """
     return [os.path.join(dp, f) for dp, dn, filenames in os.walk(settings.CACHE_FOLDER)
             for f in filenames if os.path.splitext(f)[1].lower() == '.cd3']
-
-
-def update_database(session):
-    clear_cache()
-    download_data()
-    unzip_data()
-    for cd3_file in cd3_files():
-        amax_file = os.path.splitext(cd3_file)[0] + '.AM'
-
-        catchment = parsers.Cd3Parser().parse(cd3_file)
-        catchment.amax_records = parsers.AmaxParser().parse(amax_file)
-
-        session.add(catchment)
-    session.commit()

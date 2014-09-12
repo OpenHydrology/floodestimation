@@ -17,15 +17,14 @@
 This module contains primary entities, including :class:`Catchment`, :class:`AmaxRecord` etc.
 """
 from math import hypot
-
 from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey, PickleType
 from sqlalchemy.orm import relationship
+# Current package imports
+from .analysis import QmedAnalysis, InsufficientDataError
+from . import db
 
-from floodestimation.analysis import QmedAnalysis, InsufficientDataError
-from floodestimation.db import Base
 
-
-class Catchment(Base):
+class Catchment(db.Base):
     """
     Catchment object include FEH catchment descriptors and additional information describing the catchment.
 
@@ -100,7 +99,7 @@ class Catchment(Base):
             raise InsufficientDataError("Catchment `descriptors` attribute must be set first.")
 
 
-class Descriptors(Base):
+class Descriptors(db.Base):
     """
     Set of FEH catchment descriptors.
 
@@ -146,7 +145,7 @@ class Descriptors(Base):
     urbext = property(get_urbext, set_urbext)
 
 
-class AmaxRecord(Base):
+class AmaxRecord(db.Base):
     """
     A single annual maximum flow record.
 
@@ -188,7 +187,7 @@ class AmaxRecord(Base):
         return "{}: {:.1f} m³/s".format(self.water_year, self.flow)
 
 
-class Comment(Base):
+class Comment(db.Base):
     """
     Comments on cachment contained in CD3 file. Each comment has a title (normally one of `station`, `catchment`,
     `qmed suitability` and `pooling suitability`) and content.
