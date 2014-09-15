@@ -7,6 +7,7 @@ from floodestimation.entities import Catchment
 class TestLoaders(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+
         cls.session = db.Session()
 
     def test_load_catchment(self):

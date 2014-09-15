@@ -1,6 +1,6 @@
 import unittest
 from datetime import date
-from floodestimation.db import Session
+from floodestimation import db
 from floodestimation.entities import Catchment, AmaxRecord
 
 
@@ -57,14 +57,16 @@ class TestCatchmentObject(unittest.TestCase):
 
 
 class TestCatchmentDatabase(unittest.TestCase):
-    def setUp(self):
-        self.db_session = Session()
+    @classmethod
+    def setUpClass(cls):
+        cls.db_session = db.Session()
 
     def test_add_catchment(self):
         catchment = Catchment(location="Aberdeen", watercourse="River Dee")
         self.db_session.add(catchment)
+        result = self.db_session.query(Catchment).filter_by(location="Aberdeen", watercourse="River Dee").one()
+        self.assertEqual(catchment, result)
         self.db_session.rollback()
-        # TODO: assert something
 
     def test_add_catchment_with_amax(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -72,5 +74,7 @@ class TestCatchmentDatabase(unittest.TestCase):
                                   AmaxRecord(date(2000, 12, 31), 2.0, 0.5),
                                   AmaxRecord(date(2001, 12, 31), 1.0, 0.5)]
         self.db_session.add(catchment)
+        result = self.db_session.query(Catchment).filter_by(location="Aberdeen", watercourse="River Dee").one()
+        self.assertEqual(catchment, result)
+        self.assertEqual(catchment.amax_records, result.amax_records)
         self.db_session.rollback()
-        # TODO: assert something
