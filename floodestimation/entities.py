@@ -16,6 +16,7 @@
 """
 This module contains primary entities, including :class:`Catchment`, :class:`AmaxRecord` etc.
 """
+
 from math import hypot
 from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey, PickleType
 from sqlalchemy.orm import relationship
@@ -106,33 +107,77 @@ class Descriptors(db.Base):
     This is the complete set of name = value pairs in the `[DESCRIPTORS]` block in a CD3 file. All other parameters are
     directly attributes of :class:`Catchment`.
 
+    Descriptors are used as follows:
+
+    >>> from floodestimation.entities import Catchment
+    >>> catchment = Catchment(...)
+    >>> catchment.descriptors.dtm_area
+    416.56
+    >>> catchment.descriptors.centroid_ngr
+    (317325, 699832)
+
     """
     __tablename__ = 'descriptors'
+    #: One-to-one reference to :class:`Catchment` object
     catchment_id = Column(Integer, ForeignKey('catchments.id'), primary_key=True, nullable=False)
+    #: Catchment outlet national grid reference as (E, N) tuple. :attr:`Catchment.country` indicates coordinate system.
     ihdtm_ngr = Column(PickleType)
+    #: Catchment centre national grid reference as (E, N) tuple. :attr:`Catchment.country` indicates coordinate system.
     centroid_ngr = Column(PickleType)
+    #: Surface area in km² based on digital terrain model data
     dtm_area = Column(Float)
+    #: Mean elevation in m
     altbar = Column(Float)
+    #: Mean aspect (orientation) in degrees
     aspbar = Column(Float)
+    #: Aspect variance in degrees
     aspvar = Column(Float)
+    #: Base flow index based on Hydrology of Soil Types (HOST) data. Value between 0 and 1.
     bfihost = Column(Float)
+    #: Mean drainage path length in km
     dplbar = Column(Float)
+    #: Mean drainage path slope (dimensionless)
     dpsbar = Column(Float)
+    #: Lake, reservoir or loch parameter
+    # TODO: add unit and range
     farl = Column(Float)
+    #: Floodplain extent parameter
+    # TODO: more precise description and unit and range
     fpext = Column(Float)
+    # TODO: describe
     ldp = Column(Float)
+    # TODO: describe
     propwet = Column(Float)
+    # TODO: describe
     rmed_1h = Column(Float)
+    # TODO: describe
     rmed_1d = Column(Float)
+    # TODO: describe
     rmed_2d = Column(Float)
+    #: Standard annual average rainfall in mm
     saar = Column(Float)
+    #: Standard annual average rainfall in mm
+    # TODO: describe better
     saar4170 = Column(Float)
+    #: Standard percentage runoff based on Hydrology of Soil Types (HOST) data. Value between 0 and 100.
     sprhost = Column(Float)
+    #: Urbanisation parameter, 1990 data
+    # TODO: describe better
     urbconc1990 = Column(Float)
+    #: Urbanisation parameter, 1990 data
+    # TODO: describe better
     urbext1990 = Column(Float)
+    #: Urbanisation parameter, 1990 data
+    # TODO: describe better
     urbloc1990 = Column(Float)
+    #: Urbanisation parameter, 2000 data
+    # TODO: describe better
     urbconc2000 = Column(Float)
+    #: Urbanisation parameter, 2000 data
+    # TODO: describe better
     urbext2000 = Column(Float)
+    #: Urbanisation parameter, 2000 data
+    # TODO: describe better
     urbloc2000 = Column(Float)
 
     def get_urbext(self):
@@ -141,7 +186,7 @@ class Descriptors(db.Base):
     def set_urbext(self, value):
         self.urbext2000 = value
 
-    #: Alias for :attr:`urbext2002`
+    #: Alias for :attr:`urbext2000`
     urbext = property(get_urbext, set_urbext)
 
 
@@ -159,6 +204,7 @@ class AmaxRecord(db.Base):
 
     """
     __tablename__ = 'amaxrecords'
+    #: Many-to-one reference to :class:`Catchment` object
     catchment_id = Column(Integer, ForeignKey('catchments.id'), primary_key=True, nullable=False)
     #: Water year or hydrological year (starts 1 October)
     water_year = Column(Integer, primary_key=True, nullable=False)
@@ -201,6 +247,7 @@ class Comment(db.Base):
 
     """
     __tablename__ = 'comments'
+    #: Many-to-one reference to :class:`Catchment` object
     catchment_id = Column(Integer, ForeignKey('catchments.id'), primary_key=True, nullable=False)
     #: Comment title, e.g. `station`
     title = Column(String, primary_key=True, nullable=False)

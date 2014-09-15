@@ -13,6 +13,31 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+Parsers for FEH-style data files.
+
+Module contains base parser class and subclassses for parsing CD3 files and AMAX files.
+
+Example:
+
+>>> from floodestimation import parsers
+>>> catchment = parsers.Cd3Parser().parse("17002.CD3")
+>>> catchment.amax_records = parsers.AmaxParser().parse("17002.AM")
+>>> catchment.id
+17002
+>>> catchment.watercourse
+'River Leven'
+>>> catchment.descriptors.dtm_area
+416.56
+>>> catchment.descriptors.centroid_ngr
+(317325, 699832)
+>>> catchment.amax_records[0].water_year
+1968
+>>> catchment.amax_records[0].flow
+34.995
+
+"""
+
 import time
 import datetime
 # Current package imports
@@ -31,7 +56,8 @@ class FehFileParser(object):
         [End]
 
     """
-    parsed_object = object
+    #: Class of object to be returned by parser.
+    parsed_class = object
 
     def __init__(self):
         #: Object that will be returned at end of parsing.
@@ -45,7 +71,7 @@ class FehFileParser(object):
         :type file_name: str
         :return: Parsed object
         """
-        self.object = self.parsed_object()
+        self.object = self.parsed_class()
         with open(file_name, encoding='utf-8') as f:
             in_section = None
             for line in f:
@@ -62,8 +88,8 @@ class FehFileParser(object):
 
 
 class AmaxParser(FehFileParser):
-    #: Class to be returned by :meth:`parse`. In this case a list of :class:`AmaxRecord` objects.
-    parsed_object = list
+    # Class to be returned by :meth:`parse`. In this case a list of :class:`AmaxRecord` objects.
+    parsed_class = list
 
     def _section_station_number(self, line):
         # Store station number (not used)
@@ -87,7 +113,8 @@ class AmaxParser(FehFileParser):
 
 
 class Cd3Parser(FehFileParser):
-    parsed_object = entities.Catchment
+    # Class to be returned by :meth:`parse`. In this case :class:`Catchment` objects.
+    parsed_class = entities.Catchment
 
     def _section_station_number(self, line):
         self.object.id = int(line)
