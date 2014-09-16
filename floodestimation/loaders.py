@@ -13,14 +13,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+This module contains some convenience functions for quickly loading catchments (incl. annual maximum flow data) from
+CD3-files and to download all gauged catchments and save into a sqlite database.
+"""
+
 import os.path as path
 # Current package imports
 from . import fehdata
 from . import parsers
-from . import db
 
 
 def load_catchment(cd3_file_path):
+    """
+    Load catchment object from a CD3 file. This assumes there is also a corresponding AM file in the same folder as the
+    CD3 file.
+
+    :param cd3_file_path: File location of CD3 file
+    :type cd3_file_path: str
+    :return: Catchment object including the `amax_records` attribute.
+    :rtype: :class:`floodestimation.entities.Catchment`
+    """
     am_file_path = path.splitext(cd3_file_path)[0] + '.AM'
 
     catchment = parsers.Cd3Parser().parse(cd3_file_path)
@@ -29,7 +42,14 @@ def load_catchment(cd3_file_path):
     return catchment
 
 
-def save_catchments_to_db(session):
+def gauged_catchments_to_db(session):
+    """
+    Retrieves all gauged catchments (incl. catchment descriptors and annual maximum flow data) from the National River
+    Flow Archive and saves it to a (sqlite) database.
+
+    :param session: database session to use, typically :meth:`floodestimation.db.Session()`
+    :type session: `sqlalchemy.orm.session.Session`
+    """
     fehdata.clear_cache()
     fehdata.download_data()
     fehdata.unzip_data()

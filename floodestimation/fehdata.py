@@ -14,11 +14,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-This module provides methods to download a complete set of published gauged catchment data from the National River Flow
-Archive <http://www.ceh.ac.uk/data/nrfa/peakflow_overview.html>.
+This module provides methods to download a complete set of published gauged catchment data from the `National River Flow
+Archive <http://www.ceh.ac.uk/data/nrfa/peakflow_overview.html>`_.
 
-Downloaded data files are stored in a Cache folder under the user's home folder. On Windows, this is folder is located
-at `C:\\\\Users\\\\{Username}\\\\AppData\\\\Local\\\\Open Hydrology\\\\fehdata\\\\Cache`.
+Downloaded data files are stored in a Cache folder under the user's application data folder. On Windows, this is folder
+is located at `C:\\\\Users\\\\{Username}\\\\AppData\\\\Local\\\\Open Hydrology\\\\fehdata\\\\Cache`.
 
 A typical data retrieval is as follows:
 

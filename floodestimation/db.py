@@ -21,16 +21,22 @@ The database connection usses the `sqlalchemy` package (`docs <sqlalchemy.org>`_
 database. The module contains a :class:`Base` class that all entities in :mod:`floodestimation.entities` are based on.
 This enables straightforward retrieving and saving of data in relevant tables.
 
+The sqlite database is saved in the user's application data folder. On Windows, this is folder is located
+at `C:\\\\Users\\\\{Username}\\\\AppData\\\\Local\\\\Open Hydrology\\\\fehdata\\\\fehdata.sqlite`.
+
+The database is automatically created (if it does not exist yet) when importing the :mod:`floodestimation` package.
+
 Interaction with the database is typically as follows::
 
     from floodestimation import db
+    from floodestimation.entities import Catchment
 
     # Once:
     session = db.Session()
 
     # As and when required:
-    session.add(...)    # Load data
-    session.query(...)  # Retrieve data
+    session.add(Catchment(...))                           # Load data
+    catchments = session.query(Catchment).filter_by(...)  # Retrieve data
     session.commit()
 
 Typically a single session instance can be used throughout a program with commits (or rollbacks) as and when required.
@@ -62,3 +68,10 @@ metadata = MetaData(bind=engine, reflect=True)
 
 # When interaction with the database, modules should start a new `session` instance by simply calling `Session()`.
 Session = sessionmaker(bind=engine)
+
+
+def create_db_tables():
+    # Create database tables if they don't exist yet. All entities must be imported first.
+    # This method is called from `floodestimation.__init__.py` to ensure that the database exist with valid tables when
+    # importing and calling `Session()`.
+    Base.metadata.create_all(engine)

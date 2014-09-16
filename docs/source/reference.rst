@@ -9,4 +9,5 @@ Reference manual
    parsers
    fehdata
    db
+   loaders
    analysis

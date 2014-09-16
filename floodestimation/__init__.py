@@ -19,4 +19,4 @@ from . import db
 from .entities import Catchment, AmaxRecord, Comment, Descriptors
 
 # Create database tables if they don't exist yet
-db.Base.metadata.create_all(db.engine)
+db.create_db_tables()
