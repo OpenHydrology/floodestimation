@@ -73,14 +73,17 @@ class FehFileParser(object):
         """
         self.object = self.parsed_class()
         with open(file_name, encoding='utf-8') as f:
-            in_section = None
+            in_section = None  # Holds name of FEH file section while traversing through file.
             for line in f:
                 if line.lower().startswith('[end]'):
+                    # Leave section
                     in_section = None
                 elif line.startswith('['):
+                    # Enter section, sanitise `[Section Name]` to `section_name`
                     in_section = line.strip().strip('[]').lower().replace(' ', '_')
                 elif in_section:
                     try:
+                        # Call method `_section_section_name(line)`
                         getattr(self, '_section_' + in_section)(line.strip())
                     except AttributeError:
                         pass  # Skip unsupported section
@@ -88,7 +91,7 @@ class FehFileParser(object):
 
 
 class AmaxParser(FehFileParser):
-    # Class to be returned by :meth:`parse`. In this case a list of :class:`AmaxRecord` objects.
+    #: Class to be returned by :meth:`parse`. In this case a list of :class:`AmaxRecord` objects.
     parsed_class = list
 
     def _section_station_number(self, line):
@@ -113,7 +116,7 @@ class AmaxParser(FehFileParser):
 
 
 class Cd3Parser(FehFileParser):
-    # Class to be returned by :meth:`parse`. In this case :class:`Catchment` objects.
+    #: Class to be returned by :meth:`parse`. In this case :class:`Catchment` objects.
     parsed_class = entities.Catchment
 
     def _section_station_number(self, line):

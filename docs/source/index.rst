@@ -9,7 +9,6 @@ Welcome to Statistical Flood Estimation Tool's documentation!
 Contents:
 
 .. toctree::
-   :numbered:
    :maxdepth: 2
 
    reference

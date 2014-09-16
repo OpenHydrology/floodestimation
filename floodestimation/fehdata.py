@@ -13,6 +13,30 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+This module provides methods to download a complete set of published gauged catchment data from the National River Flow
+Archive <http://www.ceh.ac.uk/data/nrfa/peakflow_overview.html>.
+
+Downloaded data files are stored in a Cache folder under the user's home folder. On Windows, this is folder is located
+at `C:\\\\Users\\\\{Username}\\\\AppData\\\\Local\\\\Open Hydrology\\\\fehdata\\\\Cache`.
+
+A typical data retrieval is as follows:
+
+>>> from floodestimation import fehdata
+>>> fehdata.clear_cache()
+>>> fehdata.download_data()
+>>> fehdata.unzip_data()
+
+Data files can then be accessed as follows:
+
+>>> cd3_files = fehdata.cd3_files()
+>>> amax_files = fehdata.amax_files()
+
+For parsing CD3 files and AMAX files see :mod:`floodestimation.parsers`.
+
+"""
+
+
 from urllib.request import urlopen, pathname2url
 import os
 import shutil
@@ -26,10 +50,12 @@ from . import settings
 CACHE_ZIP = 'FEH_data.zip'
 
 
-def retrieve_download_url():
+def _retrieve_download_url():
     """
     Retrieves download location for FEH data zip file from hosted json configuration file.
-    :return:
+
+    :return: URL for FEH data file
+    :rtype: str
     """
     try:
         # Try to obtain the url from the Open Hydrology json config file.
@@ -49,7 +75,7 @@ def download_data():
     Downloads complete station dataset including catchment descriptors and amax records. And saves it into a cache
     folder.
     """
-    with urlopen(retrieve_download_url()) as f:
+    with urlopen(_retrieve_download_url()) as f:
         with open(os.path.join(settings.CACHE_FOLDER, CACHE_ZIP), "wb") as local_file:
             local_file.write(f.read())
 
@@ -73,6 +99,7 @@ def clear_cache():
 def amax_files():
     """
     Return all annual maximum flow (*.am) files in cache folder and sub folders.
+
     :return: List of file paths
     :rtype: list
     """
@@ -83,6 +110,7 @@ def amax_files():
 def cd3_files():
     """
     Return all catchment descriptor files (*.cd3) files in cache folder and sub folders.
+
     :return: List of file paths
     :rtype: list
     """

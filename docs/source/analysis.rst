@@ -1,5 +1,5 @@
-:mod:`floodestimation.analysis`
-===============================
+:mod:`floodestimation.analysis` --- Flood estimation analyses
+=============================================================
 
 :class:`QmedAnalysis` --- Estimating the mean annual flood
 ----------------------------------------------------------

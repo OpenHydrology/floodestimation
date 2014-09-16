@@ -17,7 +17,7 @@ class TestDatabase(unittest.TestCase):
         settings.OPEN_HYDROLOGY_JSON_URL = 'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
 
     def test_0_download_url_retrieval(self):
-        self.assertTrue(fehdata.retrieve_download_url().endswith(r'/floodestimation/tests/data/FEH_data_small.zip'))
+        self.assertTrue(fehdata._retrieve_download_url().endswith(r'/floodestimation/tests/data/FEH_data_small.zip'))
 
     def test_a_clear_cache(self):
         fehdata.clear_cache()

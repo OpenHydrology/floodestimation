@@ -14,7 +14,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-This module contains primary entities, including :class:`Catchment`, :class:`AmaxRecord` etc.
+This module contains the core components or entities, including :class:`.Catchment`, :class:`.AmaxRecord` etc.
+
+Note that all entities are subclasses of :class:`floodestimation.db.Base` which is an SQL Alchemy base class to enable
+saving to a (sqlite) database. All class attributes therefore are :class:`sqlalchemy.Column` objects e.g.
+`Column(Float)`, `Column(String)`, etc. Attribute values can simply be set like normal, e.g. `catchment.watercourse =
+"River Dee"`.
+
 """
 
 from math import hypot
@@ -40,6 +46,7 @@ class Catchment(db.Base):
 
     """
     __tablename__ = 'catchments'
+
     #: Gauging station number
     id = Column(Integer, primary_key=True)
     #: Catchment outlet location name, e.g. `Aberdeen`
@@ -58,7 +65,7 @@ class Catchment(db.Base):
     is_suitable_for_qmed = Column(Boolean)
     #: Whether this catchment's annual maximum flow data can be used in pooling group analyses
     is_suitable_for_pooling = Column(Boolean)
-    #: List of annual maximum flow records as :class:`AmaxRecord` objects
+    #: List of annual maximum flow records as :class:`.AmaxRecord` objects
     amax_records = relationship("AmaxRecord", order_by="AmaxRecord.water_year", backref="catchment")
     #: List of comments
     comments = relationship("Comment", order_by="Comment.title", backref="catchment")
@@ -85,7 +92,7 @@ class Catchment(db.Base):
         Returns the distance between the centroids of two catchments.
 
         :param other_catchment: Catchment to calculate distance to
-        :type other_catchment: :class:`Catchment`
+        :type other_catchment: :class:`.Catchment`
         :return: Distance between the catchments in m.
         :rtype: float
         """
@@ -105,7 +112,7 @@ class Descriptors(db.Base):
     Set of FEH catchment descriptors.
 
     This is the complete set of name = value pairs in the `[DESCRIPTORS]` block in a CD3 file. All other parameters are
-    directly attributes of :class:`Catchment`.
+    directly attributes of :class:`.Catchment`.
 
     Descriptors are used as follows:
 
@@ -118,11 +125,12 @@ class Descriptors(db.Base):
 
     """
     __tablename__ = 'descriptors'
-    #: One-to-one reference to :class:`Catchment` object
+
+    #: One-to-one reference to corresponding :class:`.Catchment` object
     catchment_id = Column(Integer, ForeignKey('catchments.id'), primary_key=True, nullable=False)
-    #: Catchment outlet national grid reference as (E, N) tuple. :attr:`Catchment.country` indicates coordinate system.
+    #: Catchment outlet national grid reference as (E, N) tuple. :attr:`.Catchment.country` indicates coordinate system.
     ihdtm_ngr = Column(PickleType)
-    #: Catchment centre national grid reference as (E, N) tuple. :attr:`Catchment.country` indicates coordinate system.
+    #: Catchment centre national grid reference as (E, N) tuple. :attr:`.Catchment.country` indicates coordinate system.
     centroid_ngr = Column(PickleType)
     #: Surface area in km² based on digital terrain model data
     dtm_area = Column(Float)
@@ -138,46 +146,37 @@ class Descriptors(db.Base):
     dplbar = Column(Float)
     #: Mean drainage path slope (dimensionless)
     dpsbar = Column(Float)
-    #: Lake, reservoir or loch parameter
-    # TODO: add unit and range
+    #: Lake, reservoir or loch flood attenuation index
     farl = Column(Float)
     #: Floodplain extent parameter
-    # TODO: more precise description and unit and range
     fpext = Column(Float)
-    # TODO: describe
+    #: Longest drainage path length in km
     ldp = Column(Float)
-    # TODO: describe
+    #: Proportion of time soils are wet index
     propwet = Column(Float)
-    # TODO: describe
+    #: Median annual maximum 1 hour rainfall in mm
     rmed_1h = Column(Float)
-    # TODO: describe
+    #: Median annual maximum 1 day rainfall in mm
     rmed_1d = Column(Float)
-    # TODO: describe
+    #: Median annual maximum 2 day rainfall in mm
     rmed_2d = Column(Float)
-    #: Standard annual average rainfall in mm
+    #: Standard annual average rainfall in mm, 1961-1990 average
     saar = Column(Float)
-    #: Standard annual average rainfall in mm
-    # TODO: describe better
+    #: Standard annual average rainfall in mm, 1941-1970 average
     saar4170 = Column(Float)
     #: Standard percentage runoff based on Hydrology of Soil Types (HOST) data. Value between 0 and 100.
     sprhost = Column(Float)
-    #: Urbanisation parameter, 1990 data
-    # TODO: describe better
+    #: Urbanisation concentration index, 1990 data
     urbconc1990 = Column(Float)
-    #: Urbanisation parameter, 1990 data
-    # TODO: describe better
+    #: Urbanisation extent index, 1990 data
     urbext1990 = Column(Float)
-    #: Urbanisation parameter, 1990 data
-    # TODO: describe better
+    #: Urbanisation location within catchment index, 1990 data
     urbloc1990 = Column(Float)
-    #: Urbanisation parameter, 2000 data
-    # TODO: describe better
+    #: Urbanisation concentration index, 2000 data
     urbconc2000 = Column(Float)
-    #: Urbanisation parameter, 2000 data
-    # TODO: describe better
+    #: Urbanisation extent index, 2000 data
     urbext2000 = Column(Float)
-    #: Urbanisation parameter, 2000 data
-    # TODO: describe better
+    #: Urbanisation location within catchment index, 2000 data
     urbloc2000 = Column(Float)
 
     def get_urbext(self):
@@ -194,7 +193,7 @@ class AmaxRecord(db.Base):
     """
     A single annual maximum flow record.
 
-    :attr:`Catchment.amax_records` is a list of :class:`AmaxRecord` objects.
+    :attr:`.Catchment.amax_records` is a list of :class:`.AmaxRecord` objects.
 
     Example:
 
@@ -204,7 +203,7 @@ class AmaxRecord(db.Base):
 
     """
     __tablename__ = 'amaxrecords'
-    #: Many-to-one reference to :class:`Catchment` object
+    #: Many-to-one reference to corresponding :class:`.Catchment` object
     catchment_id = Column(Integer, ForeignKey('catchments.id'), primary_key=True, nullable=False)
     #: Water year or hydrological year (starts 1 October)
     water_year = Column(Integer, primary_key=True, nullable=False)
@@ -238,7 +237,7 @@ class Comment(db.Base):
     Comments on cachment contained in CD3 file. Each comment has a title (normally one of `station`, `catchment`,
     `qmed suitability` and `pooling suitability`) and content.
 
-    :attr:`Catchment.comments` is a list of :class:`Comment` objects.
+    :attr:`.Catchment.comments` is a list of :class:`.Comment` objects.
 
     Example:
 
@@ -247,7 +246,7 @@ class Comment(db.Base):
 
     """
     __tablename__ = 'comments'
-    #: Many-to-one reference to :class:`Catchment` object
+    #: Many-to-one reference to corresponding :class:`.Catchment` object
     catchment_id = Column(Integer, ForeignKey('catchments.id'), primary_key=True, nullable=False)
     #: Comment title, e.g. `station`
     title = Column(String, primary_key=True, nullable=False)

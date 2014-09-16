@@ -1,5 +1,7 @@
-:mod:`floodestimation.entities`
-===============================
+:mod:`floodestimation.entities` --- Core components
+===================================================
+
+.. automodule:: floodestimation.entities
 
 :class:`Catchment` --- The catchment object
 -------------------------------------------

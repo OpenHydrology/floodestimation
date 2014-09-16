@@ -1,5 +1,5 @@
-:mod:`floodestimation.parsers`
-==============================
+:mod:`floodestimation.parsers` --- Parsing FEH data files
+=========================================================
 
 .. automodule:: floodestimation.parsers
 
@@ -13,6 +13,7 @@
 ----------------------------------------------
 
 .. autoclass:: floodestimation.parsers.Cd3Parser
+   :show-inheritance:
    :inherited-members:
    :members:
 
@@ -20,5 +21,6 @@
 -----------------------------------------------------------
 
 .. autoclass:: floodestimation.parsers.AmaxParser
+   :show-inheritance:
    :inherited-members:
    :members:

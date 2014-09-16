@@ -55,6 +55,22 @@ class QmedAnalysis(object):
         The preferred/best order of methods is defined by :attr:`qmed_methods`. Alternatively, a method can be supplied
         e.g. `method='descriptors_1999'` to force the use of a particular method.
 
+        ================= ====================== =======================================================================
+        `method`          `method_options`       notes
+        ================= ====================== =======================================================================
+        `amax_records`    n/a                    Simple median of annual maximum flow records using
+                                                 `Catchment.amax_records`
+        `descriptors`                            Synonym for `method=descriptors2008`.
+        `descriptors2008` `as_rural=False`       FEH 2008 regression methodology using `Catchment.descriptors`. Setting
+                          `donor_catchment=None` `as_rural=True` returns rural estimate and setting `donor_catchment` to
+                                                 a specific :class:`Catchment` object **overrides** automatic selection
+                                                 of the most suitable donor catchment.
+        `descriptors1999` as_rural=False         FEH 1999 regression methodology.
+        `area`            n/a                    Simplified FEH 1999 regression methodology using
+                                                 `Cachment.descriptors.dtm_area` only.
+        `channel_width`   n/a                    Emperical regression method using the river channel width only.
+        ================= ====================== =======================================================================
+
         :param method: methodology to use to estimate QMED. Default: automatically choose best method.
         :type method: str
         :param method_options: any optional parameters for the QMED method function, e.g. `as_rural=True`

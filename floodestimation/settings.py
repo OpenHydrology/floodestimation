@@ -18,7 +18,7 @@ from appdirs import AppDirs
 
 # Some standard names
 APP_NAME = 'fehdata'
-APP_AUTHOR = 'OpenHydrology'
+APP_AUTHOR = 'Open Hydrology'
 
 # URL to retrieve json file with settings, e.g. FEH data download locations
 OPEN_HYDROLOGY_JSON_URL = \
