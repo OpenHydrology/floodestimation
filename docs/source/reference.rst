@@ -10,4 +10,5 @@ Reference manual
    fehdata
    db
    loaders
+   collections
    analysis
