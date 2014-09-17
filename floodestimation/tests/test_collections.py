@@ -1,12 +1,15 @@
 import unittest
+import os
+from urllib.request import pathname2url
 from floodestimation import db
 from floodestimation import loaders
-from floodestimation import fehdata
+from floodestimation import settings
 from floodestimation.collections import CatchmentCollections
 
 class TestCatchmentCollection(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        settings.OPEN_HYDROLOGY_JSON_URL = 'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
         cls.db_session = db.Session()
 
     @classmethod
@@ -28,9 +31,7 @@ class TestCatchmentCollection(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_nearest_catchments(self):
-        for cd3_file_path in fehdata.cd3_files():
-            catchment = loaders.load_catchment(cd3_file_path)
-            self.db_session.add(catchment)
+        loaders.gauged_catchments_to_db(self.db_session)
 
         subject_catchment = loaders.load_catchment('floodestimation/tests/data/17002.CD3')
         catchments = CatchmentCollections(self.db_session).nearest_qmed_catchments(subject_catchment)

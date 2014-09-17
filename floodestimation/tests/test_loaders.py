@@ -1,13 +1,16 @@
 import unittest
+import os
+from urllib.request import pathname2url
 from floodestimation import db
 from floodestimation import loaders
+from floodestimation import settings
 from floodestimation.entities import Catchment
 
 
 class TestLoaders(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-
+        settings.OPEN_HYDROLOGY_JSON_URL = 'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
         cls.session = db.Session()
 
     def test_load_catchment(self):
