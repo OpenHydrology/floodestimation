@@ -1,3 +1,19 @@
+# Copyright (c) 2014  Neil Nutt <neilnutt[at]googlemail[dot]com> and
+# Florenz A.P. Hollebrandse <f.a.p.hollebrandse@protonmail.ch>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 """
 Module containing flood estimation analysis methods, including QMED, growth curves etc.
 """
@@ -10,7 +26,7 @@ class QmedAnalysis(object):
 
     Example:
 
-    >>> from floodestimation.catchment import Catchment
+    >>> from floodestimation.entities import Catchment
     >>> from floodestimation.analysis import QmedAnalysis
     >>> catchment = Catchment("Aberdeen", "River Dee")
     >>> catchment.descriptors = {'area': 1, 'bfihost': 0.50, 'sprhost': 50, 'saar': 1000, 'farl': 1, 'urbext': 0}
@@ -38,6 +54,22 @@ class QmedAnalysis(object):
 
         The preferred/best order of methods is defined by :attr:`qmed_methods`. Alternatively, a method can be supplied
         e.g. `method='descriptors_1999'` to force the use of a particular method.
+
+        ================= ====================== =======================================================================
+        `method`          `method_options`       notes
+        ================= ====================== =======================================================================
+        `amax_records`    n/a                    Simple median of annual maximum flow records using
+                                                 `Catchment.amax_records`
+        `descriptors`                            Synonym for `method=descriptors2008`.
+        `descriptors2008` `as_rural=False`       FEH 2008 regression methodology using `Catchment.descriptors`. Setting
+                          `donor_catchment=None` `as_rural=True` returns rural estimate and setting `donor_catchment` to
+                                                 a specific :class:`Catchment` object **overrides** automatic selection
+                                                 of the most suitable donor catchment.
+        `descriptors1999` as_rural=False         FEH 1999 regression methodology.
+        `area`            n/a                    Simplified FEH 1999 regression methodology using
+                                                 `Cachment.descriptors.dtm_area` only.
+        `channel_width`   n/a                    Emperical regression method using the river channel width only.
+        ================= ====================== =======================================================================
 
         :param method: methodology to use to estimate QMED. Default: automatically choose best method.
         :type method: str
@@ -98,14 +130,14 @@ class QmedAnalysis(object):
         """
         Methodology source: FEH, Vol. 3, p. 14
         """
-        return 1 - 0.015 * log(2 * self.catchment.descriptors['area'])
+        return 1 - 0.015 * log(2 * self.catchment.descriptors.dtm_area)
 
     def _residual_soil(self):
         """
         Methodology source: FEH, Vol. 3, p. 14
         """
-        return self.catchment.descriptors['bfihost'] \
-               + 1.3 * (0.01 * self.catchment.descriptors['sprhost']) \
+        return self.catchment.descriptors.bfihost \
+               + 1.3 * (0.01 * self.catchment.descriptors.sprhost) \
                - 0.987
 
     def _qmed_from_channel_width(self):
@@ -132,7 +164,7 @@ class QmedAnalysis(object):
         :rtype: float
         """
         try:
-            return 1.172 * self.catchment.descriptors['area'] ** self._area_exponent()  # Area in km²
+            return 1.172 * self.catchment.descriptors.dtm_area ** self._area_exponent()  # Area in km²
         except (TypeError, KeyError):
             raise InsufficientDataError("Catchment `descriptors` attribute must be set first.")
 
@@ -148,10 +180,10 @@ class QmedAnalysis(object):
         :rtype: float
         """
         try:
-            qmed_rural = 1.172 * self.catchment.descriptors['area'] ** self._area_exponent() \
-                         * (self.catchment.descriptors['saar'] / 1000.0) ** 1.560 \
-                         * self.catchment.descriptors['farl'] ** 2.642 \
-                         * (self.catchment.descriptors['sprhost'] / 100.0) ** 1.211 * \
+            qmed_rural = 1.172 * self.catchment.descriptors.dtm_area ** self._area_exponent() \
+                         * (self.catchment.descriptors.saar / 1000.0) ** 1.560 \
+                         * self.catchment.descriptors.farl ** 2.642 \
+                         * (self.catchment.descriptors.sprhost / 100.0) ** 1.211 * \
                          0.0198 ** self._residual_soil()
             if as_rural:
                 return qmed_rural
@@ -187,15 +219,15 @@ class QmedAnalysis(object):
         """
         try:
             # Basis rural QMED from descriptors
-            qmed_rural = 8.3062 * self.catchment.descriptors['area'] ** 0.8510 \
-                         * 0.1536 ** (1000 / self.catchment.descriptors['saar']) \
-                         * self.catchment.descriptors['farl'] ** 3.4451 \
-                         * 0.0460 ** (self.catchment.descriptors['bfihost'] ** 2.0)
+            qmed_rural = 8.3062 * self.catchment.descriptors.dtm_area ** 0.8510 \
+                         * 0.1536 ** (1000 / self.catchment.descriptors.saar) \
+                         * self.catchment.descriptors.farl ** 3.4451 \
+                         * 0.0460 ** (self.catchment.descriptors.bfihost ** 2.0)
             # Apply donor adjustment if donor provided
             if not donor_catchment:
                 donor_catchment = self._find_qmed_donor_catchment()
             if donor_catchment:
-                qmed_rural = qmed_rural * self._donor_adj_factor(donor_catchment)
+                qmed_rural *= self._donor_adj_factor(donor_catchment)
             if as_rural:
                 return qmed_rural
             else:
@@ -210,7 +242,7 @@ class QmedAnalysis(object):
 
         Methodology source: FEH, Vol. 3, p. 54
         """
-        return 1 + 0.615 * self.catchment.descriptors['urbext'] * (70.0 / self.catchment.descriptors['sprhost'] - 1)
+        return 1 + 0.615 * self.catchment.descriptors.urbext * (70.0 / self.catchment.descriptors.sprhost - 1)
 
     def urban_adj_factor(self):
         """
@@ -221,7 +253,7 @@ class QmedAnalysis(object):
         :return: urban adjustment factor
         :rtype: float
         """
-        return self._pruaf() * (1 + self.catchment.descriptors['urbext']) ** 0.83
+        return self._pruaf() * (1 + self.catchment.descriptors.urbext) ** 0.83
 
     def _error_correlation(self, other_catchment):
         """

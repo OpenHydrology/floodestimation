@@ -1,17 +1,13 @@
 Reference manual
 ================
 
-:mod:`floodestimation.catchment`
---------------------------------
+.. toctree::
+   :numbered:
+   :maxdepth: 2
 
-.. autoclass:: floodestimation.catchment.Catchment
-   :members:
-
-.. autoclass:: floodestimation.catchment.AmaxRecord
-   :members:
-
-:mod:`floodestimation.analysis`
---------------------------------
-
-.. autoclass:: floodestimation.analysis.QmedAnalysis
-   :members:
+   entities
+   parsers
+   fehdata
+   db
+   loaders
+   analysis
