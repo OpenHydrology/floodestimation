@@ -106,6 +106,9 @@ class Catchment(db.Base):
         except (TypeError, KeyError):
             raise InsufficientDataError("Catchment `descriptors` attribute must be set first.")
 
+    def __repr__(self):
+        return "{} at {} ({})".format(self.watercourse, self.location, self.id)
+
 
 class Descriptors(db.Base):
     """

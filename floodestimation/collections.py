@@ -21,6 +21,8 @@ data.
 from operator import attrgetter
 # Current package imports
 from .entities import Catchment
+from . import loaders
+from . import db
 
 
 class CatchmentCollections(object):
@@ -30,15 +32,34 @@ class CatchmentCollections(object):
     The collections objects must be passed a session to a database containing the data. This is typically
     :meth:`floodestimation.db.Session()`
     """
-    def __init__(self, db_session):
+    def __init__(self, db_session, load_data='auto'):
         """
 
         :param db_session: SQLAlchemy database session
         :type db_session: :class:`sqlalchemy.orm.session.Session`
+        :type load_data: `auto`: automatically load gauged catchment data from NRFA website,
+                         `force`: delete all exsting data first,
+                         `manual`: manually retrieve data
         :return: a catchment collection object
         :rtype: :class:`.CatchmentCollections`
         """
         self.db_session = db_session
+
+        # If the database does not contain any catchmetnts yet, retrieve them from NRFA website and save to db
+        if load_data == 'force':
+            self.delete_gauged_catchments()
+        if self._db_empty() and load_data in ['auto', 'force']:
+            self.load_gauged_catchments()
+
+    @staticmethod
+    def delete_gauged_catchments():
+        db.reset_db_tables()
+
+    def load_gauged_catchments(self):
+        loaders.gauged_catchments_to_db(self.db_session)
+
+    def _db_empty(self):
+        return bool(self.db_session.query(Catchment).count()==0)
 
     def catchment_by_number(self, number):
         """

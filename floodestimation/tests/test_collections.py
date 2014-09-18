@@ -31,8 +31,6 @@ class TestCatchmentCollection(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_nearest_catchments(self):
-        loaders.gauged_catchments_to_db(self.db_session)
-
         subject_catchment = loaders.load_catchment('floodestimation/tests/data/17002.CD3')
         catchments = CatchmentCollections(self.db_session).nearest_qmed_catchments(subject_catchment)
         result = [catchment.id for catchment in catchments]
