@@ -27,12 +27,13 @@ class QmedAnalysis(object):
 
     Example:
 
-    >>> from floodestimation.entities import Catchment
+    >>> from floodestimation.entities import Catchment, Descriptors
     >>> from floodestimation.analysis import QmedAnalysis
     >>> catchment = Catchment("Aberdeen", "River Dee")
-    >>> catchment.descriptors = {'area': 1, 'bfihost': 0.50, 'sprhost': 50, 'saar': 1000, 'farl': 1, 'urbext': 0}
+    >>> catchment.descriptors = Descriptors(dtm_area=1, bfihost=0.50, sprhost=50, saar=1000, farl=1, urbext=0)
     >>> QmedAnalysis(catchment).qmed_all_methods()
-    {'descriptors_1999': 0.2671386414098229, 'amax_records': None, 'channel_width': None, 'area': 1.172}
+    {'descriptors': 0.5908579150223052, 'channel_width': None, 'area': 1.172, 'amax_records': None,
+    'descriptors_1999': 0.2671386414098229}
 
     """
     #: Methods available to estimate QMED, in order of best/preferred method
@@ -232,7 +233,7 @@ class QmedAnalysis(object):
                 # For just now, pick the first suitable catchment.
                 # TODO: implement algorithm to use multiple donors
                 try:
-                    donor_catchment = self._find_qmed_donor_catchments()[0]
+                    donor_catchment = self.find_donor_catchments()[0]
                 except IndexError:
                     pass
             if donor_catchment:
@@ -293,7 +294,7 @@ class QmedAnalysis(object):
         donor_qmed_descr = QmedAnalysis(donor_catchment).qmed(method='descriptors', as_rural=True)
         return (donor_qmed_amax / donor_qmed_descr) ** self._error_correlation(donor_catchment)
 
-    def _find_qmed_donor_catchments(self):
+    def find_donor_catchments(self):
         """
         Return a suitable donor catchment to improve a QMED estimate based on catchment descriptors alone.
 

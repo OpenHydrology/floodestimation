@@ -301,7 +301,7 @@ class TestQmedDonor(unittest.TestCase):
 
         analysis = QmedAnalysis(self.catchment, CatchmentCollections(db_session))
 
-        automatic_donor = analysis._find_qmed_donor_catchments()[0]
+        automatic_donor = analysis.find_donor_catchments()[0]
         # donor: qmed_am = 90.532, qmed_cd = 51.19
         self.assertEqual(17001, automatic_donor.id)
         self.assertEqual(5, automatic_donor.distance_to(self.catchment))
