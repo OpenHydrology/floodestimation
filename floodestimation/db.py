@@ -1,4 +1,4 @@
-# coding=UTF-8
+# -*- coding: UTF-8 -*-
 
 # Copyright (c) 2014  Florenz A.P. Hollebrandse <f.a.p.hollebrandse@protonmail.ch>
 #
