@@ -18,6 +18,10 @@ class TestLoaders(unittest.TestCase):
         self.assertEqual(17002, catchment.id)
         self.assertEqual(3, len(catchment.amax_records))
 
+    def test_load_catchment_without_amax(self):
+        catchment = loaders.load_catchment('floodestimation/tests/data/170021.CD3')
+        self.assertEqual([], catchment.amax_records)
+
     def test_save_catchments_to_db(self):
         loaders.gauged_catchments_to_db(self.session)
         expected = ['Ardlethen', "Curry's Bridge", 'Dudgeon Bridge', 'Headswood', 'Inverugie', 'Leven']

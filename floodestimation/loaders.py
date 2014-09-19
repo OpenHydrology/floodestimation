@@ -37,7 +37,10 @@ def load_catchment(cd3_file_path):
     am_file_path = path.splitext(cd3_file_path)[0] + '.AM'
 
     catchment = parsers.Cd3Parser().parse(cd3_file_path)
-    catchment.amax_records = parsers.AmaxParser().parse(am_file_path)
+    try:
+        catchment.amax_records = parsers.AmaxParser().parse(am_file_path)
+    except FileNotFoundError:
+        catchment.amax_records = []
 
     return catchment
 
