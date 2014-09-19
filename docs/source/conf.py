@@ -49,7 +49,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'Statistical Flood Estimation Tool'
+project = 'Flood estimation library'
 copyright = '2014, Neil Nutt, Florenz A.P. Hollebrandse'
 
 # The version info for the project you're documenting, acts as replacement for

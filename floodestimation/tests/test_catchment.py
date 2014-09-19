@@ -20,7 +20,7 @@ class TestCatchmentObject(unittest.TestCase):
         catchment_1.descriptors.centroid_ngr = (0, 0)
 
         catchment_2 = Catchment("Dundee", "River Tay")
-        catchment_2.descriptors.centroid_ngr = (3, 4)
+        catchment_2.descriptors.centroid_ngr = (3000, 4000)
 
         self.assertEqual(catchment_1.distance_to(catchment_2), 5)
 
@@ -30,7 +30,7 @@ class TestCatchmentObject(unittest.TestCase):
         catchment_1.country = 'gb'
 
         catchment_2 = Catchment("Dundee", "River Tay")
-        catchment_2.descriptors.centroid_ngr = (3, 4)
+        catchment_2.descriptors.centroid_ngr = (3000, 4000)
         catchment_2.country = 'gb'
 
         self.assertEqual(catchment_1.distance_to(catchment_2), 5)
@@ -65,7 +65,7 @@ class TestCatchmentDatabase(unittest.TestCase):
         catchment = Catchment(location="Aberdeen", watercourse="River Dee")
         self.db_session.add(catchment)
         result = self.db_session.query(Catchment).filter_by(location="Aberdeen", watercourse="River Dee").one()
-        self.assertEqual(catchment, result)
+        self.assertIs(catchment, result)
         self.db_session.rollback()
 
     def test_add_catchment_with_amax(self):

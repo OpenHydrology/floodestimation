@@ -2,7 +2,6 @@ Reference manual
 ================
 
 .. toctree::
-   :numbered:
    :maxdepth: 2
 
    entities
@@ -10,4 +9,5 @@ Reference manual
    fehdata
    db
    loaders
+   collections
    analysis

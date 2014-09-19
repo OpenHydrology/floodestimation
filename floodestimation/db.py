@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 
 # Copyright (c) 2014  Florenz A.P. Hollebrandse <f.a.p.hollebrandse@protonmail.ch>
 #
@@ -77,3 +77,8 @@ def create_db_tables():
     # This method is called from `floodestimation.__init__.py` to ensure that the database exist with valid tables when
     # importing and calling `Session()`.
     Base.metadata.create_all(engine)
+
+
+def reset_db_tables():
+    Base.metadata.drop_all(engine)
+    create_db_tables()

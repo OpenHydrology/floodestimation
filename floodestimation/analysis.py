@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Copyright (c) 2014  Neil Nutt <neilnutt[at]googlemail[dot]com> and
 # Florenz A.P. Hollebrandse <f.a.p.hollebrandse@protonmail.ch>
 #
@@ -18,6 +20,7 @@
 Module containing flood estimation analysis methods, including QMED, growth curves etc.
 """
 from math import log, floor, ceil, exp
+# Current package imports
 
 
 class QmedAnalysis(object):
@@ -26,27 +29,31 @@ class QmedAnalysis(object):
 
     Example:
 
-    >>> from floodestimation.entities import Catchment
+    >>> from floodestimation.entities import Catchment, Descriptors
     >>> from floodestimation.analysis import QmedAnalysis
     >>> catchment = Catchment("Aberdeen", "River Dee")
-    >>> catchment.descriptors = {'area': 1, 'bfihost': 0.50, 'sprhost': 50, 'saar': 1000, 'farl': 1, 'urbext': 0}
+    >>> catchment.descriptors = Descriptors(dtm_area=1, bfihost=0.50, sprhost=50, saar=1000, farl=1, urbext=0)
     >>> QmedAnalysis(catchment).qmed_all_methods()
-    {'descriptors_1999': 0.2671386414098229, 'amax_records': None, 'channel_width': None, 'area': 1.172}
+    {'descriptors': 0.5908579150223052, 'channel_width': None, 'area': 1.172, 'amax_records': None,
+    'descriptors_1999': 0.2671386414098229}
 
     """
     #: Methods available to estimate QMED, in order of best/preferred method
     methods = ('amax_records', 'descriptors', 'descriptors_1999', 'area', 'channel_width')
 
-    def __init__(self, catchment):
+    def __init__(self, catchment, gauged_catchment_collections=None):
         """
         Creates a QMED analysis object.
 
         :param catchment: subject catchment
-        :type catchment: :class:`Catchment`
-        :return:
+        :type catchment: :class:`floodestimation.entities.Catchment`
+        :param gauged_catchment_collections: catchment collections objects for retrieval of gauged data for donor
+                                              analyses
+        :type gauged_catchment_collections: :class:`floodestimation.collections.CatchmentCollections`
         """
 
         self.catchment = catchment
+        self.gauged_catchments = gauged_catchment_collections
 
     def qmed(self, method='best', **method_options):
         """
@@ -225,7 +232,12 @@ class QmedAnalysis(object):
                          * 0.0460 ** (self.catchment.descriptors.bfihost ** 2.0)
             # Apply donor adjustment if donor provided
             if not donor_catchment:
-                donor_catchment = self._find_qmed_donor_catchment()
+                # For just now, pick the first suitable catchment.
+                # TODO: implement algorithm to use multiple donors
+                try:
+                    donor_catchment = self.find_donor_catchments()[0]
+                except IndexError:
+                    pass
             if donor_catchment:
                 qmed_rural *= self._donor_adj_factor(donor_catchment)
             if as_rural:
@@ -284,17 +296,17 @@ class QmedAnalysis(object):
         donor_qmed_descr = QmedAnalysis(donor_catchment).qmed(method='descriptors', as_rural=True)
         return (donor_qmed_amax / donor_qmed_descr) ** self._error_correlation(donor_catchment)
 
-    def _find_qmed_donor_catchment(self):
+    def find_donor_catchments(self):
         """
         Return a suitable donor catchment to improve a QMED estimate based on catchment descriptors alone.
 
-        TODO: Not implemented yet.
-
-        :return: :class:`Catchment`
+        :return: list of nearby catchments
+        :rtype: :class:`floodestimation.entities.Catchment`
         """
-        # TODO: implement search for donor catchment.
-        #       Requires database of all HiFlows stations (catchment descriptors and amax records.
-        return None
+        if self.gauged_catchments:
+            return self.gauged_catchments.nearest_qmed_catchments(self.catchment)
+        else:
+            return []
 
 
 class InsufficientDataError(BaseException):

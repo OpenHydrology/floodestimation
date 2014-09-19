@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Copyright (c) 2014  Florenz A.P. Hollebrandse <f.a.p.hollebrandse@protonmail.ch>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -19,6 +21,7 @@ CD3-files and to download all gauged catchments and save into a sqlite database.
 """
 
 import os.path as path
+from errno import ENOENT
 # Current package imports
 from . import fehdata
 from . import parsers
@@ -37,7 +40,13 @@ def load_catchment(cd3_file_path):
     am_file_path = path.splitext(cd3_file_path)[0] + '.AM'
 
     catchment = parsers.Cd3Parser().parse(cd3_file_path)
-    catchment.amax_records = parsers.AmaxParser().parse(am_file_path)
+    try:
+        catchment.amax_records = parsers.AmaxParser().parse(am_file_path)
+    except (OSError, IOError) as e:
+        if e.errno == ENOENT:  # FileNotFoundError in Python >= 3.3
+            catchment.amax_records = []
+        else:
+            raise
 
     return catchment
 

@@ -93,18 +93,21 @@ class Catchment(db.Base):
 
         :param other_catchment: Catchment to calculate distance to
         :type other_catchment: :class:`.Catchment`
-        :return: Distance between the catchments in m.
+        :return: Distance between the catchments in km.
         :rtype: float
         """
         try:
             if self.country == other_catchment.country:
-                return hypot(self.descriptors.centroid_ngr[0] - other_catchment.descriptors.centroid_ngr[0],
-                             self.descriptors.centroid_ngr[1] - other_catchment.descriptors.centroid_ngr[1])
+                return 0.001 * hypot(self.descriptors.centroid_ngr[0] - other_catchment.descriptors.centroid_ngr[0],
+                                     self.descriptors.centroid_ngr[1] - other_catchment.descriptors.centroid_ngr[1])
             else:
                 # If the catchments are in a different country (e.g. `ni` versus `gb`) then set distance to infinity.
                 return float('+inf')
         except (TypeError, KeyError):
             raise InsufficientDataError("Catchment `descriptors` attribute must be set first.")
+
+    def __repr__(self):
+        return "{} at {} ({})".format(self.watercourse, self.location, self.id)
 
 
 class Descriptors(db.Base):

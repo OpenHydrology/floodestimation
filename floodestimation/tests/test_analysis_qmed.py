@@ -1,6 +1,12 @@
 import unittest
+import os
+from urllib.request import pathname2url
 from datetime import date
 from floodestimation.entities import Catchment, AmaxRecord, Descriptors
+from floodestimation.collections import CatchmentCollections
+from floodestimation import db
+from floodestimation import loaders
+from floodestimation import settings
 from floodestimation.analysis import QmedAnalysis, InsufficientDataError
 
 
@@ -255,23 +261,25 @@ class TestCatchmentQmed(unittest.TestCase):
 
 class TestQmedDonor(unittest.TestCase):
     catchment = Catchment("Dundee", "River Tay")
+    catchment.country = 'gb'
     catchment.descriptors = Descriptors(dtm_area=2.345,
                                         bfihost=0.0,
                                         sprhost=100,
                                         saar=2000,
                                         farl=0.5,
                                         urbext=0,
-                                        centroid_ngr=(0, 0))
+                                        centroid_ngr=(276125, 688424))
     # QMED descr rural = 0.6173
 
     donor_catchment = Catchment("Aberdeen", "River Dee")
+    donor_catchment.country = 'gb'
     donor_catchment.descriptors = Descriptors(dtm_area=1,
                                               bfihost=0.50,
                                               sprhost=50,
                                               saar=1000,
                                               farl=1,
                                               urbext=1,
-                                              centroid_ngr=(0, 0))
+                                              centroid_ngr=(276125, 688424))
     donor_catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 1.0, 0.5),
                                     AmaxRecord(date(2000, 12, 31), 1.0, 0.5)]
     # donor QMED descr rural = .5909
@@ -286,3 +294,21 @@ class TestQmedDonor(unittest.TestCase):
         self.assertEqual(
             round(QmedAnalysis(self.catchment).qmed(method='descriptors_2008', donor_catchment=self.donor_catchment),
                   4), 1.0448)
+
+    def test_donor_automatic_qmed(self):
+        settings.OPEN_HYDROLOGY_JSON_URL = 'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
+        db_session = db.Session()
+
+        analysis = QmedAnalysis(self.catchment, CatchmentCollections(db_session))
+
+        automatic_donor = analysis.find_donor_catchments()[0]
+        # donor: qmed_am = 90.532, qmed_cd = 51.19
+        self.assertEqual(17001, automatic_donor.id)
+        self.assertEqual(5, automatic_donor.distance_to(self.catchment))
+        self.assertEqual(0.4654, round(analysis._error_correlation(automatic_donor), 4))
+        self.assertEqual(1.3038, round(analysis._donor_adj_factor(automatic_donor), 4))
+
+        # 0.6173 * 1.3038 = 0.8049
+        self.assertEqual(0.8049, round(analysis.qmed(), 4))
+
+        db_session.rollback()
