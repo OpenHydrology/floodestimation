@@ -42,7 +42,7 @@ def load_catchment(cd3_file_path):
     catchment = parsers.Cd3Parser().parse(cd3_file_path)
     try:
         catchment.amax_records = parsers.AmaxParser().parse(am_file_path)
-    except OSError as e:
+    except (OSError, IOError) as e:
         if e.errno == ENOENT:  # FileNotFoundError in Python >= 3.3
             catchment.amax_records = []
         else:

@@ -1,14 +1,10 @@
-.. Statistical Flood Estimation Tool documentation master file, created by
-   sphinx-quickstart on Tue Aug 26 18:45:49 2014.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-Welcome to Statistical Flood Estimation Tool's documentation!
-=============================================================
+Flood estimation library documentation
+======================================
 
 Contents:
 
 .. toctree::
+   :numbered:
    :maxdepth: 2
 
    tutorial

@@ -18,6 +18,8 @@ In case of downloading the package manually, the following other packages are re
 - `appdirs`
 - `sqlalchemy`
 
+The :mod:`floodestimation` package has been tested with Python 3.2 to 3.4.
+
 Typical workflow
 ----------------
 
