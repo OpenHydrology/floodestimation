@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Copyright (c) 2014  Florenz A.P. Hollebrandse <f.a.p.hollebrandse@protonmail.ch>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -53,9 +55,15 @@ class CatchmentCollections(object):
 
     @staticmethod
     def delete_gauged_catchments():
+        """
+        Delete all catchment data from the database
+        """
         db.reset_db_tables()
 
     def load_gauged_catchments(self):
+        """
+        Load all catchment data into the database by downloading the data from the NRFA website
+        """
         loaders.gauged_catchments_to_db(self.db_session)
 
     def _db_empty(self):

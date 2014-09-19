@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Copyright (c) 2014  Neil Nutt <neilnutt[at]googlemail[dot]com> and
 # Florenz A.P. Hollebrandse <f.a.p.hollebrandse@protonmail.ch>
 #
