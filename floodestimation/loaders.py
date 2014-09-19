@@ -21,6 +21,7 @@ CD3-files and to download all gauged catchments and save into a sqlite database.
 """
 
 import os.path as path
+from errno import ENOENT
 # Current package imports
 from . import fehdata
 from . import parsers
@@ -41,8 +42,11 @@ def load_catchment(cd3_file_path):
     catchment = parsers.Cd3Parser().parse(cd3_file_path)
     try:
         catchment.amax_records = parsers.AmaxParser().parse(am_file_path)
-    except FileNotFoundError:
-        catchment.amax_records = []
+    except OSError as e:
+        if e.errno == ENOENT:  # FileNotFoundError in Python >= 3.3
+            catchment.amax_records = []
+        else:
+            raise
 
     return catchment
 
