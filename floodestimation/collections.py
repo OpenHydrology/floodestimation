@@ -52,6 +52,7 @@ class CatchmentCollections(object):
             self.delete_gauged_catchments()
         if self._db_empty() and load_data in ['auto', 'force']:
             self.load_gauged_catchments()
+            self.db_session.commit()
 
     @staticmethod
     def delete_gauged_catchments():
@@ -82,13 +83,13 @@ class CatchmentCollections(object):
 
     def nearest_qmed_catchments(self, subject_catchment):
         """
-        Return a list of catchment sorted by distance to `subject_catchment` **and filtered to only include catchments
+        Return a list of catchments sorted by distance to `subject_catchment` **and filtered to only include catchments
         suitable for QMED analyses**.
 
         :param subject_catchment: catchment object to measure distances to
         :type subject_catchment: :class:`floodestimation.entities.Catchment`
         :return: list of catchments sorted by distance
-        :rtype: list
+        :rtype: list of :class:`floodestimation.entities.Catchment`
         """
         # Get a list of all catchment, excluding the subject_catchment itself
         catchments = self.db_session.query(Catchment).filter(Catchment.id != subject_catchment.id,
@@ -97,5 +98,32 @@ class CatchmentCollections(object):
         catchments.sort(key=lambda c: c.distance_to(subject_catchment))
         return catchments
 
-    def most_similar_catchments(self, subject_catchment):
-        raise NotImplementedError
+    def most_similar_catchments(self, subject_catchment, similarity_dist_function, records_limit=500):
+        """
+        Return a list of catchments sorted by hydrological similarity defined by `similarity_distance_function`
+
+        :param subject_catchment: subject catchment to find similar catchments for
+        :type subject_catchment: :class:`floodestimation.entities.Catchment`
+        :param similarity_dist_function: a method returning a similarity distance measure with 2 arguments, both
+                                         :class:`floodestimation.entities.Catchment` objects
+        :return: list of catchments sorted by similarity
+        :type: list of :class:`floodestimation.entities.Catchment`
+        """
+        catchments = self.db_session.query(Catchment).filter(Catchment.is_suitable_for_pooling) \
+                         .all()[0:int(records_limit / 5)]
+        # Store the similarity distance as an additional attribute for each catchment
+        for catchment in catchments:
+            catchment.similarity_dist = similarity_dist_function(subject_catchment, catchment)
+        # Then simply sort by this attribute
+        catchments.sort(key=attrgetter('similarity_dist'))
+
+        # Limit catchments until total amax_records counts is at least `records_limit`, default 500
+        amax_records_count = 0
+        catchments_limited = []
+        for catchment in catchments:
+            catchments_limited.append(catchment)
+            amax_records_count += len(catchment.amax_records)
+            if amax_records_count >= records_limit:
+                break
+
+        return catchments_limited

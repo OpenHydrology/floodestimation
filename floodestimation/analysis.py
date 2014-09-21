@@ -19,7 +19,7 @@
 """
 Module containing flood estimation analysis methods, including QMED, growth curves etc.
 """
-from math import log, floor, ceil, exp
+from math import log, floor, ceil, exp, sqrt
 # Current package imports
 
 
@@ -57,7 +57,7 @@ class QmedAnalysis(object):
 
     def qmed(self, method='best', **method_options):
         """
-        Returns QMED estimate using best available methodology depending on what catchment attributes are available.
+        Return QMED estimate using best available methodology depending on what catchment attributes are available.
 
         The preferred/best order of methods is defined by :attr:`qmed_methods`. Alternatively, a method can be supplied
         e.g. `method='descriptors_1999'` to force the use of a particular method.
@@ -305,6 +305,92 @@ class QmedAnalysis(object):
         """
         if self.gauged_catchments:
             return self.gauged_catchments.nearest_qmed_catchments(self.catchment)
+        else:
+            return []
+
+
+class GrowthCurveAnalysis(object):
+    """
+    Class to undertake a growth curve analysis.
+    """
+    #: Methods available to estimate the growth curve
+    methods = ('enhanced_single_site', 'single_site', 'pooling_group')
+
+    def __init__(self, catchment, gauged_catchment_collections=None):
+        self.catchment = catchment
+        self.gauged_cachments = gauged_catchment_collections
+
+    def growth_curve(self, method='best', **method_options):
+        """
+        Return QMED estimate using best available methodology depending on what catchment attributes are available.
+
+        ====================== ====================== ==================================================================
+        `method`               `method_options`       notes
+        ====================== ====================== ==================================================================
+        `enhanced_single_site` n/a                    Preferred method for gauged catchments (i.e. with
+                                                      `Catchment.amax_record')
+        `single_site`                                 Alternative method for gauged catchments. Uses AMAX data from
+                                                      subject station only.
+        `pooling_group`        n/a                    Only possible method for ungauged catchments.
+        ====================== ====================== ==================================================================
+
+        :param method: methodology to use to estimate the growth_curve. Default: automatically choose best method.
+        :type method: str
+        :param method_options: any optional parameters for the growth curve method function
+        :type method_options: kwargs
+
+        :return:
+        :rtype:
+        """
+        if method == 'best':
+            if self.catchment.amax_records:
+                # Gauged catchment, use enhanced single site
+                return self._growth_curve_enhanced_single_site()
+            else:
+                # Ungauged catchment, standard pooling group
+                return self._growth_curve_pooling_group()
+        else:
+            try:
+                return getattr(self, '_qrowth_curve_' + method)(**method_options)
+            except AttributeError:
+                raise AttributeError("Method `{}` to estimate the growth curve does not exist.".format(method))
+
+    def _growth_curve_single_site(self):
+        return
+
+    def _growth_curve_pooling_group(self):
+        return
+
+    def _growth_curve_enhanced_single_site(self):
+        return
+
+    similarity_params = {'dtm_area': (3.2, 1.28),  # param: (weight, std_dev)
+                         'saar': (0.5, 0.37),
+                         'farl': (0.2, 0.05),
+                         'fpext': (0.1, 0.04)}
+
+    @classmethod
+    def _similarity_distance(cls, subject_catchment, other_catchment):
+        dist_sq = 0
+        for param, value in cls.similarity_params.items():
+            weight = value[0]
+            std_dev = value[1]
+            dist_sq += weight * ((log(getattr(other_catchment.descriptors, param))
+                                  - log(getattr(subject_catchment.descriptors, param)))/std_dev)**2
+        return sqrt(dist_sq)
+
+    def find_donor_catchments(self):
+        """
+        Return list of suitable donor cachments, ranked by hydrological similarity distance measure.
+
+        The returned (list of) :class:`floodestimation.entities.Catchment` will have an additional attribute
+        :attr:`similarity_dist`
+
+        :return: List of donor catchments
+        :rtype: list of :class:`floodestimation.entities.Catchment`
+        """
+        if self.gauged_cachments:
+            return self.gauged_cachments.most_similar_catchments(self.catchment, self._similarity_distance)
         else:
             return []
 

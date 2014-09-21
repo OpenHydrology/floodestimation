@@ -5,7 +5,6 @@ from datetime import date
 from floodestimation.entities import Catchment, AmaxRecord, Descriptors
 from floodestimation.collections import CatchmentCollections
 from floodestimation import db
-from floodestimation import loaders
 from floodestimation import settings
 from floodestimation.analysis import QmedAnalysis, InsufficientDataError
 
@@ -312,3 +311,4 @@ class TestQmedDonor(unittest.TestCase):
         self.assertEqual(0.8049, round(analysis.qmed(), 4))
 
         db_session.rollback()
+        db.reset_db_tables()
