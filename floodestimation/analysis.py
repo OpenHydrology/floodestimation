@@ -21,6 +21,7 @@ Module containing flood estimation analysis methods, including QMED, growth curv
 """
 from math import log, floor, ceil, exp, sqrt
 # Current package imports
+from .stats import median
 
 
 class QmedAnalysis(object):
@@ -129,9 +130,7 @@ class QmedAnalysis(object):
         length = len(self.catchment.amax_records)
         if length < 2:
             raise InsufficientDataError("Insufficient annual maximum flow records available.")
-        # Avoid numpy dependency at this stage...
-        flow_sorted = sorted([record.flow for record in self.catchment.amax_records])
-        return 0.5 * flow_sorted[int(floor(0.5 * (length - 1)))] + 0.5 * flow_sorted[int(ceil(0.5 * (length - 1)))]
+        return median([record.flow for record in self.catchment.amax_records])
 
     def _area_exponent(self):
         """
