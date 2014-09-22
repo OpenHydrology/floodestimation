@@ -364,19 +364,27 @@ class GrowthCurveAnalysis(object):
     def _growth_curve_enhanced_single_site(self):
         return
 
-    similarity_params = {'dtm_area': (3.2, 1.28),  # param: (weight, std_dev)
-                         'saar': (0.5, 0.37),
-                         'farl': (0.2, 0.05),
-                         'fpext': (0.1, 0.04)}
+    similarity_params = {'dtm_area': (3.2, 1.28, log),  # param: (weight, std_dev, transform method)
+                         'saar': (0.5, 0.37, log),
+                         'farl': (0.1, 0.05),
+                         'fpext': (0.2, 0.04)}
 
-    @classmethod
-    def _similarity_distance(cls, subject_catchment, other_catchment):
+    def _similarity_distance(self, subject_catchment, other_catchment):
         dist_sq = 0
-        for param, value in cls.similarity_params.items():
-            weight = value[0]
-            std_dev = value[1]
-            dist_sq += weight * ((log(getattr(other_catchment.descriptors, param))
-                                  - log(getattr(subject_catchment.descriptors, param)))/std_dev)**2
+        for param, value in self.similarity_params.items():
+            try:
+                weight = value[0]
+                std_dev = value[1]
+                try:
+                    transform = value[2]
+                except IndexError:
+                    # If no transform method, just use linear
+                    transform = lambda x: x
+                dist_sq += weight * ((transform(getattr(other_catchment.descriptors, param))
+                                      - transform(getattr(subject_catchment.descriptors, param)))/std_dev)**2
+            except TypeError:
+                 # If either of the catchments do not have the descriptor, assume infinitely large distance
+                dist_sq += float('inf')
         return sqrt(dist_sq)
 
     def find_donor_catchments(self):
@@ -390,7 +398,8 @@ class GrowthCurveAnalysis(object):
         :rtype: list of :class:`floodestimation.entities.Catchment`
         """
         if self.gauged_cachments:
-            return self.gauged_cachments.most_similar_catchments(self.catchment, self._similarity_distance)
+            return self.gauged_cachments.most_similar_catchments(self.catchment,
+                                                                 lambda c1, c2: self._similarity_distance(c1, c2))
         else:
             return []
 

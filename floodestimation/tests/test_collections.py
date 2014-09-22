@@ -7,7 +7,6 @@ from floodestimation import db
 from floodestimation import loaders
 from floodestimation import settings
 from floodestimation.collections import CatchmentCollections
-from floodestimation.analysis import GrowthCurveAnalysis
 
 
 class TestCatchmentCollection(unittest.TestCase):
@@ -45,9 +44,10 @@ class TestCatchmentCollection(unittest.TestCase):
 
     def test_most_similar_catchments(self):
         subject_catchment = loaders.load_catchment('floodestimation/tests/data/17002.CD3')
-        catchments = CatchmentCollections(self.db_session).\
-            most_similar_catchments(subject_catchment, GrowthCurveAnalysis._similarity_distance)
-        result = [(c.id, c.similarity_dist) for c in catchments]
+        # Dummy similarity distance function
+        function = lambda c1, c2: c2.descriptors.altbar - c1.descriptors.altbar
+        catchments = CatchmentCollections(self.db_session).most_similar_catchments(subject_catchment, function)
+        result = [c.id for c in catchments]
         expected = [10002, 10001]
         self.assertEqual(expected, result)
 

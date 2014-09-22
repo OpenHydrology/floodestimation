@@ -21,8 +21,9 @@ data.
 """
 
 from operator import attrgetter
+from sqlalchemy import or_
 # Current package imports
-from .entities import Catchment
+from .entities import Catchment, Descriptors
 from . import loaders
 from . import db
 
@@ -109,8 +110,10 @@ class CatchmentCollections(object):
         :return: list of catchments sorted by similarity
         :type: list of :class:`floodestimation.entities.Catchment`
         """
-        catchments = self.db_session.query(Catchment).filter(Catchment.is_suitable_for_pooling) \
-                         .all()[0:int(records_limit / 5)]
+        catchments = self.db_session.query(Catchment).join(Descriptors). \
+            filter(Catchment.is_suitable_for_pooling,
+                   or_(Descriptors.urbext2000 < 0.03, Descriptors.urbext2000 == None)).all()
+
         # Store the similarity distance as an additional attribute for each catchment
         for catchment in catchments:
             catchment.similarity_dist = similarity_dist_function(subject_catchment, catchment)
