@@ -99,7 +99,8 @@ class CatchmentCollections(object):
         catchments.sort(key=lambda c: c.distance_to(subject_catchment))
         return catchments
 
-    def most_similar_catchments(self, subject_catchment, similarity_dist_function, records_limit=500):
+    def most_similar_catchments(self, subject_catchment, similarity_dist_function, records_limit=500,
+                                include_subject_catchment = 'auto'):
         """
         Return a list of catchments sorted by hydrological similarity defined by `similarity_distance_function`
 
@@ -107,12 +108,24 @@ class CatchmentCollections(object):
         :type subject_catchment: :class:`floodestimation.entities.Catchment`
         :param similarity_dist_function: a method returning a similarity distance measure with 2 arguments, both
                                          :class:`floodestimation.entities.Catchment` objects
+        :param include_subject_catchment: - `auto`: include subject catchment if suitable for pooling and if urbext < 0.03
+                                          - `force`: always include subject catchment
+                                          - `exclude`: do not include the subject catchment
         :return: list of catchments sorted by similarity
         :type: list of :class:`floodestimation.entities.Catchment`
         """
-        catchments = self.db_session.query(Catchment).join(Descriptors). \
+        query = self.db_session.query(Catchment).join(Descriptors). \
             filter(Catchment.is_suitable_for_pooling,
-                   or_(Descriptors.urbext2000 < 0.03, Descriptors.urbext2000 == None)).all()
+                   or_(Descriptors.urbext2000 < 0.03, Descriptors.urbext2000 == None))
+        if include_subject_catchment == 'exclude':
+            # Remove subject catchment from donor list (if already in)
+            catchments = query.filter(Catchment.id != subject_catchment.id).all()
+        elif include_subject_catchment == 'force':
+            # Add the subject catchment regardless of urbext of pooling suitability
+            sc_query = self.db_session.query(Catchment).filter(Catchment.id == subject_catchment.id)
+            catchments = query.union(sc_query).all()
+        else:
+            catchments = query.all()
 
         # Store the similarity distance as an additional attribute for each catchment
         for catchment in catchments:
