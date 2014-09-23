@@ -20,6 +20,7 @@
 Module containing flood estimation analysis methods, including QMED, growth curves etc.
 """
 from math import log, floor, ceil, exp, sqrt
+import lmoments
 # Current package imports
 from .stats import median
 

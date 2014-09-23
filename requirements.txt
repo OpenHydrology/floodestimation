@@ -1,2 +1,5 @@
 appdirs
 sqlalchemy
+numpy
+scipy
+lmoments
