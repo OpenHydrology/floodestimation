@@ -318,6 +318,8 @@ class GrowthCurveAnalysis(object):
     def __init__(self, catchment, gauged_catchment_collections=None):
         self.catchment = catchment
         self.gauged_cachments = gauged_catchment_collections
+        # Cache for list of donor catchments
+        self._donor_catchments = []
 
     def growth_curve(self, method='best', **method_options):
         """
@@ -358,11 +360,15 @@ class GrowthCurveAnalysis(object):
         return
 
     def _growth_curve_pooling_group(self):
+        donors = self.donor_catchments()
         return
 
     def _growth_curve_enhanced_single_site(self):
+        donors = self.donor_catchments(include_subject_catchment='force')
         return
 
+    #: Dict of weighting factors and standard deviation for catchment descriptors to use in calculating the similarity
+    #: distance measure between the subject catchment and each donor catchment.
     similarity_params = {'dtm_area': (3.2, 1.28, log),  # param: (weight, std_dev, transform method)
                          'saar': (0.5, 0.37, log),
                          'farl': (0.1, 0.05),
@@ -386,21 +392,31 @@ class GrowthCurveAnalysis(object):
                 dist_sq += float('inf')
         return sqrt(dist_sq)
 
-    def find_donor_catchments(self):
+    def donor_catchments(self, include_subject_catchment='auto'):
         """
         Return list of suitable donor cachments, ranked by hydrological similarity distance measure.
 
         The returned (list of) :class:`floodestimation.entities.Catchment` will have an additional attribute
-        :attr:`similarity_dist`
+        :attr:`similarity_dist`.
+
+        The results will be cached, so calling the :meth:`donor_catchments` again is very fast.
 
         :return: List of donor catchments
         :rtype: list of :class:`floodestimation.entities.Catchment`
         """
-        if self.gauged_cachments:
-            return self.gauged_cachments.most_similar_catchments(self.catchment,
-                                                                 lambda c1, c2: self._similarity_distance(c1, c2))
-        else:
-            return []
+
+        # If cached donors is empty, calculate most similar catchments
+        if not self._donor_catchments:
+            # Only if we have access to db with gauged catchment data
+            if self.gauged_cachments:
+                self._donor_catchments = self.gauged_cachments. \
+                    most_similar_catchments(subject_catchment=self.catchment,
+                                            similarity_dist_function=lambda c1, c2: self._similarity_distance(c1, c2),
+                                            include_subject_catchment=include_subject_catchment)
+            else:
+                self._donor_catchments = []
+        # Return the cache
+        return self._donor_catchments
 
 
 class InsufficientDataError(BaseException):

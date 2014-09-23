@@ -35,9 +35,9 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
 
     def test_find_donors_without_collection(self):
         analysis = GrowthCurveAnalysis(self.catchment)
-        self.assertFalse(analysis.find_donor_catchments())
+        self.assertFalse(analysis.donor_catchments())
 
-    def test_find_donors_incomplete_descriptors(self):
+    def test_similarity_distance_incomplete_descriptors(self):
         other_catchment = Catchment(location="Burn A", watercourse="Village B")
         other_catchment.id = 999
         other_catchment.is_suitable_for_pooling = True
@@ -45,7 +45,7 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
 
         gauged_catchments = CatchmentCollections(self.db_session)
         analysis = GrowthCurveAnalysis(self.catchment, gauged_catchments)
-        self.assertEqual(float('inf'), analysis.find_donor_catchments()[2].similarity_dist)
+        self.assertEqual(float('inf'), analysis._similarity_distance(self.catchment, other_catchment))
 
     def test_find_donors_exclude_urban(self):
         other_catchment = Catchment(location="Burn A", watercourse="Village B")
@@ -56,11 +56,11 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
 
         gauged_catchments = CatchmentCollections(self.db_session)
         analysis = GrowthCurveAnalysis(self.catchment, gauged_catchments)
-        donor_ids = [d.id for d in analysis.find_donor_catchments()]
+        donor_ids = [d.id for d in analysis.donor_catchments()]
         self.assertEqual([10002, 10001], donor_ids)
 
     def test_find_donors(self):
         gauged_catchments = CatchmentCollections(self.db_session)
         analysis = GrowthCurveAnalysis(self.catchment, gauged_catchments)
-        donor_ids = [d.id for d in analysis.find_donor_catchments()]
+        donor_ids = [d.id for d in analysis.donor_catchments()]
         self.assertEqual([10002, 10001], donor_ids)
