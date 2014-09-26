@@ -2,12 +2,15 @@
 
 import unittest
 import os
+import lmoments3 as lm
 from urllib.request import pathname2url
 from floodestimation.entities import Catchment, Descriptors
 from floodestimation.analysis import GrowthCurveAnalysis
 from floodestimation import db
 from floodestimation import settings
 from floodestimation.collections import CatchmentCollections
+from floodestimation.loaders import load_catchment
+
 
 class TestGrowthCurveAnalysis(unittest.TestCase):
     @classmethod
@@ -64,3 +67,12 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         analysis = GrowthCurveAnalysis(self.catchment, gauged_catchments)
         donor_ids = [d.id for d in analysis.donor_catchments()]
         self.assertEqual([10002, 10001], donor_ids)
+
+    def test_single_site(self):
+        gauged_catchments = CatchmentCollections(self.db_session)
+        catchment = load_catchment('floodestimation/tests/data/37017.CD3')
+        analysis = GrowthCurveAnalysis(catchment, gauged_catchments)
+        dist_para = analysis.growth_curve(method='single_site')
+        self.assertAlmostEqual(lm.quaglo(0.5, dist_para), 1)
+        self.assertAlmostEqual(dist_para[2], 0.0908, places=4)  # kappa
+        self.assertAlmostEqual(dist_para[1], 0.2131, places=4)  # beta

@@ -20,7 +20,8 @@
 Module containing flood estimation analysis methods, including QMED, growth curves etc.
 """
 from math import log, floor, ceil, exp, sqrt
-import lmoments
+import lmoments3 as lm
+import numpy as np
 # Current package imports
 from .stats import median
 
@@ -40,7 +41,7 @@ class QmedAnalysis(object):
     'descriptors_1999': 0.2671386414098229}
 
     """
-    #: Methods available to estimate QMED, in order of best/preferred method
+    # : Methods available to estimate QMED, in order of best/preferred method
     methods = ('amax_records', 'descriptors', 'descriptors_1999', 'area', 'channel_width')
 
     def __init__(self, catchment, gauged_catchment_collections=None):
@@ -313,7 +314,7 @@ class GrowthCurveAnalysis(object):
     """
     Class to undertake a growth curve analysis.
     """
-    #: Methods available to estimate the growth curve
+    # : Methods available to estimate the growth curve
     methods = ('enhanced_single_site', 'single_site', 'pooling_group')
 
     def __init__(self, catchment, gauged_catchment_collections=None):
@@ -353,12 +354,41 @@ class GrowthCurveAnalysis(object):
                 return self._growth_curve_pooling_group()
         else:
             try:
-                return getattr(self, '_qrowth_curve_' + method)(**method_options)
+                return getattr(self, '_growth_curve_' + method)(**method_options)
             except AttributeError:
                 raise AttributeError("Method `{}` to estimate the growth curve does not exist.".format(method))
 
-    def _growth_curve_single_site(self):
-        return
+    @staticmethod
+    def _z_array(amax_records):
+        flows = np.array([record.flow for record in amax_records])
+        return flows / np.median(flows)
+
+    @staticmethod
+    def _l_stats(x):
+        """
+        Return l1, l2, t3
+        :param x:
+        :return:
+        """
+        return lm.samlmu(x, nmom=3)
+
+    @staticmethod
+    def _l_cv_and_skew(x):
+        """
+        Return t2 (L-CV) and t3 (L-SKEW)
+        :param x:
+        :return:
+        """
+        l1, l2, t3 = lm.samlmu(x, nmom=3)
+        return l2 / l1, t3
+
+    def _growth_curve_single_site(self, dist='glo', location='median'):
+        z = self._z_array(self.catchment.amax_records)
+        lstats = self._l_stats(z)
+        dist_para = getattr(lm, 'pel' + dist)(lstats)
+        if location == 'median':
+            dist_para[0] = 1
+        return dist_para
 
     def _growth_curve_pooling_group(self):
         donors = self.donor_catchments()
@@ -387,9 +417,9 @@ class GrowthCurveAnalysis(object):
                     # If no transform method, just use linear
                     transform = lambda x: x
                 dist_sq += weight * ((transform(getattr(other_catchment.descriptors, param))
-                                      - transform(getattr(subject_catchment.descriptors, param)))/std_dev)**2
+                                      - transform(getattr(subject_catchment.descriptors, param))) / std_dev) ** 2
             except TypeError:
-                 # If either of the catchments do not have the descriptor, assume infinitely large distance
+                # If either of the catchments do not have the descriptor, assume infinitely large distance
                 dist_sq += float('inf')
         return sqrt(dist_sq)
 
