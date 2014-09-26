@@ -388,7 +388,8 @@ class GrowthCurveAnalysis(object):
         dist_para = getattr(lm, 'pel' + dist)(lstats)
         if location == 'median':
             dist_para[0] = 1
-        return dist_para
+        dist_func = getattr(lm, 'qua' + dist)
+        return lambda aep: dist_func(aep, dist_para)
 
     def _growth_curve_pooling_group(self):
         donors = self.donor_catchments()

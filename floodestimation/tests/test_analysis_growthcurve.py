@@ -72,7 +72,16 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         gauged_catchments = CatchmentCollections(self.db_session)
         catchment = load_catchment('floodestimation/tests/data/37017.CD3')
         analysis = GrowthCurveAnalysis(catchment, gauged_catchments)
-        dist_para = analysis.growth_curve(method='single_site')
-        self.assertAlmostEqual(lm.quaglo(0.5, dist_para), 1)
-        self.assertAlmostEqual(dist_para[2], 0.0908, places=4)  # kappa
-        self.assertAlmostEqual(dist_para[1], 0.2131, places=4)  # beta
+        dist_func = analysis.growth_curve(method='single_site')
+        self.assertAlmostEqual(dist_func(0.5), 1)
+
+    def test_l_stats(self):
+        gauged_catchments = CatchmentCollections(self.db_session)
+        catchment = load_catchment('floodestimation/tests/data/37017.CD3')
+
+        analysis = GrowthCurveAnalysis(catchment, gauged_catchments)
+        z = analysis._z_array(catchment.amax_records)
+        l_cv, l_skew = analysis._l_cv_and_skew(z)
+
+        self.assertAlmostEqual(l_cv, 0.2232, places=4)
+        self.assertAlmostEqual(l_skew, -0.0908, places=4)
