@@ -38,7 +38,7 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
 
     def test_find_donors_without_collection(self):
         analysis = GrowthCurveAnalysis(self.catchment)
-        self.assertFalse(analysis.donor_catchments())
+        self.assertFalse(analysis.find_donor_catchments())
 
     def test_similarity_distance_incomplete_descriptors(self):
         other_catchment = Catchment(location="Burn A", watercourse="Village B")
@@ -59,13 +59,15 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
 
         gauged_catchments = CatchmentCollections(self.db_session)
         analysis = GrowthCurveAnalysis(self.catchment, gauged_catchments)
-        donor_ids = [d.id for d in analysis.donor_catchments()]
+        analysis.find_donor_catchments()
+        donor_ids = [d.id for d in analysis.donor_catchments]
         self.assertEqual([10002, 10001], donor_ids)
 
     def test_find_donors(self):
         gauged_catchments = CatchmentCollections(self.db_session)
         analysis = GrowthCurveAnalysis(self.catchment, gauged_catchments)
-        donor_ids = [d.id for d in analysis.donor_catchments()]
+        analysis.find_donor_catchments()
+        donor_ids = [d.id for d in analysis.donor_catchments]
         self.assertEqual([10002, 10001], donor_ids)
 
     def test_single_site(self):
@@ -75,13 +77,23 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         dist_func = analysis.growth_curve(method='single_site')
         self.assertAlmostEqual(dist_func(0.5), 1)
 
-    def test_l_stats(self):
+    def test_l_cv_and_skew(self):
         gauged_catchments = CatchmentCollections(self.db_session)
         catchment = load_catchment('floodestimation/tests/data/37017.CD3')
 
         analysis = GrowthCurveAnalysis(catchment, gauged_catchments)
-        z = analysis._z_array(catchment.amax_records)
-        l_cv, l_skew = analysis._l_cv_and_skew(z)
+        analysis.estimate_l_cv_and_skew(catchment)
 
-        self.assertAlmostEqual(l_cv, 0.2232, places=4)
-        self.assertAlmostEqual(l_skew, -0.0908, places=4)
+        self.assertAlmostEqual(analysis.l_cv, 0.2232, places=4)
+        self.assertAlmostEqual(analysis.l_skew, -0.0908, places=4)
+
+    def test_l_dist_params(self):
+        gauged_catchments = CatchmentCollections(self.db_session)
+        catchment = load_catchment('floodestimation/tests/data/37017.CD3')
+
+        analysis = GrowthCurveAnalysis(catchment, gauged_catchments)
+        analysis.estimate_dist_params(catchment)
+
+        self.assertAlmostEqual(analysis.dist_params[0], 1, places=4)
+        self.assertAlmostEqual(analysis.dist_params[1], 0.2202, places=4)
+        self.assertAlmostEqual(analysis.dist_params[2], 0.0908, places=4)

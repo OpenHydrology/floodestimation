@@ -316,12 +316,17 @@ class GrowthCurveAnalysis(object):
     """
     # : Methods available to estimate the growth curve
     methods = ('enhanced_single_site', 'single_site', 'pooling_group')
+    distributions = ('glo', 'gev')
 
     def __init__(self, catchment, gauged_catchment_collections=None):
         self.catchment = catchment
         self.gauged_cachments = gauged_catchment_collections
         # Cache for list of donor catchments
-        self._donor_catchments = []
+        self.donor_catchments = []
+        self.l_cv = None
+        self.l_skew = None
+        self.dist = 'glo'
+        self.dist_params = []
 
     def growth_curve(self, method='best', **method_options):
         """
@@ -332,7 +337,7 @@ class GrowthCurveAnalysis(object):
         ====================== ====================== ==================================================================
         `enhanced_single_site` n/a                    Preferred method for gauged catchments (i.e. with
                                                       `Catchment.amax_record')
-        `single_site`                                 Alternative method for gauged catchments. Uses AMAX data from
+        `single_site`          n/a                    Alternative method for gauged catchments. Uses AMAX data from
                                                       subject station only.
         `pooling_group`        n/a                    Only possible method for ungauged catchments.
         ====================== ====================== ==================================================================
@@ -359,47 +364,45 @@ class GrowthCurveAnalysis(object):
                 raise AttributeError("Method `{}` to estimate the growth curve does not exist.".format(method))
 
     @staticmethod
-    def _z_array(amax_records):
-        flows = np.array([record.flow for record in amax_records])
+    def _z_array(catchment):
+        flows = np.array([record.flow for record in catchment.amax_records])
         return flows / np.median(flows)
 
-    @staticmethod
-    def _l_stats(x):
+    def _l_stats(self, catchment):
         """
         Return l1, l2, t3
-        :param x:
-        :return:
         """
-        return lm.samlmu(x, nmom=3)
+        z = self._z_array(catchment)
+        return lm.samlmu(z, nmom=3)
 
-    @staticmethod
-    def _l_cv_and_skew(x):
-        """
-        Return t2 (L-CV) and t3 (L-SKEW)
-        :param x:
-        :return:
-        """
-        l1, l2, t3 = lm.samlmu(x, nmom=3)
-        return l2 / l1, t3
+    def estimate_l_cv_and_skew(self, catchment):
+        # TODO: allow list of catchments for pooling group
+        z = self._z_array(catchment)
+        l1, l2, t3 = lm.samlmu(z, nmom=3)
+        self.l_cv = l2 / l1
+        self.l_skew = t3
 
-    def _growth_curve_single_site(self, dist='glo', location='median'):
-        z = self._z_array(self.catchment.amax_records)
-        lstats = self._l_stats(z)
-        dist_para = getattr(lm, 'pel' + dist)(lstats)
-        if location == 'median':
-            dist_para[0] = 1
-        dist_func = getattr(lm, 'qua' + dist)
-        return lambda aep: dist_func(aep, dist_para)
+    def estimate_dist_params(self, catchment):
+        self.estimate_l_cv_and_skew(catchment)
+        # Scaling by QMED instead of first moment so set first moment to 1 and first dist parameter to 1
+        dist_params = getattr(lm, 'pel' + self.dist)([1, self.l_cv, self.l_skew])
+        dist_params[0] = 1
+        self.dist_params = dist_params
+
+    def _growth_curve_single_site(self):
+        self.estimate_dist_params(self.catchment)
+        dist_func = getattr(lm, 'qua' + self.dist)
+        return lambda aep: dist_func(1 - aep, self.dist_params)
 
     def _growth_curve_pooling_group(self):
-        donors = self.donor_catchments()
+        self.find_donor_catchments()
         return
 
     def _growth_curve_enhanced_single_site(self):
-        donors = self.donor_catchments(include_subject_catchment='force')
+        self.find_donor_catchments(include_subject_catchment='force')
         return
 
-    #: Dict of weighting factors and standard deviation for catchment descriptors to use in calculating the similarity
+    # : Dict of weighting factors and standard deviation for catchment descriptors to use in calculating the similarity
     #: distance measure between the subject catchment and each donor catchment.
     similarity_params = {'dtm_area': (3.2, 1.28, log),  # param: (weight, std_dev, transform method)
                          'saar': (0.5, 0.37, log),
@@ -424,31 +427,22 @@ class GrowthCurveAnalysis(object):
                 dist_sq += float('inf')
         return sqrt(dist_sq)
 
-    def donor_catchments(self, include_subject_catchment='auto'):
+    def find_donor_catchments(self, include_subject_catchment='auto'):
         """
-        Return list of suitable donor cachments, ranked by hydrological similarity distance measure.
+        Find list of suitable donor cachments, ranked by hydrological similarity distance measure.
 
-        The returned (list of) :class:`floodestimation.entities.Catchment` will have an additional attribute
-        :attr:`similarity_dist`.
-
-        The results will be cached, so calling the :meth:`donor_catchments` again is very fast.
-
-        :return: List of donor catchments
-        :rtype: list of :class:`floodestimation.entities.Catchment`
+        The results are stored in :attr:`GrowthCurveAnalysis.donor_catchments`. The (list of)
+        :class:`floodestimation.entities.Catchment` will have an additional attribute :attr:`similarity_dist`.
         """
 
-        # If cached donors is empty, calculate most similar catchments
-        if not self._donor_catchments:
-            # Only if we have access to db with gauged catchment data
-            if self.gauged_cachments:
-                self._donor_catchments = self.gauged_cachments. \
-                    most_similar_catchments(subject_catchment=self.catchment,
-                                            similarity_dist_function=lambda c1, c2: self._similarity_distance(c1, c2),
-                                            include_subject_catchment=include_subject_catchment)
-            else:
-                self._donor_catchments = []
-        # Return the cache
-        return self._donor_catchments
+        # Only if we have access to db with gauged catchment data
+        if self.gauged_cachments:
+            self.donor_catchments = self.gauged_cachments. \
+                most_similar_catchments(subject_catchment=self.catchment,
+                                        similarity_dist_function=lambda c1, c2: self._similarity_distance(c1, c2),
+                                        include_subject_catchment=include_subject_catchment)
+        else:
+            self.donor_catchments = []
 
 
 class InsufficientDataError(BaseException):
