@@ -453,7 +453,7 @@ class GrowthCurveAnalysis(object):
             self.donor_catchments = []
             self._estimate_dist_params()
             dist_func = getattr(lm, 'qua' + self.dist)
-            return lambda aep: dist_func(1 - aep, self.dist_params)
+            return lambda aep: dist_func(1 - np.array(aep), self.dist_params)
         else:
             raise InsufficientDataError("Catchment's `amax_records` must be set for a single site analysis.")
 
@@ -468,7 +468,7 @@ class GrowthCurveAnalysis(object):
             self.find_donor_catchments()
         self._estimate_dist_params()
         dist_func = getattr(lm, 'qua' + self.dist)
-        return lambda aep: dist_func(1 - aep, self.dist_params)
+        return lambda aep: dist_func(1 - np.array(aep), self.dist_params)
 
     def _growth_curve_enhanced_single_site(self):
         """
@@ -481,7 +481,7 @@ class GrowthCurveAnalysis(object):
             self.find_donor_catchments(include_subject_catchment='force')
         self._estimate_dist_params()
         dist_func = getattr(lm, 'qua' + self.dist)
-        return lambda aep: dist_func(1 - aep, self.dist_params)
+        return lambda aep: dist_func(1 - np.array(aep), self.dist_params)
 
     # : Dict of weighting factors and standard deviation for catchment descriptors to use in calculating the similarity
     #: distance measure between the subject catchment and each donor catchment.

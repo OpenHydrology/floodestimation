@@ -32,6 +32,9 @@ A typical workflow for using the :mod:`floodestimation` package is as follows:
 5. Estimate the flood frequency curve
 6. Create an analysis report
 
+Estimating QMED
+~~~~~~~~~~~~~~~
+
 Steps 1 to 3 could be coded as follows:
 
 .. code-block:: python
@@ -46,7 +49,7 @@ Steps 1 to 3 could be coded as follows:
     dee_catchment = load_catchment('River Dee.CD3')
     gauged_catchments = CatchmentCollections(db_session)
 
-    analysis = QmedAnalysis(dee_catchment, gauged_catchments)
+    qmed_analysis = QmedAnalysis(dee_catchment, gauged_catchments)
     dee_catchment_qmed = qmed_analysis.qmed()
 
     db_session.close()
@@ -95,3 +98,22 @@ arguments. The following methods are available:
 - Emperical estimated using the river channel width only
 
 See the `reference manual <analysis.html>`_ for a detailed description how to use the different methods.
+
+Estimating the flood frequency curve
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Step 4 and 5 can be done like this:
+
+.. code-block:: python
+
+    # continue from script above but keep database session open
+    # db_session.close()
+
+    from floodestimation.analysis import GrowthCurveAnalysis
+
+    gc_analysis = GrowthCurveAnalysis(dee_catchment, gauged_catchments)
+    dee_growth_curve = gc_analysis.growth_curve()
+    aeps = [0.5, 0.01, 0.005, 0.001]
+    dee_flood_flows = dee_catchment_qmed * dee_growth_curve(aeps)
+
+    db_session.close()
