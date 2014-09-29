@@ -364,7 +364,15 @@ class GrowthCurveAnalysis(object):
                 raise AttributeError("Method `{}` to estimate the growth curve does not exist.".format(method))
 
     @staticmethod
-    def _z_array(catchment):
+    def _dimensionless_flows(catchment):
+        """
+        Return array of flows devided by QMED
+
+        :param catchment: gauged catchment with amax_records set
+        :type catchment: :class:`floodestimation.entities.Catchment`
+        :return: 1D array of flow values devided by QMED
+        :rtype: :class:`numpy.ndarray`
+        """
         flows = np.array([record.flow for record in catchment.amax_records])
         return flows / np.median(flows)
 
@@ -372,35 +380,94 @@ class GrowthCurveAnalysis(object):
         """
         Return l1, l2, t3
         """
-        z = self._z_array(catchment)
+        z = self._dimensionless_flows(catchment)
         return lm.samlmu(z, nmom=3)
 
-    def estimate_l_cv_and_skew(self, catchment):
-        # TODO: allow list of catchments for pooling group
-        z = self._z_array(catchment)
-        l1, l2, t3 = lm.samlmu(z, nmom=3)
-        self.l_cv = l2 / l1
-        self.l_skew = t3
+    def _estimate_l_cv_and_skew(self):
+        if not self.donor_catchments:
+            self.l_cv, self.l_skew = self._l_cv_and_skew(self.catchment)
+        else:
+            l_cvs = np.empty(len(self.donor_catchments))
+            l_skews = np.empty(len(self.donor_catchments))
+            l_cv_weights = np.empty(len(self.donor_catchments))
+            l_skew_weights = np.empty(len(self.donor_catchments))
 
-    def estimate_dist_params(self, catchment):
-        self.estimate_l_cv_and_skew(catchment)
+            for index, donor in enumerate(self.donor_catchments):
+                l_cvs[index], l_skews[index] = self._l_cv_and_skew(donor)
+                l_cv_weights[index] = self._l_cv_weight(donor)
+                l_skew_weights[index] = self._l_skew_weight(donor)
+
+            self.l_cv = sum(l_cv_weights / sum(l_cv_weights) * l_cvs)
+            self.l_skew = sum(l_skew_weights / sum(l_cv_weights) * l_skews)
+
+    def _l_cv_and_skew(self, catchment):
+        z = self._dimensionless_flows(catchment)
+        l1, l2, t3 = lm.samlmu(z, nmom=3)
+        return l2 / l1, t3
+
+    def _l_cv_weight(self, donor_catchment):
+        try:
+            dist = donor_catchment.similarity_dist
+        except AttributeError:
+            dist = self._similarity_distance(self.catchment, donor_catchment)
+        # TODO: implement real weighting function
+        return 1 / (dist + 0.1)
+
+    def _l_skew_weight(self, donor_catchment):
+        try:
+            dist = donor_catchment.similarity_dist
+        except AttributeError:
+            dist = self._similarity_distance(self.catchment, donor_catchment)
+        # TODO: implement real weighting function
+        return 1 / (dist + 0.1)
+
+    def _estimate_dist_params(self):
+        self._estimate_l_cv_and_skew()
         # Scaling by QMED instead of first moment so set first moment to 1 and first dist parameter to 1
         dist_params = getattr(lm, 'pel' + self.dist)([1, self.l_cv, self.l_skew])
         dist_params[0] = 1
         self.dist_params = dist_params
 
     def _growth_curve_single_site(self):
-        self.estimate_dist_params(self.catchment)
+        """
+        Return flood growth curve function based on `amax_records` from the subject catchment only.
+
+        :return: Inverse cumulative distribution function with one parameter `aep` (annual exceedance probability)
+        :type: method
+        """
+        if self.catchment.amax_records:
+            self.donor_catchments = []
+            self._estimate_dist_params()
+            dist_func = getattr(lm, 'qua' + self.dist)
+            return lambda aep: dist_func(1 - aep, self.dist_params)
+        else:
+            raise InsufficientDataError("Catchment's `amax_records` must be set for a single site analysis.")
+
+    def _growth_curve_pooling_group(self):
+        """
+        Return flood growth curve function based on `amax_records` from a pooling group.
+
+        :return: Inverse cumulative distribution function with one parameter `aep` (annual exceedance probability)
+        :type: method
+        """
+        if not self.donor_catchments:
+            self.find_donor_catchments()
+        self._estimate_dist_params()
         dist_func = getattr(lm, 'qua' + self.dist)
         return lambda aep: dist_func(1 - aep, self.dist_params)
 
-    def _growth_curve_pooling_group(self):
-        self.find_donor_catchments()
-        return
-
     def _growth_curve_enhanced_single_site(self):
-        self.find_donor_catchments(include_subject_catchment='force')
-        return
+        """
+        Return flood growth curve function based on `amax_records` from the subject catchment and a pooling group.
+
+        :return: Inverse cumulative distribution function with one parameter `aep` (annual exceedance probability)
+        :type: method
+        """
+        if not self.donor_catchments:
+            self.find_donor_catchments(include_subject_catchment='force')
+        self._estimate_dist_params()
+        dist_func = getattr(lm, 'qua' + self.dist)
+        return lambda aep: dist_func(1 - aep, self.dist_params)
 
     # : Dict of weighting factors and standard deviation for catchment descriptors to use in calculating the similarity
     #: distance measure between the subject catchment and each donor catchment.
