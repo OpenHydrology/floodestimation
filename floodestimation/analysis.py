@@ -314,17 +314,19 @@ class GrowthCurveAnalysis(object):
     """
     Class to undertake a growth curve analysis.
     """
-    # : Methods available to estimate the growth curve
+    #: Methods available to estimate the growth curve
     methods = ('enhanced_single_site', 'single_site', 'pooling_group')
+    #: Available distribution functions for growth curves
     distributions = ('glo', 'gev')
 
     def __init__(self, catchment, gauged_catchment_collections=None):
         self.catchment = catchment
         self.gauged_cachments = gauged_catchment_collections
-        # Cache for list of donor catchments
+        #: List of donor catchments
         self.donor_catchments = []
         self.l_cv = None
         self.l_skew = None
+        #: Distribution function to use for growth curves. Default: 'glo'.
         self.dist = 'glo'
         self.dist_params = []
 
@@ -346,9 +348,8 @@ class GrowthCurveAnalysis(object):
         :type method: str
         :param method_options: any optional parameters for the growth curve method function
         :type method_options: kwargs
-
-        :return:
-        :rtype:
+        :return: Inverse cumulative distribution function with one parameter `aep` (annual exceedance probability)
+        :type: method
         """
         if method == 'best':
             if self.catchment.amax_records:
@@ -384,23 +385,32 @@ class GrowthCurveAnalysis(object):
         return lm.samlmu(z, nmom=3)
 
     def _estimate_l_cv_and_skew(self):
+        """
+        Calculate L-CV and L-SKEW using a pooling group (if self.donor_catchments is set) or else the subject catchment.
+        """
         if not self.donor_catchments:
             self.l_cv, self.l_skew = self._l_cv_and_skew(self.catchment)
         else:
+            # Prepare arrays for donor L-CVs and L-SKEWs and their weights
             l_cvs = np.empty(len(self.donor_catchments))
             l_skews = np.empty(len(self.donor_catchments))
             l_cv_weights = np.empty(len(self.donor_catchments))
             l_skew_weights = np.empty(len(self.donor_catchments))
 
+            # Fill arrays
             for index, donor in enumerate(self.donor_catchments):
                 l_cvs[index], l_skews[index] = self._l_cv_and_skew(donor)
                 l_cv_weights[index] = self._l_cv_weight(donor)
                 l_skew_weights[index] = self._l_skew_weight(donor)
 
+            # Weighted averages of L-CV and l-SKEW
             self.l_cv = sum(l_cv_weights / sum(l_cv_weights) * l_cvs)
             self.l_skew = sum(l_skew_weights / sum(l_cv_weights) * l_skews)
 
     def _l_cv_and_skew(self, catchment):
+        """
+        Calculate L-CV and L-SKEW for a gauged catchment. Uses `lmoments3` library.
+        """
         z = self._dimensionless_flows(catchment)
         l1, l2, t3 = lm.samlmu(z, nmom=3)
         return l2 / l1, t3
@@ -422,6 +432,10 @@ class GrowthCurveAnalysis(object):
         return 1 / (dist + 0.1)
 
     def _estimate_dist_params(self):
+        """
+        Set `self.dist_params` for flood growth curve distribution based on linear moments analysis using
+        `lmoments` library.
+        """
         self._estimate_l_cv_and_skew()
         # Scaling by QMED instead of first moment so set first moment to 1 and first dist parameter to 1
         dist_params = getattr(lm, 'pel' + self.dist)([1, self.l_cv, self.l_skew])
@@ -496,9 +510,11 @@ class GrowthCurveAnalysis(object):
 
     def find_donor_catchments(self, include_subject_catchment='auto'):
         """
-        Find list of suitable donor cachments, ranked by hydrological similarity distance measure.
+        Find list of suitable donor cachments, ranked by hydrological similarity distance measure. This method is
+        implicitly called when calling the :meth:`.growth_curve` method unless the attribute :attr:`.donor_catchments`
+        is set manually.
 
-        The results are stored in :attr:`GrowthCurveAnalysis.donor_catchments`. The (list of)
+        The results are stored in :attr:`.donor_catchments`. The (list of)
         :class:`floodestimation.entities.Catchment` will have an additional attribute :attr:`similarity_dist`.
         """
 
