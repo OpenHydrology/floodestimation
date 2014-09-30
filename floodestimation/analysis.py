@@ -376,6 +376,8 @@ class GrowthCurveAnalysis(object):
     def _var_and_skew(self, catchments):
         """
         Calculate L-CV and L-SKEW from a single catchment or a pooled group of catchments.
+
+        Methodology source: Science Report SC050050, para. 6.4.1-6.4.2
         """
         if not hasattr(catchments, '__getitem__'):
             l_cv, l_skew = self._l_cv_and_skew(self.catchment)
@@ -394,37 +396,65 @@ class GrowthCurveAnalysis(object):
                 l_skew_weights[index] = self._l_skew_weight(donor)
 
             # Weighted averages of L-CV and l-SKEW
-            l_cv = sum(l_cv_weights / sum(l_cv_weights) * l_cvs)
-            l_skew = sum(l_skew_weights / sum(l_skew_weights) * l_skews)
+            l_cv_weights /= sum(l_cv_weights)  # Weights sum to 1
+            # Special case if the first donor is the subject catchment itself, assumed if similarity distance == 0.
+            if self._similarity_distance(self.catchment, catchments[0]) == 0:
+                l_cv_weights *= self._l_cv_weight_factor()  # Reduce weights of all donor catchments
+                l_cv_weights[0] += 1 - sum(l_cv_weights)    # But increase the weight of the subject catchment
+            l_cv = sum(l_cv_weights * l_cvs)
+
+            l_skew_weights /= sum(l_skew_weights)  # Weights sum to 1
+            l_skew = sum(l_skew_weights * l_skews)
+
         return l_cv, l_skew
 
     def _l_cv_and_skew(self, catchment):
         """
         Calculate L-CV and L-SKEW for a gauged catchment. Uses `lmoments3` library.
+
+        Methodology source: Science Report SC050050, para. 6.7.5
         """
         z = self._dimensionless_flows(catchment)
         l1, l2, t3 = lm.samlmu(z, nmom=3)
         return l2 / l1, t3
 
     def _l_cv_weight(self, donor_catchment):
+        """
+        Return L-CV weighting for a donor catchment.
+
+        Methodology source: Science Report SC050050, eqn. 6.18 and 6.22a
+        """
         try:
             dist = donor_catchment.similarity_dist
         except AttributeError:
             dist = self._similarity_distance(self.catchment, donor_catchment)
-        # TODO: enhanced single site case
         b = 0.0047 * sqrt(dist) + 0.0023 / 2
         c = 0.02609 / (len(donor_catchment.amax_records) - 1)
-        return sqrt(b + c)
+        return 1 / (b + c)
+
+    def _l_cv_weight_factor(self):
+        """
+        Return multiplier for L-CV weightings in case of enhanced single site analysis.
+
+        Methodology source: Science Report SC050050, eqn. 6.15a and 6.15b
+        """
+        b = 0.0047 * sqrt(0) + 0.0023 / 2
+        c = 0.02609 / (len(self.catchment.amax_records) - 1)
+        return c / (b + c)
 
     def _l_skew_weight(self, donor_catchment):
+        """
+        Return L-SKEW weighting for donor catchment.
+
+        Methodology source: Science Report SC050050, eqn. 6.19 and 6.22b
+        """
         try:
             dist = donor_catchment.similarity_dist
         except AttributeError:
             dist = self._similarity_distance(self.catchment, donor_catchment)
-        # TODO: enhanced single site case
         b = 0.0219 * (1 - exp(-dist / 0.2360))
         c = 0.2743 / (len(donor_catchment.amax_records) - 2)
-        return sqrt(b + c)
+        return 1 / (b + c)
 
     def _growth_curve_single_site(self, distr='glo'):
         """
