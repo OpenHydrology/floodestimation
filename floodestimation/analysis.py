@@ -395,7 +395,7 @@ class GrowthCurveAnalysis(object):
 
             # Weighted averages of L-CV and l-SKEW
             l_cv = sum(l_cv_weights / sum(l_cv_weights) * l_cvs)
-            l_skew = sum(l_skew_weights / sum(l_cv_weights) * l_skews)
+            l_skew = sum(l_skew_weights / sum(l_skew_weights) * l_skews)
         return l_cv, l_skew
 
     def _l_cv_and_skew(self, catchment):
@@ -411,16 +411,20 @@ class GrowthCurveAnalysis(object):
             dist = donor_catchment.similarity_dist
         except AttributeError:
             dist = self._similarity_distance(self.catchment, donor_catchment)
-        # TODO: implement real weighting function
-        return 1 / (dist + 0.1)
+        # TODO: enhanced single site case
+        b = 0.0047 * sqrt(dist) + 0.0023 / 2
+        c = 0.02609 / (len(donor_catchment.amax_records) - 1)
+        return sqrt(b + c)
 
     def _l_skew_weight(self, donor_catchment):
         try:
             dist = donor_catchment.similarity_dist
         except AttributeError:
             dist = self._similarity_distance(self.catchment, donor_catchment)
-        # TODO: implement real weighting function
-        return 1 / (dist + 0.1)
+        # TODO: enhanced single site case
+        b = 0.0219 * (1 - exp(-dist / 0.2360))
+        c = 0.2743 / (len(donor_catchment.amax_records) - 2)
+        return sqrt(b + c)
 
     def _growth_curve_single_site(self, distr='glo'):
         """
