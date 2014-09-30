@@ -75,8 +75,11 @@ class Catchment(db.Base):
     def __init__(self, location=None, watercourse=None):
         self.location = location
         self.watercourse = watercourse
-        # Start with empty set of scriptors, so we always do `catchment.descriptors.name = value`
+        # Start with empty set of descriptors, so we always do `catchment.descriptors.name = value`
         self.descriptors = Descriptors()
+          
+        self.cds_comments =  {}  # cds_comments is a dictionary to hold comments the user might supply for each cds, initialise with nothing in it as no changes have been made
+        
 
     def qmed(self):
         """
@@ -89,7 +92,7 @@ class Catchment(db.Base):
 
     def distance_to(self, other_catchment):
         """
-        Returns the distance between the centroids of two catchments.
+        Returns the distance between the centroids of two catchments in kilometers.
 
         :param other_catchment: Catchment to calculate distance to
         :type other_catchment: :class:`.Catchment`
@@ -105,7 +108,8 @@ class Catchment(db.Base):
                 return float('+inf')
         except (TypeError, KeyError):
             raise InsufficientDataError("Catchment `descriptors` attribute must be set first.")
-
+              
+    
     def __repr__(self):
         return "{} at {} ({})".format(self.watercourse, self.location, self.id)
 
@@ -217,7 +221,7 @@ class AmaxRecord(db.Base):
     #: Observed water level in m above local datum
     stage = Column(Float)
 
-    WATER_YEAR_FIRST_MONTH = 10
+    WATER_YEAR_FIRST_MONTH = 10  # Should provide flexibility to use different first months
 
     def __init__(self, date, flow, stage):
         self.date = date
