@@ -168,3 +168,45 @@ class Cd3Parser(FehFileParser):
         row = [s.strip() for s in line.split(',', 1)]
         # E.g. object.comments = [Comment("station", "Velocity-area station on a straight reach ...")]
         self.object.comments.append(entities.Comment(row[0].lower(), row[1]))
+
+def cdsParser(catch_obj,filename):
+    #: function to return catchment object loaded with cds    
+    from configobj import ConfigObj
+    import gui_data
+    
+    gui_data_obj = gui_data.Store()
+    
+    config = ConfigObj(filename)
+    
+    catch_obj.descriptors.ihdtm_ngr = config['CDS']['ihdtm_ngr']
+    catch_obj.descriptors.centroid_ngr = config['CDS']['centroid_ngr']
+    catch_obj.descriptors.dtm_area = config['CDS']['dtm_area']
+    catch_obj.descriptors.altbar = config['CDS']['altbar']
+    catch_obj.descriptors.aspbar = config['CDS']['aspbar']
+    catch_obj.descriptors.aspvar = config['CDS']['aspvar']
+    catch_obj.descriptors.bfihost = config['CDS']['bfihost']
+    catch_obj.descriptors.dplbar = config['CDS']['dplbar']
+    catch_obj.descriptors.dpsbar = config['CDS']['dpsbar']
+    catch_obj.descriptors.farl = config['CDS']['farl']
+    catch_obj.descriptors.fpext = config['CDS']['fpext']
+    catch_obj.descriptors.ldp = config['CDS']['ldp']
+    catch_obj.descriptors.propwet = config['CDS']['propwet']
+    catch_obj.descriptors.rmed_1h = config['CDS']['rmed_1h']
+    catch_obj.descriptors.remd_1d = config['CDS']['rmed_1d']
+    catch_obj.descriptors.remed_2d = config['CDS']['rmed_2d']
+    catch_obj.descriptors.saar = config['CDS']['saar']
+    catch_obj.descriptors.saar4170 = config['CDS']['saar4170']
+    catch_obj.descriptors.sprhost = config['CDS']['sprhost']
+    catch_obj.descriptors.urbconc1990 = config['CDS']['urbconc1990']
+    catch_obj.descriptors.urbext1990 = config['CDS']['urbext1990']
+    catch_obj.descriptors.urbloc1990 = config['CDS']['urbloc1990']
+    catch_obj.descriptors.urbconc2000 = config['CDS']['urbconc2000']
+    catch_obj.descriptors.urbext2000 = config['CDS']['urbext2000']
+    catch_obj.descriptors.urbloc2000 = config['CDS']['urbloc2000']
+    catch_obj.descriptors.urbext = config['CDS']['urbext']
+    
+
+    for handle in config['Cds comments']:
+        gui_data_obj.cds_comments[handle]=config['Cds comments'][handle]
+    
+    return catch_obj,gui_data_obj
