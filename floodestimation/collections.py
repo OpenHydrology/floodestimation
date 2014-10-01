@@ -111,6 +111,7 @@ class CatchmentCollections(object):
         :param include_subject_catchment: - `auto`: include subject catchment if suitable for pooling and if urbext < 0.03
                                           - `force`: always include subject catchment
                                           - `exclude`: do not include the subject catchment
+        :type include_subject_catchment: str
         :return: list of catchments sorted by similarity
         :type: list of :class:`floodestimation.entities.Catchment`
         """

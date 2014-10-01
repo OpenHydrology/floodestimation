@@ -322,13 +322,9 @@ class GrowthCurveAnalysis(object):
     def __init__(self, catchment, gauged_catchment_collections=None):
         self.catchment = catchment
         self.gauged_cachments = gauged_catchment_collections
-        #: List of donor catchments
+        #: List of donor catchments. Either set manually or by calling :meth:`.find_donor_catchments` or implicitly when
+        #: calling :meth:`.growth_curve()`.
         self.donor_catchments = []
-        self.l_cv = None
-        self.l_skew = None
-        #: Distribution function to use for growth curves. Default: 'glo'.
-        self.dist = 'glo'
-        self.dist_params = []
 
     def growth_curve(self, method='best', **method_options):
         """
@@ -337,14 +333,14 @@ class GrowthCurveAnalysis(object):
         ====================== ====================== ==================================================================
         `method`               `method_options`       notes
         ====================== ====================== ==================================================================
-        `enhanced_single_site` n/a                    Preferred method for gauged catchments (i.e. with
-                                                      `Catchment.amax_record')
-        `single_site`          n/a                    Alternative method for gauged catchments. Uses AMAX data from
+        `enhanced_single_site` `distr='glo'`          Preferred method for gauged catchments (i.e. with
+                                                      `Catchment.amax_record').
+        `single_site`          `distr='glo'`          Alternative method for gauged catchments. Uses AMAX data from
                                                       subject station only.
-        `pooling_group`        n/a                    Only possible method for ungauged catchments.
+        `pooling_group`        `distr='glo'`          Only possible method for ungauged catchments.
         ====================== ====================== ==================================================================
 
-        :param method: methodology to use to estimate the growth_curve. Default: automatically choose best method.
+        :param method: methodology to use to estimate the growth curve. Default: automatically choose best method.
         :type method: str
         :param method_options: any optional parameters for the growth curve method function
         :type method_options: kwargs
@@ -377,35 +373,30 @@ class GrowthCurveAnalysis(object):
         flows = np.array([record.flow for record in catchment.amax_records])
         return flows / np.median(flows)
 
-    def _l_stats(self, catchment):
+    def _var_and_skew(self, catchments):
         """
-        Return l1, l2, t3
+        Calculate L-CV and L-SKEW from a single catchment or a pooled group of catchments.
         """
-        z = self._dimensionless_flows(catchment)
-        return lm.samlmu(z, nmom=3)
-
-    def _estimate_l_cv_and_skew(self):
-        """
-        Calculate L-CV and L-SKEW using a pooling group (if self.donor_catchments is set) or else the subject catchment.
-        """
-        if not self.donor_catchments:
-            self.l_cv, self.l_skew = self._l_cv_and_skew(self.catchment)
+        if not hasattr(catchments, '__getitem__'):
+            l_cv, l_skew = self._l_cv_and_skew(self.catchment)
         else:
             # Prepare arrays for donor L-CVs and L-SKEWs and their weights
-            l_cvs = np.empty(len(self.donor_catchments))
-            l_skews = np.empty(len(self.donor_catchments))
-            l_cv_weights = np.empty(len(self.donor_catchments))
-            l_skew_weights = np.empty(len(self.donor_catchments))
+            n = len(catchments)
+            l_cvs = np.empty(n)
+            l_skews = np.empty(n)
+            l_cv_weights = np.empty(n)
+            l_skew_weights = np.empty(n)
 
             # Fill arrays
-            for index, donor in enumerate(self.donor_catchments):
+            for index, donor in enumerate(catchments):
                 l_cvs[index], l_skews[index] = self._l_cv_and_skew(donor)
                 l_cv_weights[index] = self._l_cv_weight(donor)
                 l_skew_weights[index] = self._l_skew_weight(donor)
 
             # Weighted averages of L-CV and l-SKEW
-            self.l_cv = sum(l_cv_weights / sum(l_cv_weights) * l_cvs)
-            self.l_skew = sum(l_skew_weights / sum(l_cv_weights) * l_skews)
+            l_cv = sum(l_cv_weights / sum(l_cv_weights) * l_cvs)
+            l_skew = sum(l_skew_weights / sum(l_cv_weights) * l_skews)
+        return l_cv, l_skew
 
     def _l_cv_and_skew(self, catchment):
         """
@@ -431,18 +422,7 @@ class GrowthCurveAnalysis(object):
         # TODO: implement real weighting function
         return 1 / (dist + 0.1)
 
-    def _estimate_dist_params(self):
-        """
-        Set `self.dist_params` for flood growth curve distribution based on linear moments analysis using
-        `lmoments` library.
-        """
-        self._estimate_l_cv_and_skew()
-        # Scaling by QMED instead of first moment so set first moment to 1 and first dist parameter to 1
-        dist_params = getattr(lm, 'pel' + self.dist)([1, self.l_cv, self.l_skew])
-        dist_params[0] = 1
-        self.dist_params = dist_params
-
-    def _growth_curve_single_site(self):
+    def _growth_curve_single_site(self, distr='glo'):
         """
         Return flood growth curve function based on `amax_records` from the subject catchment only.
 
@@ -451,13 +431,11 @@ class GrowthCurveAnalysis(object):
         """
         if self.catchment.amax_records:
             self.donor_catchments = []
-            self._estimate_dist_params()
-            dist_func = getattr(lm, 'qua' + self.dist)
-            return lambda aep: dist_func(1 - np.array(aep), self.dist_params)
+            return self._growth_curve_function(distr, *self._var_and_skew(self.catchment))
         else:
             raise InsufficientDataError("Catchment's `amax_records` must be set for a single site analysis.")
 
-    def _growth_curve_pooling_group(self):
+    def _growth_curve_pooling_group(self, distr='glo'):
         """
         Return flood growth curve function based on `amax_records` from a pooling group.
 
@@ -466,11 +444,9 @@ class GrowthCurveAnalysis(object):
         """
         if not self.donor_catchments:
             self.find_donor_catchments()
-        self._estimate_dist_params()
-        dist_func = getattr(lm, 'qua' + self.dist)
-        return lambda aep: dist_func(1 - np.array(aep), self.dist_params)
+        return self._growth_curve_function(distr, self._var_and_skew(self.donor_catchments))
 
-    def _growth_curve_enhanced_single_site(self):
+    def _growth_curve_enhanced_single_site(self, distr='glo'):
         """
         Return flood growth curve function based on `amax_records` from the subject catchment and a pooling group.
 
@@ -479,12 +455,27 @@ class GrowthCurveAnalysis(object):
         """
         if not self.donor_catchments:
             self.find_donor_catchments(include_subject_catchment='force')
-        self._estimate_dist_params()
-        dist_func = getattr(lm, 'qua' + self.dist)
-        return lambda aep: dist_func(1 - np.array(aep), self.dist_params)
+        return self._growth_curve_function(distr, self._var_and_skew(self.donor_catchments))
 
-    # : Dict of weighting factors and standard deviation for catchment descriptors to use in calculating the similarity
-    #: distance measure between the subject catchment and each donor catchment.
+    @staticmethod
+    def _growth_curve_function(distr, var, skew):
+        """
+        Return a growth curve function/method for a given `distribution` with variance `var` and skew `skew`. The
+        returned growth curve function is an inverse cumulative distribution function with parameter `aep`.
+        """
+        try:
+            params = getattr(lm, 'pel' + distr)([1, var, skew])
+            params[0] = 1
+            f = getattr(lm, 'qua' + distr)
+            return lambda aep: f(1 - np.array(aep), params)
+        except AttributeError:
+            raise InsufficientDataError("Distribution function `{}` does not exist.".format(distr))
+
+    #: Dict of weighting factors and standard deviation for catchment descriptors to use in calculating the similarity
+    #: distance measure between the subject catchment and each donor catchment. The dict is structured like this:
+    #: `{parameter: (weight, standard deviation, transform method)}`. The transform method is optional and is typically
+    #: omitted or set to `log`.
+    # TODO: calculate standard deviation from database
     similarity_params = {'dtm_area': (3.2, 1.28, log),  # param: (weight, std_dev, transform method)
                          'saar': (0.5, 0.37, log),
                          'farl': (0.1, 0.05),
@@ -497,7 +488,7 @@ class GrowthCurveAnalysis(object):
                 weight = value[0]
                 std_dev = value[1]
                 try:
-                    transform = value[2]
+                    transform = value[2]  # A method!
                 except IndexError:
                     # If no transform method, just use linear
                     transform = lambda x: x
@@ -516,6 +507,11 @@ class GrowthCurveAnalysis(object):
 
         The results are stored in :attr:`.donor_catchments`. The (list of)
         :class:`floodestimation.entities.Catchment` will have an additional attribute :attr:`similarity_dist`.
+
+        :param include_subject_catchment: - `auto`: include subject catchment if suitable for pooling and if urbext < 0.03
+                                          - `force`: always include subject catchment
+                                          - `exclude`: do not include the subject catchment
+        :type include_subject_catchment: str
         """
 
         # Only if we have access to db with gauged catchment data

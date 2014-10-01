@@ -82,10 +82,10 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         catchment = load_catchment('floodestimation/tests/data/37017.CD3')
 
         analysis = GrowthCurveAnalysis(catchment, gauged_catchments)
-        analysis._estimate_l_cv_and_skew()
+        var, skew = analysis._var_and_skew(catchment)
 
-        self.assertAlmostEqual(analysis.l_cv, 0.2232, places=4)
-        self.assertAlmostEqual(analysis.l_skew, -0.0908, places=4)
+        self.assertAlmostEqual(var, 0.2232, places=4)
+        self.assertAlmostEqual(skew, -0.0908, places=4)
 
     def test_l_cv_and_skew_one_donor(self):
         gauged_catchments = CatchmentCollections(self.db_session)
@@ -93,18 +93,24 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
 
         analysis = GrowthCurveAnalysis(catchment, gauged_catchments)
         analysis.donor_catchments = [catchment]
-        analysis._estimate_l_cv_and_skew()
+        var, skew = analysis._var_and_skew(analysis.donor_catchments)
 
-        self.assertAlmostEqual(analysis.l_cv, 0.2232, places=4)
-        self.assertAlmostEqual(analysis.l_skew, -0.0908, places=4)
+        self.assertAlmostEqual(var, 0.2232, places=4)
+        self.assertAlmostEqual(skew, -0.0908, places=4)
+
+    def test_l_cv_and_skew_multiple_donors(self):
+        # TODO
+        pass
 
     def test_l_dist_params(self):
         gauged_catchments = CatchmentCollections(self.db_session)
         catchment = load_catchment('floodestimation/tests/data/37017.CD3')
 
         analysis = GrowthCurveAnalysis(catchment, gauged_catchments)
-        analysis._estimate_dist_params()
+        var, skew = analysis._var_and_skew(catchment)
+        params = getattr(lm, 'pel' + 'glo')([1, var, skew])
+        params[0] = 1
 
-        self.assertAlmostEqual(analysis.dist_params[0], 1, places=4)
-        self.assertAlmostEqual(analysis.dist_params[1], 0.2202, places=4)
-        self.assertAlmostEqual(analysis.dist_params[2], 0.0908, places=4)
+        self.assertAlmostEqual(params[0], 1, places=4)
+        self.assertAlmostEqual(params[1], 0.2202, places=4)
+        self.assertAlmostEqual(params[2], 0.0908, places=4)

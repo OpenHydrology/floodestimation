@@ -116,4 +116,8 @@ Step 4 and 5 can be done like this:
     aeps = [0.5, 0.01, 0.005, 0.001]
     dee_flood_flows = dee_catchment_qmed * dee_growth_curve(aeps)
 
+    for donor in gc_analysis.donor_catchments:
+        print("{0:>6} {1:<20s} {2:.3f} {3:.3f}".
+            format(donor.id, donor.location, donor.similarity_dist, donor.distance_to(dee_catchment)))
+
     db_session.close()
