@@ -121,3 +121,53 @@ Step 4 and 5 can be done like this:
             format(donor.id, donor.location, donor.similarity_dist, donor.distance_to(dee_catchment)))
 
     db_session.close()
+
+Explained step by step:
+
+.. code-block:: python
+
+    gc_analysis = GrowthCurveAnalysis(dee_catchment, gauged_catchments)
+
+Th :class:`floodestimation.analysis.GrowthCurveAnalysis` provides methods to estimate growth curves for a catchment,
+using data from catchment itself or the collection of gauged catchments using a pooling group approach.
+
+.. code-block:: python
+
+    dee_growth_curve = gc_analysis.growth_curve()
+
+Calling the :meth:`floodestimation.analysis.GrowthCurveAnalysis.growth_curve()` returns a growth curve method/function
+which can be used like this: `flow = dee_growth_curve(aep=0.01)`. The method parameter `aep` can be a single annual
+exceedance probability (AEP) value or a list of values. If a list of values is provided the returned value is a
+:class:`numpy.ndarray` of flows. The growth curve is estimated using one of the following methods:
+
+- Pooling group statistical method: for ungauged catchments (`science report SC050050
+  <https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/291096/scho0608boff-e-e.pdf>`_).
+  Hydrologically similar catchments are selected from the `gauged_catchments` collection.
+- Enhanced single site analysis: for gauged catchments with a record length too small compared with the annual
+  exceedance probabilty of interest. (`science report SC050050
+  <https://www.gov.uk/government/uploads/system/uploads/attachment_data/file/291096/scho0608boff-e-e.pdf>`_). The
+  analysis is similar to the pooling group approach except that the subject catchment has a significantly greater
+  weighting in the pooling group than all other catchments.
+- Single site analysis: uses flow data from the subject catchment only. This method is not typically used as the record
+  length is typicaly too short.
+
+The most suitable method is automatically used, unless the method is specified like this: `growth_curve(method=...)`.
+See the `reference manual <analysis.html>`_ for a detailed description how to use the different methods.
+
+.. code-block:: python
+
+    aeps = [0.5, 0.01, 0.005, 0.001]
+    dee_flood_flows = dee_catchment_qmed * dee_growth_curve(aeps)
+
+The benefit of the :class:`numpy.ndarray` return type is that we can do element-wise multiplication to obtain the flood
+frequency curve.
+
+.. code-block:: python
+
+    for donor in gc_analysis.donor_catchments:
+        print("{0:>6} {1:<20s} {2:.3f} {3:.3f}".
+            format(donor.id, donor.location, donor.similarity_dist, donor.distance_to(dee_catchment)))
+
+The list of donor catchments used in the analysis can be accessed using the
+:attr:`floodestimation.analysis.GrowthCurveAnalysis.donor_catchments` attribute. This is a simple list of
+:class:`floodestimation.entities.Catchment` objects with an additional attribute :attr:`similarity_dist`.
