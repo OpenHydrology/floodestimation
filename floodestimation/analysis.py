@@ -478,7 +478,7 @@ class GrowthCurveAnalysis(object):
         """
         if not self.donor_catchments:
             self.find_donor_catchments()
-        return self._growth_curve_function(distr, self._var_and_skew(self.donor_catchments))
+        return self._growth_curve_function(distr, *self._var_and_skew(self.donor_catchments))
 
     def _growth_curve_enhanced_single_site(self, distr='glo'):
         """
@@ -489,7 +489,7 @@ class GrowthCurveAnalysis(object):
         """
         if not self.donor_catchments:
             self.find_donor_catchments(include_subject_catchment='force')
-        return self._growth_curve_function(distr, self._var_and_skew(self.donor_catchments))
+        return self._growth_curve_function(distr, *self._var_and_skew(self.donor_catchments))
 
     @staticmethod
     def _growth_curve_function(distr, var, skew):
