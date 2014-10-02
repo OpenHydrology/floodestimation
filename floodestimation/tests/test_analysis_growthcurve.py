@@ -3,8 +3,12 @@
 import unittest
 import os
 import lmoments3 as lm
+import numpy as np
+from copy import copy
+from numpy.testing import assert_almost_equal
+from datetime import date
 from urllib.request import pathname2url
-from floodestimation.entities import Catchment, Descriptors
+from floodestimation.entities import Catchment, Descriptors, AmaxRecord
 from floodestimation.analysis import GrowthCurveAnalysis
 from floodestimation import db
 from floodestimation import settings
@@ -119,3 +123,52 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         self.assertAlmostEqual(params[0], 1, places=4)
         self.assertAlmostEqual(params[1], 0.2202, places=4)
         self.assertAlmostEqual(params[2], 0.0908, places=4)
+
+    def test_dimensionless_flows(self):
+        analysis = GrowthCurveAnalysis(self.catchment)
+        self.catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 3.0, 0.5),
+                                       AmaxRecord(date(2000, 12, 31), 2.0, 0.5),
+                                       AmaxRecord(date(2001, 12, 31), 1.0, 0.5)]
+        result = analysis._dimensionless_flows(self.catchment)
+        expected = np.array([1.5, 1, 0.5])
+        assert_almost_equal(result, expected)
+
+    def test_l_cv_weight_same_catchment(self):
+        subject = load_catchment('floodestimation/tests/data/37017.CD3')
+        analysis = GrowthCurveAnalysis(subject)
+        result = analysis._l_cv_weight(subject)
+        expected = 515.30  # Science Report SC050050, table 6.6, row 1
+        self.assertAlmostEqual(result, expected, places=1)
+
+    def test_l_cv_weight(self):
+        subject = load_catchment('floodestimation/tests/data/37017.CD3')
+        analysis = GrowthCurveAnalysis(subject)
+        donor = copy(subject)
+        donor.similarity_dist = 0.2010
+        result = analysis._l_cv_weight(donor)
+        expected = 247.06  # Science Report SC050050, table 6.6, row 4 (note that donor has same record length as subject)
+        self.assertAlmostEqual(result, expected, places=1)
+
+    def test_l_skew_weight_same_catchment(self):
+        subject = load_catchment('floodestimation/tests/data/37017.CD3')
+        analysis = GrowthCurveAnalysis(subject)
+        result = analysis._l_skew_weight(subject)
+        expected = 116.66  # Science Report SC050050, table 6.6, row 1
+        self.assertAlmostEqual(result, expected, places=1)
+
+    def test_l_skew_weight(self):
+        subject = load_catchment('floodestimation/tests/data/37017.CD3')
+        analysis = GrowthCurveAnalysis(subject)
+        donor = copy(subject)
+        donor.similarity_dist = 0.2010
+        result = analysis._l_skew_weight(donor)
+        expected = 47.34  # Science Report SC050050, table 6.6, row 4 (note that donor has same record length as subject)
+        self.assertAlmostEqual(result, expected, places=1)
+
+    def test_similarity_dist(self):
+        subject = load_catchment('floodestimation/tests/data/37017.CD3')
+        donor = load_catchment('floodestimation/tests/data/37020.CD3')
+        analysis = GrowthCurveAnalysis(subject)
+        result = analysis._similarity_distance(subject, donor)
+        expected = 0.1159  # Science Report SC050050, table 6.6, row 2
+        self.assertAlmostEqual(result, expected, places=4)
