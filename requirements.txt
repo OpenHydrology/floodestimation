@@ -1,5 +1,5 @@
 appdirs
 sqlalchemy
-# numpy cannot be installed with pip
-# scipy cannot be installed with pip
+numpy
+scipy
 lmoments3
