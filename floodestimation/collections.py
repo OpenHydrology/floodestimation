@@ -21,8 +21,9 @@ data.
 """
 
 from operator import attrgetter
+from sqlalchemy import or_
 # Current package imports
-from .entities import Catchment
+from .entities import Catchment, Descriptors
 from . import loaders
 from . import db
 
@@ -52,6 +53,7 @@ class CatchmentCollections(object):
             self.delete_gauged_catchments()
         if self._db_empty() and load_data in ['auto', 'force']:
             self.load_gauged_catchments()
+            self.db_session.commit()
 
     @staticmethod
     def delete_gauged_catchments():
@@ -82,13 +84,13 @@ class CatchmentCollections(object):
 
     def nearest_qmed_catchments(self, subject_catchment):
         """
-        Return a list of catchment sorted by distance to `subject_catchment` **and filtered to only include catchments
+        Return a list of catchments sorted by distance to `subject_catchment` **and filtered to only include catchments
         suitable for QMED analyses**.
 
         :param subject_catchment: catchment object to measure distances to
         :type subject_catchment: :class:`floodestimation.entities.Catchment`
         :return: list of catchments sorted by distance
-        :rtype: list
+        :rtype: list of :class:`floodestimation.entities.Catchment`
         """
         # Get a list of all catchment, excluding the subject_catchment itself
         catchments = self.db_session.query(Catchment).filter(Catchment.id != subject_catchment.id,
@@ -97,5 +99,48 @@ class CatchmentCollections(object):
         catchments.sort(key=lambda c: c.distance_to(subject_catchment))
         return catchments
 
-    def most_similar_catchments(self, subject_catchment):
-        raise NotImplementedError
+    def most_similar_catchments(self, subject_catchment, similarity_dist_function, records_limit=500,
+                                include_subject_catchment = 'auto'):
+        """
+        Return a list of catchments sorted by hydrological similarity defined by `similarity_distance_function`
+
+        :param subject_catchment: subject catchment to find similar catchments for
+        :type subject_catchment: :class:`floodestimation.entities.Catchment`
+        :param similarity_dist_function: a method returning a similarity distance measure with 2 arguments, both
+                                         :class:`floodestimation.entities.Catchment` objects
+        :param include_subject_catchment: - `auto`: include subject catchment if suitable for pooling and if urbext < 0.03
+                                          - `force`: always include subject catchment
+                                          - `exclude`: do not include the subject catchment
+        :type include_subject_catchment: str
+        :return: list of catchments sorted by similarity
+        :type: list of :class:`floodestimation.entities.Catchment`
+        """
+        query = self.db_session.query(Catchment).join(Descriptors). \
+            filter(Catchment.is_suitable_for_pooling,
+                   or_(Descriptors.urbext2000 < 0.03, Descriptors.urbext2000 == None))
+        if include_subject_catchment == 'exclude':
+            # Remove subject catchment from donor list (if already in)
+            catchments = query.filter(Catchment.id != subject_catchment.id).all()
+        elif include_subject_catchment == 'force':
+            # Add the subject catchment regardless of urbext of pooling suitability
+            sc_query = self.db_session.query(Catchment).filter(Catchment.id == subject_catchment.id)
+            catchments = query.union(sc_query).all()
+        else:
+            catchments = query.all()
+
+        # Store the similarity distance as an additional attribute for each catchment
+        for catchment in catchments:
+            catchment.similarity_dist = similarity_dist_function(subject_catchment, catchment)
+        # Then simply sort by this attribute
+        catchments.sort(key=attrgetter('similarity_dist'))
+
+        # Limit catchments until total amax_records counts is at least `records_limit`, default 500
+        amax_records_count = 0
+        catchments_limited = []
+        for catchment in catchments:
+            catchments_limited.append(catchment)
+            amax_records_count += len(catchment.amax_records)
+            if amax_records_count >= records_limit:
+                break
+
+        return catchments_limited

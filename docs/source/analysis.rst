@@ -6,3 +6,9 @@
 
 .. autoclass:: floodestimation.analysis.QmedAnalysis
    :members:
+
+:class:`GrowthCurveAnalysis` --- Estimating the flood growth curve
+------------------------------------------------------------------
+
+.. autoclass:: floodestimation.analysis.GrowthCurveAnalysis
+   :members:

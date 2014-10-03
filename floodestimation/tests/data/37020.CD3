@@ -1,0 +1,50 @@
+[FILE FORMAT]
+TYPE,CD3
+VERSION,3.0
+[END]
+[STATION NUMBER]
+ 37020
+[END]
+[CDS DETAILS]
+NAME,Chelmer
+LOCATION,Felsted
+NOMINAL AREA,  132.10
+NOMINAL NGR,5670,2193
+[END]
+[DESCRIPTORS]
+IHDTM NGR,GB     ,567100,219500
+CENTROID NGR,GB,562293,226088
+DTM AREA,  132.96
+ALTBAR,  86
+ASPBAR,136
+ASPVAR,0.17
+BFIHOST,0.468
+DPLBAR, 12.76
+DPSBAR, 29.6
+FARL,0.982
+FPEXT,0.0659
+LDP, 26.36
+PROPWET,0.31
+RMED-1H, 11.2
+RMED-1D, 28.5
+RMED-2D, 35.1
+SAAR, 588
+SAAR4170, 602
+SPRHOST,40.13
+URBCONC1990, 0.500
+URBEXT1990,0.0121
+URBLOC1990, 0.827
+URBCONC2000, 0.711
+URBEXT2000,0.0188
+URBLOC2000, 0.783
+[END]
+[SUITABILITY]
+QMED,YES
+POOLING,YES
+[END]
+[COMMENTS]
+STATION,'Essex' profile (modified Flat V Crump) weir with crest tapping measuring up to 1.21m - limit of reliable gauging. Higher flows estimated. Drowning commences at 0.6m, and varies in severity. Naturalised flows 1970-1976. Adjustments needed for effluent discharges. RATING COMMENTS:One rating applied across period of record.Hydraulic model used to derive rating for high flows. Reasonable fit to gaugings.
+CATCHMENT,Rural, agricultural catchment. Boulder Clay and glacial gravel covering Chalk in extreme north, London Clay elsewhere. ARTIFICIAL INFLUENCES:Minimal abstractions. STW and industrial effluent discharges. CATCHMENT CHANGES:No information available
+Qmed Suitability,QMED within bank and well gauged.
+Pooling Suitability,Confident in performance of model derived rating for out of bank flows.
+[END]
