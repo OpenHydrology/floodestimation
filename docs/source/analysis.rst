@@ -12,3 +12,9 @@
 
 .. autoclass:: floodestimation.analysis.GrowthCurveAnalysis
    :members:
+
+:class:`GrowthCurve` --- The flood growth curve object
+------------------------------------------------------
+
+.. autoclass:: floodestimation.analysis.GrowthCurve
+   :members:

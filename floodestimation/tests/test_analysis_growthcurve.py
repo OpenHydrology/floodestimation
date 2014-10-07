@@ -74,11 +74,18 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         donor_ids = [d.id for d in analysis.donor_catchments]
         self.assertEqual([10002, 10001], donor_ids)
 
-    def test_single_site(self):
+    def test_single_site_glo(self):
         gauged_catchments = CatchmentCollections(self.db_session)
         catchment = load_catchment('floodestimation/tests/data/37017.CD3')
         analysis = GrowthCurveAnalysis(catchment, gauged_catchments)
-        dist_func = analysis.growth_curve(method='single_site')
+        dist_func = analysis.growth_curve(method='single_site', distr='glo')
+        self.assertAlmostEqual(dist_func(0.5), 1)
+
+    def test_single_site_gev(self):
+        gauged_catchments = CatchmentCollections(self.db_session)
+        catchment = load_catchment('floodestimation/tests/data/37017.CD3')
+        analysis = GrowthCurveAnalysis(catchment, gauged_catchments)
+        dist_func = analysis.growth_curve(method='single_site', distr='gev')
         self.assertAlmostEqual(dist_func(0.5), 1)
 
     def test_l_cv_and_skew(self):
@@ -92,10 +99,9 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         self.assertAlmostEqual(skew, -0.0908, places=4)
 
     def test_l_cv_and_skew_one_donor(self):
-        gauged_catchments = CatchmentCollections(self.db_session)
         catchment = load_catchment('floodestimation/tests/data/37017.CD3')
 
-        analysis = GrowthCurveAnalysis(catchment, gauged_catchments)
+        analysis = GrowthCurveAnalysis(catchment)
         analysis.donor_catchments = [catchment]
         var, skew = analysis._var_and_skew(analysis.donor_catchments)
 
@@ -103,26 +109,31 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         self.assertAlmostEqual(skew, -0.0908, places=4)
 
     def test_37017(self):
-        gauged_catchments = CatchmentCollections(self.db_session)
         subject = load_catchment('floodestimation/tests/data/37017.CD3')
-        analysis = GrowthCurveAnalysis(subject, gauged_catchments)
+        analysis = GrowthCurveAnalysis(subject)
         self.assertEqual(len(subject.amax_records), 34)
         var, skew = analysis._var_and_skew(subject)
         self.assertAlmostEqual(var, 0.2232, places=4)
         self.assertAlmostEqual(skew, -0.0908, places=4)
 
-    def test_l_dist_params(self):
-        gauged_catchments = CatchmentCollections(self.db_session)
+    def test_dist_params(self):
         catchment = load_catchment('floodestimation/tests/data/37017.CD3')
 
-        analysis = GrowthCurveAnalysis(catchment, gauged_catchments)
-        var, skew = analysis._var_and_skew(catchment)
-        params = getattr(lm, 'pel' + 'glo')([1, var, skew])
-        params[0] = 1
+        analysis = GrowthCurveAnalysis(catchment)
+        growth_curve = analysis.growth_curve(method='single_site')
+        params = growth_curve.params
 
-        self.assertAlmostEqual(params[0], 1, places=4)
+        self.assertAlmostEqual(params[0], 1)
         self.assertAlmostEqual(params[1], 0.2202, places=4)
         self.assertAlmostEqual(params[2], 0.0908, places=4)
+        self.assertAlmostEqual(growth_curve.distr_kurtosis, 0.1735, places=4)  # TODO: verify correct value
+
+    def test_dist_param_location(self):
+        catchment = load_catchment('floodestimation/tests/data/37017.CD3')
+
+        analysis = GrowthCurveAnalysis(catchment)
+        growth_curve = analysis.growth_curve(method='single_site')
+        self.assertAlmostEqual(growth_curve(0.5), 1)
 
     def test_dimensionless_flows(self):
         analysis = GrowthCurveAnalysis(self.catchment)

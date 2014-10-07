@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2014  Neil Nutt <neilnutt[at]googlemail[dot]com> and
-# Florenz A.P. Hollebrandse <f.a.p.hollebrandse@protonmail.ch>
+# Florenz A.P. Hollebrandse <find_location_param.a.p.hollebrandse@protonmail.ch>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,8 +22,7 @@ Module containing flood estimation analysis methods, including QMED, growth curv
 from math import log, floor, ceil, exp, sqrt
 import lmoments3 as lm
 import numpy as np
-# Current package imports
-from .stats import median
+from scipy import optimize
 
 
 class QmedAnalysis(object):
@@ -132,7 +131,7 @@ class QmedAnalysis(object):
         length = len(self.catchment.amax_records)
         if length < 2:
             raise InsufficientDataError("Insufficient annual maximum flow records available.")
-        return median([record.flow for record in self.catchment.amax_records])
+        return np.median([record.flow for record in self.catchment.amax_records])
 
     def _area_exponent(self):
         """
@@ -344,8 +343,9 @@ class GrowthCurveAnalysis(object):
         :type method: str
         :param method_options: any optional parameters for the growth curve method function
         :type method_options: kwargs
-        :return: Inverse cumulative distribution function with one parameter `aep` (annual exceedance probability)
-        :type: method
+        :return: Inverse cumulative distribution function, callable class with one parameter `aep` (annual exceedance
+                 probability)
+        :type: :class:`.GrowthCurve`
         """
         if method == 'best':
             if self.catchment.amax_records:
@@ -461,11 +461,11 @@ class GrowthCurveAnalysis(object):
         Return flood growth curve function based on `amax_records` from the subject catchment only.
 
         :return: Inverse cumulative distribution function with one parameter `aep` (annual exceedance probability)
-        :type: method
+        :type: :class:`.GrowthCurve`
         """
         if self.catchment.amax_records:
             self.donor_catchments = []
-            return self._growth_curve_function(distr, *self._var_and_skew(self.catchment))
+            return GrowthCurve(distr, *self._var_and_skew(self.catchment))
         else:
             raise InsufficientDataError("Catchment's `amax_records` must be set for a single site analysis.")
 
@@ -474,22 +474,22 @@ class GrowthCurveAnalysis(object):
         Return flood growth curve function based on `amax_records` from a pooling group.
 
         :return: Inverse cumulative distribution function with one parameter `aep` (annual exceedance probability)
-        :type: method
+        :type: :class:`.GrowthCurve`
         """
         if not self.donor_catchments:
             self.find_donor_catchments()
-        return self._growth_curve_function(distr, *self._var_and_skew(self.donor_catchments))
+        return GrowthCurve(distr, *self._var_and_skew(self.donor_catchments))
 
     def _growth_curve_enhanced_single_site(self, distr='glo'):
         """
         Return flood growth curve function based on `amax_records` from the subject catchment and a pooling group.
 
         :return: Inverse cumulative distribution function with one parameter `aep` (annual exceedance probability)
-        :type: method
+        :type: :class:`.GrowthCurve`
         """
         if not self.donor_catchments:
             self.find_donor_catchments(include_subject_catchment='force')
-        return self._growth_curve_function(distr, *self._var_and_skew(self.donor_catchments))
+        return GrowthCurve(distr, *self._var_and_skew(self.donor_catchments))
 
     @staticmethod
     def _growth_curve_function(distr, var, skew):
@@ -499,7 +499,7 @@ class GrowthCurveAnalysis(object):
         """
         try:
             params = getattr(lm, 'pel' + distr)([1, var, skew])
-            params[0] = 1
+            #params[0] = 1
             f = getattr(lm, 'qua' + distr)
             return lambda aep: f(1 - np.array(aep), params)
         except AttributeError:
@@ -556,6 +556,76 @@ class GrowthCurveAnalysis(object):
                                         include_subject_catchment=include_subject_catchment)
         else:
             self.donor_catchments = []
+
+
+class GrowthCurve():
+    """
+    Growth curve constructed using **sample** L-VAR and L-SKEW.
+
+    The `GrowthCurve` class is callable, i.e. it can be used as a function. It has one parameter `aep`, which is an
+    annual exceedance probability and can be either a single value or a list of values. In the latter case, a numpy
+    :class:`ndarray` is returned.
+
+    Example:
+
+    >>> from floodestimation.analysis import GrowthCurve
+    >>> growth_curve = GrowthCurve(distr='glo', var=0.2, skew=-0.1, kurtosis=0.185)
+    >>> growth_curve(aep=0.5)
+    1.0
+    >>> growth_curve(aep=[0.1, 0.01, 0.001])
+    array([ 1.38805928,  1.72475593,  1.98119739])
+    >>> growth_curve.params
+    [1.0, 0.1967263286166932, 0.1]
+    >>> growth_curve.distr_kurtosis
+    0.175
+    >>> growth_curve.kurtosis_fit()
+    0.010000000000000009
+
+    """
+    def __init__(self, distr, var, skew, kurtosis=None):
+        #: Statistical distribution function abbreviation, e.g. 'glo', 'gev'. Any supported by the :mod:`lmoments3`
+        #: package can be used.
+        self.distr = distr
+        #: Sample L-variance (t2)
+        self.var = var
+        #: Sample L-skew (t3)
+        self.skew = skew
+        #: Sample L-kurtosis (t4, not used to create distribution function)
+        self.kurtosis = kurtosis
+        try:
+            self._inverse_cdf = getattr(lm, 'qua' + self.distr)
+            #: Distribution function parameters: `[location, scale, shape]`. Except for the `location` parameter, all
+            #: other parameters are estimated using the sample variance and skew linear moments.
+            self.params = getattr(lm, 'pel' + distr)([1, var, skew])
+            self.params[0] = self._solve_location_param()
+
+            #: The **distribution's** L-kurtosis which may be different from the **sample** L-kurtosis (t4).
+            self.distr_kurtosis = getattr(lm, 'lmr' + distr)(self.params, 4)[3]
+        except AttributeError:
+            raise InsufficientDataError("Distribution function `{}` does not exist.".format(distr))
+
+    def __call__(self, aep):
+        return self._inverse_cdf(1 - np.array(aep), self.params)
+
+    def _solve_location_param(self):
+        """
+        We're lazy here and simply iterate to find the location parameter such that growth_curve(0.5)=1.
+        """
+        f = lambda location: self._inverse_cdf(0.5, [location] + self.params[1:3]) - 1
+        return optimize.newton(f, 1)
+
+    def kurtosis_fit(self):
+        """
+        Estimate the goodness of fit by calculating the difference between sample L-kurtosis and distribution function
+        L-kurtosis.
+
+        :return: Goodness of fit measure
+        :rtype: float
+        """
+        try:
+            return self.kurtosis - self.distr_kurtosis
+        except TypeError:
+            raise InsufficientDataError("The (sample) L-kurtosis must be set before the fit can be calculated.")
 
 
 class InsufficientDataError(BaseException):
