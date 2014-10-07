@@ -612,7 +612,7 @@ class GrowthCurve():
         We're lazy here and simply iterate to find the location parameter such that growth_curve(0.5)=1.
         """
         f = lambda location: self._inverse_cdf(0.5, [location] + self.params[1:3]) - 1
-        return optimize.newton(f, 1)
+        return optimize.brentq(f, -10, 10)
 
     def kurtosis_fit(self):
         """
