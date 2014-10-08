@@ -281,6 +281,10 @@ class QmedAnalysis(object):
         distance = self.catchment.distance_to(other_catchment)
         return 0.4598 * exp(-0.0200 * distance) + (1 - 0.4598) * exp(-0.4785 * distance)
 
+    def _donor_adj_factors(self, donor_catchments):
+        # TODO: return numpy array of donor adjustment factors
+        return
+
     def _donor_adj_factor(self, donor_catchment):
         """
         Return QMED adjustment factor using a donor catchment
@@ -295,6 +299,10 @@ class QmedAnalysis(object):
         donor_qmed_amax = QmedAnalysis(donor_catchment).qmed(method='amax_records')
         donor_qmed_descr = QmedAnalysis(donor_catchment).qmed(method='descriptors', as_rural=True)
         return (donor_qmed_amax / donor_qmed_descr) ** self._error_correlation(donor_catchment)
+
+    def _donor_weights(self, donor_catchments):
+        # TODO: donor weights using IDW
+        return
 
     def find_donor_catchments(self):
         """
