@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Copyright (c) 2014  Florenz A.P. Hollebrandse <f.a.p.hollebrandse@protonmail.ch>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -78,9 +80,6 @@ class Catchment(db.Base):
         # Start with empty set of descriptors, so we always do `catchment.descriptors.name = value`
         self.descriptors = Descriptors()
           
-        self.cds_comments =  {}  # cds_comments is a dictionary to hold comments the user might supply for each cds, initialise with nothing in it as no changes have been made
-        
-
     def qmed(self):
         """
         Returns QMED estimate using best available methodology depending on what catchment attributes are available.
@@ -109,7 +108,6 @@ class Catchment(db.Base):
         except (TypeError, KeyError):
             raise InsufficientDataError("Catchment `descriptors` attribute must be set first.")
               
-    
     def __repr__(self):
         return "{} at {} ({})".format(self.watercourse, self.location, self.id)
 
