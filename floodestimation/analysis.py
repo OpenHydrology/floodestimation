@@ -19,7 +19,7 @@
 """
 Module containing flood estimation analysis methods, including QMED, growth curves etc.
 """
-from math import log, floor, ceil, exp, sqrt
+from math import log, exp, sqrt
 import lmoments3 as lm
 import numpy as np
 from scipy import optimize
@@ -43,19 +43,33 @@ class QmedAnalysis(object):
     # : Methods available to estimate QMED, in order of best/preferred method
     methods = ('amax_records', 'descriptors', 'descriptors_1999', 'area', 'channel_width')
 
-    def __init__(self, catchment, gauged_catchment_collections=None):
+    def __init__(self, catchment, gauged_catchments=None):
         """
         Creates a QMED analysis object.
 
         :param catchment: subject catchment
-        :type catchment: :class:`floodestimation.entities.Catchment`
-        :param gauged_catchment_collections: catchment collections objects for retrieval of gauged data for donor
-                                              analyses
-        :type gauged_catchment_collections: :class:`floodestimation.collections.CatchmentCollections`
+        :type catchment: :class:`.entities.Catchment`
+        :param gauged_catchments: catchment collections objects for retrieval of gauged data for donor analyses
+        :type gauged_catchments: :class:`.collections.CatchmentCollections`
         """
 
+        #: Subject catchment
         self.catchment = catchment
-        self.gauged_catchments = gauged_catchment_collections
+        #: :class:`.collections.CatchmentCollections` object for retrieval of gauged data for donor based analyses
+        #: (optional)
+        self.gauged_catchments = gauged_catchments
+
+        #: Method for weighting multiple QMED donors, options are:
+        #:
+        #: - `idw` (default): Use an Inverse Distance Weighting (IDW) method. Donor catchments nearby have higher
+        #:   weighting than catchments further away.
+        #: - `equal`: All donors have equal weights.
+        #: - `first`: Use only the first (nearest) donor catchment.
+        self.donor_weighting = 'idw'
+        #: Power parameter to use in IDW weighting method. Default: `2` (quadratic). Higher powers results in higher
+        #: weights for **nearby** donor catchments. A power of `1` indicates an inverse linear relationship between
+        #: distance and weight.
+        self.idw_power = 2
 
     def qmed(self, method='best', **method_options):
         """
@@ -71,9 +85,9 @@ class QmedAnalysis(object):
                                                  `Catchment.amax_records`
         `descriptors`                            Synonym for `method=descriptors2008`.
         `descriptors2008` `as_rural=False`       FEH 2008 regression methodology using `Catchment.descriptors`. Setting
-                          `donor_catchment=None` `as_rural=True` returns rural estimate and setting `donor_catchment` to
-                                                 a specific :class:`Catchment` object **overrides** automatic selection
-                                                 of the most suitable donor catchment.
+                          `donor_catchments=[]`  `as_rural=True` returns rural estimate and setting `donor_catchments` to
+                                                 a specific list of :class:`Catchment` object **overrides** automatic
+                                                 selection of the most suitable donor catchment.
         `descriptors1999` as_rural=False         FEH 1999 regression methodology.
         `area`            n/a                    Simplified FEH 1999 regression methodology using
                                                  `Cachment.descriptors.dtm_area` only.
@@ -93,7 +107,7 @@ class QmedAnalysis(object):
                 try:
                     # Return the first method that works
                     return getattr(self, '_qmed_from_' + method)(**method_options)
-                except InsufficientDataError:
+                except (TypeError, InsufficientDataError):
                     pass
             # In case none of them worked
             return None
@@ -210,7 +224,7 @@ class QmedAnalysis(object):
         """
         return self._qmed_from_descriptors_2008(**method_options)
 
-    def _qmed_from_descriptors_2008(self, as_rural=False, donor_catchment=None):
+    def _qmed_from_descriptors_2008(self, as_rural=False, donor_catchments=[]):
         """
         Return QMED estimation based on FEH catchment descriptors, 2008 methodology.
 
@@ -218,9 +232,9 @@ class QmedAnalysis(object):
 
         :param as_rural: assume catchment is fully rural. Default: false.
         :type as rural: bool
-        :param donor_catchment: override donor catchment to improve QMED catchment. If `None` (default), donor catchment
+        :param donor_catchments: override donor catchment to improve QMED catchment. If `None` (default), donor catchment
         will be searched automatically
-        :type donor_catchment: :class:`Catchment`
+        :type donor_catchments: :class:`Catchment`
         :return: QMED in m³/s
         :rtype: float
         """
@@ -230,16 +244,12 @@ class QmedAnalysis(object):
                          * 0.1536 ** (1000 / self.catchment.descriptors.saar) \
                          * self.catchment.descriptors.farl ** 3.4451 \
                          * 0.0460 ** (self.catchment.descriptors.bfihost ** 2.0)
-            # Apply donor adjustment if donor provided
-            if not donor_catchment:
-                # For just now, pick the first suitable catchment.
-                # TODO: implement algorithm to use multiple donors
-                try:
-                    donor_catchment = self.find_donor_catchments()[0]
-                except IndexError:
-                    pass
-            if donor_catchment:
-                qmed_rural *= self._donor_adj_factor(donor_catchment)
+            if not donor_catchments:
+                # If no donor catchments are provided, find the nearest 100
+                donor_catchments = self.find_donor_catchments()[1:100]
+            if donor_catchments:
+                # If found multiply rural estimate with weighted adjustment factors from all donors
+                qmed_rural *= np.sum(self._donor_weights(donor_catchments) * self._donor_adj_factors(donor_catchments))
             if as_rural:
                 return qmed_rural
             else:
@@ -282,8 +292,18 @@ class QmedAnalysis(object):
         return 0.4598 * exp(-0.0200 * distance) + (1 - 0.4598) * exp(-0.4785 * distance)
 
     def _donor_adj_factors(self, donor_catchments):
-        # TODO: return numpy array of donor adjustment factors
-        return
+        """
+        Return QMED adjustment factors for a list of donor catchments.
+
+        :param donor_catchments: Catchments to use as donors
+        :type donor_catchments: list of :class:`Catchment`
+        :return: Array of adjustment factors
+        :rtype: :class:`numpy.ndarray`
+        """
+        adj_factors = np.ones(len(donor_catchments))
+        for index, donor in enumerate(donor_catchments):
+            adj_factors[index] = self._donor_adj_factor(donor)
+        return adj_factors
 
     def _donor_adj_factor(self, donor_catchment):
         """
@@ -301,8 +321,33 @@ class QmedAnalysis(object):
         return (donor_qmed_amax / donor_qmed_descr) ** self._error_correlation(donor_catchment)
 
     def _donor_weights(self, donor_catchments):
-        # TODO: donor weights using IDW
-        return
+        """
+        Return numpy array of donor weights using inverse distance weighting method
+
+        :param donor_catchments: Catchments to use as donors
+        :type donor_catchments: list of :class:`Catchment`
+        :return: Array of weights which sum to 1
+        :rtype: :class:`numpy.ndarray`
+        """
+        weights = np.zeros(len(donor_catchments))
+        for index, donor in enumerate(donor_catchments):
+            if self.donor_weighting == 'idw':
+                try:
+                    weights[index] = 1 / donor.distance_to(self.catchment)**self.idw_power
+                except ZeroDivisionError:
+                    # If one of the donor catchments has a zero distance, simply set weight to very large number. Can't
+                    # use `float('inf')` because we need to devide by sum of weights later.
+                    weights[index] = 1e99
+            elif self.donor_weighting == 'equal':
+                weights = np.ones(len(donor_catchments))
+            elif self.donor_weighting == 'first':
+                weights[0] = 1
+            else:
+                raise Exception(
+                    "Invalid value for attribute `donor_weighting`. Must be one of `idw`, `equal` or `first`")
+        # Assure sum of weights==1
+        weights /= np.sum(weights)
+        return weights
 
     def find_donor_catchments(self):
         """
@@ -326,9 +371,12 @@ class GrowthCurveAnalysis(object):
     #: Available distribution functions for growth curves
     distributions = ('glo', 'gev')
 
-    def __init__(self, catchment, gauged_catchment_collections=None):
+    def __init__(self, catchment, gauged_catchments=None):
+        #: Subject catchment
         self.catchment = catchment
-        self.gauged_cachments = gauged_catchment_collections
+        #: :class:`.collections.CatchmentCollections` object for retrieval of gauged data for donor based analyses
+        #: (optional)
+        self.gauged_cachments = gauged_catchments
         #: List of donor catchments. Either set manually or by calling :meth:`.find_donor_catchments` or implicitly when
         #: calling :meth:`.growth_curve()`.
         self.donor_catchments = []

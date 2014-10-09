@@ -1,5 +1,6 @@
 import unittest
 import os
+from numpy.testing import assert_almost_equal
 from urllib.request import pathname2url
 from datetime import date
 from floodestimation.entities import Catchment, AmaxRecord, Descriptors
@@ -284,31 +285,91 @@ class TestQmedDonor(unittest.TestCase):
     # donor QMED descr rural = .5909
     # donor QMED amax = 1.0
 
+    @classmethod
+    def setUpClass(cls):
+        settings.OPEN_HYDROLOGY_JSON_URL = 'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
+        cls.db_session = db.Session()
+
+    @classmethod
+    def tearDownClass(cls):
+        db.reset_db_tables()
+
+    def tearDown(self):
+        self.db_session.rollback()
+
     def test_donor_adjustment_factor(self):
         # 1.0/ 0.5909
         self.assertEqual(round(QmedAnalysis(self.catchment)._donor_adj_factor(self.donor_catchment), 4), 1.6925)
 
     def test_donor_corrected_qmed(self):
         # 0.6173 * 1.6925
-        self.assertEqual(
-            round(QmedAnalysis(self.catchment).qmed(method='descriptors_2008', donor_catchment=self.donor_catchment),
-                  4), 1.0448)
+        self.assertAlmostEqual(
+            QmedAnalysis(self.catchment).qmed(method='descriptors_2008', donor_catchments=[self.donor_catchment]),
+            1.0448, places=4)
 
-    def test_donor_automatic_qmed(self):
-        settings.OPEN_HYDROLOGY_JSON_URL = 'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
-        db_session = db.Session()
+    def test_first_automatic_donor_qmed(self):
 
-        analysis = QmedAnalysis(self.catchment, CatchmentCollections(db_session))
+        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session))
 
-        automatic_donor = analysis.find_donor_catchments()[0]
+        # Use the first donor only!
+        donor = analysis.find_donor_catchments()[0]
         # donor: qmed_am = 90.532, qmed_cd = 51.19
-        self.assertEqual(17001, automatic_donor.id)
-        self.assertEqual(5, automatic_donor.distance_to(self.catchment))
-        self.assertEqual(0.4654, round(analysis._error_correlation(automatic_donor), 4))
-        self.assertEqual(1.3038, round(analysis._donor_adj_factor(automatic_donor), 4))
+        self.assertEqual(17001, donor.id)
+        self.assertEqual(5, donor.distance_to(self.catchment))
+        self.assertAlmostEqual(0.4654, analysis._error_correlation(donor), places=4)
+        assert_almost_equal([1.3038], analysis._donor_adj_factors([donor]), decimal=4)
+        assert_almost_equal([1], analysis._donor_weights([donor]))
 
         # 0.6173 * 1.3038 = 0.8049
-        self.assertEqual(0.8049, round(analysis.qmed(), 4))
+        self.assertAlmostEqual(0.8049, analysis.qmed(donor_catchments=[donor]), places=4)
 
-        db_session.rollback()
-        db.reset_db_tables()
+    def test_two_automatic_donor_qmed(self):
+        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session))
+
+        # Use the first 2 donors
+        donors = analysis.find_donor_catchments()[0:2]
+
+        self.assertAlmostEqual(5, donors[0].distance_to(self.catchment), places=4)
+        self.assertAlmostEqual(183.8515, donors[1].distance_to(self.catchment), places=4)
+        assert_almost_equal([1.3038, 1.0004], analysis._donor_adj_factors(donors), decimal=4)
+        assert_almost_equal([0.9993, 0.0007], analysis._donor_weights(donors), decimal=4)
+
+        self.assertAlmostEqual(0.8048, analysis.qmed(donor_catchments=donors), places=4)
+
+    def test_two_automatic_donor_qmed_linear_idw(self):
+        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session))
+        analysis.idw_power = 1
+
+        # Use the first 2 donors
+        donors = analysis.find_donor_catchments()[0:2]
+        assert_almost_equal([0.9735, 0.0265], analysis._donor_weights(donors), decimal=4)
+
+        self.assertAlmostEqual(0.7999, analysis.qmed(donor_catchments=donors), places=4)
+
+    def test_two_automatic_donor_qmed_equal_weight(self):
+        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session))
+        analysis.donor_weighting = 'equal'
+
+        # Use the first 2 donors
+        donors = analysis.find_donor_catchments()[0:2]
+
+        self.assertAlmostEqual(5, donors[0].distance_to(self.catchment), places=4)
+        self.assertAlmostEqual(183.8515, donors[1].distance_to(self.catchment), places=4)
+        assert_almost_equal([1.3038, 1.0004], analysis._donor_adj_factors(donors), decimal=4)
+        assert_almost_equal([0.5, 0.5], analysis._donor_weights(donors), decimal=4)
+
+        self.assertAlmostEqual(0.7112, analysis.qmed(donor_catchments=donors), places=4)
+
+    def test_two_automatic_donor_qmed_first_weight(self):
+        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session))
+        analysis.donor_weighting = 'first'
+
+        # Use the first 2 donors
+        donors = analysis.find_donor_catchments()[0:2]
+
+        self.assertAlmostEqual(5, donors[0].distance_to(self.catchment), places=4)
+        self.assertAlmostEqual(183.8515, donors[1].distance_to(self.catchment), places=4)
+        assert_almost_equal([1.3038, 1.0004], analysis._donor_adj_factors(donors), decimal=4)
+        assert_almost_equal([1, 0], analysis._donor_weights(donors), decimal=4)
+
+        self.assertAlmostEqual(0.8049, analysis.qmed(donor_catchments=donors), places=4)
