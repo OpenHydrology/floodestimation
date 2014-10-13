@@ -144,7 +144,8 @@ class QmedAnalysis(object):
         """
         length = len(self.catchment.amax_records)
         if length < 2:
-            raise InsufficientDataError("Insufficient annual maximum flow records available.")
+            raise InsufficientDataError("Insufficient annual maximum flow records available for catchment {}."
+                                        .format(self.catchment.id))
         return np.median([record.flow for record in self.catchment.amax_records])
 
     def _area_exponent(self):
@@ -245,8 +246,8 @@ class QmedAnalysis(object):
                          * self.catchment.descriptors.farl ** 3.4451 \
                          * 0.0460 ** (self.catchment.descriptors.bfihost ** 2.0)
             if not donor_catchments:
-                # If no donor catchments are provided, find the nearest 100
-                donor_catchments = self.find_donor_catchments()[1:100]
+                # If no donor catchments are provided, find the nearest 20
+                donor_catchments = self.find_donor_catchments()[0:20]
             if donor_catchments:
                 # If found multiply rural estimate with weighted adjustment factors from all donors
                 qmed_rural *= np.sum(self._donor_weights(donor_catchments) * self._donor_adj_factors(donor_catchments))
@@ -275,7 +276,11 @@ class QmedAnalysis(object):
         :return: urban adjustment factor
         :rtype: float
         """
-        return self._pruaf() * (1 + self.catchment.descriptors.urbext) ** 0.83
+        try:
+            return self._pruaf() * (1 + self.catchment.descriptors.urbext) ** 0.83
+        except TypeError:
+            # Sometimes urbext is not set, so don't adjust at all (rather than throwing an error).
+            return 1
 
     def _error_correlation(self, other_catchment):
         """

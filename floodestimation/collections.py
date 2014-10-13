@@ -22,8 +22,9 @@ data.
 
 from operator import attrgetter
 from sqlalchemy import or_
+from sqlalchemy.sql.functions import func
 # Current package imports
-from .entities import Catchment, Descriptors
+from .entities import Catchment, Descriptors, AmaxRecord
 from . import loaders
 from . import db
 
@@ -92,15 +93,20 @@ class CatchmentCollections(object):
         :return: list of catchments sorted by distance
         :rtype: list of :class:`floodestimation.entities.Catchment`
         """
-        # Get a list of all catchment, excluding the subject_catchment itself
-        catchments = self.db_session.query(Catchment).filter(Catchment.id != subject_catchment.id,
-                                                             Catchment.is_suitable_for_qmed).all()
+        # Get a list of all catchments, excluding the subject_catchment itself
+        catchments = self.db_session.query(Catchment).\
+            join(Catchment.amax_records).\
+            filter(Catchment.id != subject_catchment.id,
+                   Catchment.is_suitable_for_qmed).\
+            group_by(Catchment).\
+            having(func.count(AmaxRecord.catchment_id) > 2).\
+            all()
         # Sort by distance to subject_catchment
         catchments.sort(key=lambda c: c.distance_to(subject_catchment))
         return catchments
 
     def most_similar_catchments(self, subject_catchment, similarity_dist_function, records_limit=500,
-                                include_subject_catchment = 'auto'):
+                                include_subject_catchment='auto'):
         """
         Return a list of catchments sorted by hydrological similarity defined by `similarity_distance_function`
 
