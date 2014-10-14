@@ -21,7 +21,7 @@ data.
 """
 
 from operator import attrgetter
-from sqlalchemy import or_
+from sqlalchemy import or_, between
 from sqlalchemy.sql.functions import func
 # Current package imports
 from .entities import Catchment, Descriptors, AmaxRecord
@@ -98,8 +98,15 @@ class CatchmentCollections(object):
         # Get a list of all catchments, excluding the subject_catchment itself
         catchments = self.db_session.query(Catchment).\
             join(Catchment.amax_records).\
+            join(Catchment.descriptors).\
             filter(Catchment.id != subject_catchment.id,
-                   Catchment.is_suitable_for_qmed).\
+                   Catchment.is_suitable_for_qmed,
+                   between(Descriptors.centroid_ngr_x,
+                           subject_catchment.descriptors.centroid_ngr.x - 2e5,
+                           subject_catchment.descriptors.centroid_ngr.x + 2e5),
+                   between(Descriptors.centroid_ngr_y,
+                           subject_catchment.descriptors.centroid_ngr.y - 2e5,
+                           subject_catchment.descriptors.centroid_ngr.y + 2e5)).\
             group_by(Catchment).\
             having(func.count(AmaxRecord.catchment_id) > 2).\
             all()

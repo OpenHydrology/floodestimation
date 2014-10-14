@@ -35,6 +35,7 @@ def analyse_catchment(number, gauged_catchments):
 
     analysis.gauged_catchments = gauged_catchments
     donors = analysis.find_donor_catchments()
+    analysis.idw_power = 2
     result['qmed_descr_idw'] = analysis.qmed(method='descriptors', donor_catchments=donors)
 
     analysis.idw_power = 3
