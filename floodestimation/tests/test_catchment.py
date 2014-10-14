@@ -1,7 +1,7 @@
 import unittest
 from datetime import date
 from floodestimation import db
-from floodestimation.entities import Catchment, AmaxRecord
+from floodestimation.entities import Catchment, AmaxRecord, Point
 
 
 class TestCatchmentObject(unittest.TestCase):
@@ -17,30 +17,30 @@ class TestCatchmentObject(unittest.TestCase):
 
     def test_catchment_distance_no_country(self):
         catchment_1 = Catchment("Aberdeen", "River Dee")
-        catchment_1.descriptors.centroid_ngr = (0, 0)
+        catchment_1.descriptors.centroid_ngr = Point(0, 0)
 
         catchment_2 = Catchment("Dundee", "River Tay")
-        catchment_2.descriptors.centroid_ngr = (3000, 4000)
+        catchment_2.descriptors.centroid_ngr = Point(3000, 4000)
 
         self.assertEqual(catchment_1.distance_to(catchment_2), 5)
 
     def test_catchment_distance_same_country(self):
         catchment_1 = Catchment("Aberdeen", "River Dee")
-        catchment_1.descriptors.centroid_ngr = (0, 0)
+        catchment_1.descriptors.centroid_ngr = Point(0, 0)
         catchment_1.country = 'gb'
 
         catchment_2 = Catchment("Dundee", "River Tay")
-        catchment_2.descriptors.centroid_ngr = (3000, 4000)
+        catchment_2.descriptors.centroid_ngr = Point(3000, 4000)
         catchment_2.country = 'gb'
 
         self.assertEqual(catchment_1.distance_to(catchment_2), 5)
 
     def test_catchment_distance_different_country(self):
         catchment_1 = Catchment("Aberdeen", "River Dee")
-        catchment_1.descriptors.centroid_ngr = (0, 0)
+        catchment_1.descriptors.centroid_ngr = Point(0, 0)
 
         catchment_2 = Catchment("Belfast")
-        catchment_2.descriptors.centroid_ngr = (3, 4)
+        catchment_2.descriptors.centroid_ngr = Point(3, 4)
         catchment_2.country = 'ni'
 
         self.assertEqual(catchment_1.distance_to(catchment_2), float('inf'))

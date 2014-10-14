@@ -3,7 +3,7 @@ import os
 from numpy.testing import assert_almost_equal
 from urllib.request import pathname2url
 from datetime import date
-from floodestimation.entities import Catchment, AmaxRecord, Descriptors
+from floodestimation.entities import Catchment, AmaxRecord, Descriptors, Point
 from floodestimation.collections import CatchmentCollections
 from floodestimation import db
 from floodestimation import settings
@@ -268,7 +268,7 @@ class TestQmedDonor(unittest.TestCase):
                                         saar=2000,
                                         farl=0.5,
                                         urbext=0,
-                                        centroid_ngr=(276125, 688424))
+                                        centroid_ngr=Point(276125, 688424))
     # QMED descr rural = 0.6173
 
     donor_catchment = Catchment("Aberdeen", "River Dee")
@@ -279,7 +279,7 @@ class TestQmedDonor(unittest.TestCase):
                                               saar=1000,
                                               farl=1,
                                               urbext=1,
-                                              centroid_ngr=(276125, 688424))
+                                              centroid_ngr=Point(276125, 688424))
     donor_catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 1.0, 0.5),
                                     AmaxRecord(date(2000, 12, 31), 1.0, 0.5)]
     # donor QMED descr rural = .5909
@@ -334,7 +334,7 @@ class TestQmedDonor(unittest.TestCase):
         assert_almost_equal([1.3038, 1.0004], analysis._donor_adj_factors(donors), decimal=4)
         assert_almost_equal([0.9999799, 0.0000201], analysis._donor_weights(donors), decimal=7)
 
-        self.assertAlmostEqual(0.8048, analysis.qmed(donor_catchments=donors), places=4)
+        self.assertAlmostEqual(0.8049, analysis.qmed(donor_catchments=donors), places=4)
 
     def test_two_automatic_donor_qmed_linear_idw(self):
         analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session))
