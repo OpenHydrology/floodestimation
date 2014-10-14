@@ -104,7 +104,7 @@ class Catchment(db.Base):
                     return 0.001 * hypot(self.descriptors.centroid_ngr[0] - other_catchment.descriptors.centroid_ngr[0],
                                          self.descriptors.centroid_ngr[1] - other_catchment.descriptors.centroid_ngr[1])
                 except TypeError:
-                    # In case no centroid available
+                    # In case no centroid available, just return infinity which is helpful in most cases
                     return float('+inf')
             else:
                 # If the catchments are in a different country (e.g. `ni` versus `gb`) then set distance to infinity.

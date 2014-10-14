@@ -83,13 +83,15 @@ class CatchmentCollections(object):
         """
         return self.db_session.query(Catchment).get(number)
 
-    def nearest_qmed_catchments(self, subject_catchment):
+    def nearest_qmed_catchments(self, subject_catchment, limit=None):
         """
         Return a list of catchments sorted by distance to `subject_catchment` **and filtered to only include catchments
         suitable for QMED analyses**.
 
         :param subject_catchment: catchment object to measure distances to
         :type subject_catchment: :class:`floodestimation.entities.Catchment`
+        :param limit: maximum number of catchments to return. Default: `None` (returns all available catchments).
+        :type limit: int
         :return: list of catchments sorted by distance
         :rtype: list of :class:`floodestimation.entities.Catchment`
         """
@@ -101,9 +103,20 @@ class CatchmentCollections(object):
             group_by(Catchment).\
             having(func.count(AmaxRecord.catchment_id) > 2).\
             all()
-        # Sort by distance to subject_catchment
-        catchments.sort(key=lambda c: c.distance_to(subject_catchment))
-        return catchments
+
+        # Store the distance as an additional attribute for each catchment
+        # TODO: it would be better if we could calculate distance and sort in SQL so we don't have to retrieve all
+        #       catchments. Coordinates are pickled into a column so we can't do that. Better to split coordinates into
+        #       easting and northing columns
+        for catchment in catchments:
+            catchment.dist = catchment.distance_to(subject_catchment)
+        # Then simply sort by this attribute
+        catchments.sort(key=attrgetter('dist'))
+
+        if not limit:
+            return catchments
+        else:
+            return catchments[0:limit]
 
     def most_similar_catchments(self, subject_catchment, similarity_dist_function, records_limit=500,
                                 include_subject_catchment='auto'):
@@ -126,13 +139,14 @@ class CatchmentCollections(object):
                    or_(Descriptors.urbext2000 < 0.03, Descriptors.urbext2000 == None))
         if include_subject_catchment == 'exclude':
             # Remove subject catchment from donor list (if already in)
-            catchments = query.filter(Catchment.id != subject_catchment.id).all()
+            query = query.filter(Catchment.id != subject_catchment.id)
         elif include_subject_catchment == 'force':
             # Add the subject catchment regardless of urbext of pooling suitability
             sc_query = self.db_session.query(Catchment).filter(Catchment.id == subject_catchment.id)
-            catchments = query.union(sc_query).all()
-        else:
-            catchments = query.all()
+            query = query.union(sc_query)
+        #else:
+        #    catchments = query.all()
+        catchments = query.all()
 
         # Store the similarity distance as an additional attribute for each catchment
         for catchment in catchments:

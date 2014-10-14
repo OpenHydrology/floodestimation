@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2014  Neil Nutt <neilnutt[at]googlemail[dot]com> and
-# Florenz A.P. Hollebrandse <find_location_param.a.p.hollebrandse@protonmail.ch>
+# Florenz A.P. Hollebrandse <f.a.p.hollebrandse@protonmail.ch>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -246,8 +246,8 @@ class QmedAnalysis(object):
                          * self.catchment.descriptors.farl ** 3.4451 \
                          * 0.0460 ** (self.catchment.descriptors.bfihost ** 2.0)
             if not donor_catchments:
-                # If no donor catchments are provided, find the nearest 20
-                donor_catchments = self.find_donor_catchments()[0:20]
+                # If no donor catchments are provided, find the nearest 25
+                donor_catchments = self.find_donor_catchments()
             if donor_catchments:
                 # If found multiply rural estimate with weighted adjustment factors from all donors
                 qmed_rural *= np.sum(self._donor_weights(donor_catchments) * self._donor_adj_factors(donor_catchments))
@@ -337,32 +337,42 @@ class QmedAnalysis(object):
         weights = np.zeros(len(donor_catchments))
         for index, donor in enumerate(donor_catchments):
             if self.donor_weighting == 'idw':
+                if not hasattr(donor, 'dist'):
+                    # Donors provided by `collections` module already have a `dist` attribute.
+                    donor.dist = donor.distance_to(self.catchment)
                 try:
-                    weights[index] = 1 / donor.distance_to(self.catchment)**self.idw_power
+                    weights[index] = 1 / donor.dist ** self.idw_power
                 except ZeroDivisionError:
                     # If one of the donor catchments has a zero distance, simply set weight to very large number. Can't
                     # use `float('inf')` because we need to devide by sum of weights later.
                     weights[index] = 1e99
+
             elif self.donor_weighting == 'equal':
                 weights = np.ones(len(donor_catchments))
+
             elif self.donor_weighting == 'first':
                 weights[0] = 1
+
             else:
                 raise Exception(
                     "Invalid value for attribute `donor_weighting`. Must be one of `idw`, `equal` or `first`")
+
         # Assure sum of weights==1
         weights /= np.sum(weights)
         return weights
 
-    def find_donor_catchments(self):
+    def find_donor_catchments(self, limit=25):
         """
         Return a suitable donor catchment to improve a QMED estimate based on catchment descriptors alone.
 
+        :param limit: maximum number of catchments to return. Default: 25. Set to `None` to return all available
+                      catchments.
+        :type limit: int
         :return: list of nearby catchments
         :rtype: :class:`floodestimation.entities.Catchment`
         """
         if self.gauged_catchments:
-            return self.gauged_catchments.nearest_qmed_catchments(self.catchment)
+            return self.gauged_catchments.nearest_qmed_catchments(self.catchment, limit)
         else:
             return []
 
