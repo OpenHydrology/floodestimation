@@ -1,8 +1,26 @@
 # -*- coding: utf-8 -*-
 
+# Copyright (c) 2014  Florenz A.P. Hollebrandse <f.a.p.hollebrandse@protonmail.ch>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 from floodestimation import db
+from floodestimation.entities import Catchment, Descriptors, AmaxRecord
 from floodestimation.analysis import QmedAnalysis
 from floodestimation.collections import CatchmentCollections
+from sqlalchemy import or_
+from sqlalchemy.sql.functions import func
 
 
 def analyse_catchment(number, gauged_catchments):
@@ -34,6 +52,16 @@ def science_report_catchment_ids():
         for line in stations_file:
             result.append(int(line))
     return result
+
+
+def nrfa_qmed_catchments(db_session):
+    return db_session.query(Catchment).join(Descriptors).join(Catchment.amax_records). \
+        filter(Catchment.is_suitable_for_qmed,
+               Descriptors.centroid_ngr != None,
+               or_(Descriptors.urbext2000 < 0.03, Descriptors.urbext2000 == None)). \
+        group_by(Catchment). \
+        having(func.count(AmaxRecord.catchment_id) >= 10). \
+        all()
 
 
 if __name__ == '__main__':

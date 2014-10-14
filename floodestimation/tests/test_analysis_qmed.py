@@ -332,7 +332,7 @@ class TestQmedDonor(unittest.TestCase):
         self.assertAlmostEqual(5, donors[0].distance_to(self.catchment), places=4)
         self.assertAlmostEqual(183.8515, donors[1].distance_to(self.catchment), places=4)
         assert_almost_equal([1.3038, 1.0004], analysis._donor_adj_factors(donors), decimal=4)
-        assert_almost_equal([0.9993, 0.0007], analysis._donor_weights(donors), decimal=4)
+        assert_almost_equal([0.9999799, 0.0000201], analysis._donor_weights(donors), decimal=7)
 
         self.assertAlmostEqual(0.8048, analysis.qmed(donor_catchments=donors), places=4)
 
