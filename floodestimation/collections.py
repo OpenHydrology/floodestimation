@@ -19,9 +19,9 @@
 This module contains collections for easy retrieval of standard lists or scalars from the database with gauged catchment
 data.
 """
-
+from math import sqrt
 from operator import attrgetter
-from sqlalchemy import or_, between
+from sqlalchemy import or_, between, text
 from sqlalchemy.sql.functions import func
 # Current package imports
 from .entities import Catchment, Descriptors, AmaxRecord
@@ -83,7 +83,7 @@ class CatchmentCollections(object):
         """
         return self.db_session.query(Catchment).get(number)
 
-    def nearest_qmed_catchments(self, subject_catchment, limit=None):
+    def nearest_qmed_catchments(self, subject_catchment, limit=None, dist_limit=500):
         """
         Return a list of catchments sorted by distance to `subject_catchment` **and filtered to only include catchments
         suitable for QMED analyses**.
@@ -96,34 +96,29 @@ class CatchmentCollections(object):
         :rtype: list of :class:`floodestimation.entities.Catchment`
         """
         # Get a list of all catchments, excluding the subject_catchment itself
-        catchments = self.db_session.query(Catchment).\
+        dist_sq = Catchment.distance_to(subject_catchment).label('dist_sq')
+        query = self.db_session.query(Catchment, dist_sq).\
             join(Catchment.amax_records).\
             join(Catchment.descriptors).\
             filter(Catchment.id != subject_catchment.id,
                    Catchment.is_suitable_for_qmed,
-                   between(Descriptors.centroid_ngr_x,
-                           subject_catchment.descriptors.centroid_ngr.x - 2e5,
-                           subject_catchment.descriptors.centroid_ngr.x + 2e5),
-                   between(Descriptors.centroid_ngr_y,
-                           subject_catchment.descriptors.centroid_ngr.y - 2e5,
-                           subject_catchment.descriptors.centroid_ngr.y + 2e5)).\
+                   Catchment.country == subject_catchment.country,
+                   dist_sq <= dist_limit ** 2).\
             group_by(Catchment).\
-            having(func.count(AmaxRecord.catchment_id) > 2).\
-            all()
+            order_by(dist_sq).\
+            having(func.count(AmaxRecord.catchment_id) >= 10)
 
-        # Store the distance as an additional attribute for each catchment
-        # TODO: it would be better if we could calculate distance and sort in SQL so we don't have to retrieve all
-        #       catchments. Coordinates are pickled into a column so we can't do that. Better to split coordinates into
-        #       easting and northing columns
-        for catchment in catchments:
-            catchment.dist = catchment.distance_to(subject_catchment)
-        # Then simply sort by this attribute
-        catchments.sort(key=attrgetter('dist'))
-
-        if not limit:
-            return catchments
+        if limit:
+            rows = query[0:limit]
         else:
-            return catchments[0:limit]
+            rows = query.all()
+        catchments = []
+        for row in rows:
+            c = row[0]
+            c.dist = sqrt(row[1])
+            catchments.append(c)
+
+        return catchments
 
     def most_similar_catchments(self, subject_catchment, similarity_dist_function, records_limit=500,
                                 include_subject_catchment='auto'):

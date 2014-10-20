@@ -26,9 +26,11 @@ saving to a (sqlite) database. All class attributes therefore are :class:`sqlalc
 """
 
 from math import hypot
-from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey, PickleType
+from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey
+from sqlalchemy import func
 from sqlalchemy.orm import relationship, composite
 from sqlalchemy.ext.mutable import MutableComposite
+from sqlalchemy.ext.hybrid import hybrid_method
 # Current package imports
 from .analysis import QmedAnalysis, InsufficientDataError
 from . import db
@@ -116,6 +118,7 @@ class Catchment(db.Base):
         """
         return QmedAnalysis(self).qmed()
 
+    @hybrid_method
     def distance_to(self, other_catchment):
         """
         Returns the distance between the centroids of two catchments in kilometers.
@@ -138,7 +141,14 @@ class Catchment(db.Base):
                 return float('+inf')
         except (TypeError, KeyError):
             raise InsufficientDataError("Catchment `descriptors` attribute must be set first.")
-              
+
+    @distance_to.expression
+    def distance_to(cls, other_catchment):
+        return 1e-6 * ((Descriptors.centroid_ngr_x - other_catchment.descriptors.centroid_ngr_x) *
+                       (Descriptors.centroid_ngr_x - other_catchment.descriptors.centroid_ngr_x) +
+                       (Descriptors.centroid_ngr_y - other_catchment.descriptors.centroid_ngr_y) *
+                       (Descriptors.centroid_ngr_y - other_catchment.descriptors.centroid_ngr_y))
+
     def __repr__(self):
         return "{} at {} ({})".format(self.watercourse, self.location, self.id)
 

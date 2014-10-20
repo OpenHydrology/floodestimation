@@ -39,7 +39,7 @@ class TestCatchmentCollection(unittest.TestCase):
         subject_catchment = loaders.load_catchment('floodestimation/tests/data/17002.CD3')
         catchments = CatchmentCollections(self.db_session).nearest_qmed_catchments(subject_catchment)
         result = [catchment.id for catchment in catchments]
-        expected = [17001, 10001, 10002, 201002]
+        expected = [17001, 10001, 10002]
         self.assertEqual(expected, result)
 
     def test_most_similar_catchments(self):
