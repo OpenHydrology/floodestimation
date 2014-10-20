@@ -66,10 +66,10 @@ class QmedAnalysis(object):
         #: - `equal`: All donors have equal weights.
         #: - `first`: Use only the first (nearest) donor catchment.
         self.donor_weighting = 'idw'
-        #: Power parameter to use in IDW weighting method. Default: `3` (cubic). Higher powers results in higher
+        #: Power parameter to use in IDW weighting method. Default: `2` (quadratic). Higher powers results in higher
         #: weights for **nearby** donor catchments. A power of `1` indicates an inverse linear relationship between
         #: distance and weight.
-        self.idw_power = 3
+        self.idw_power = 2
 
     def qmed(self, method='best', **method_options):
         """
@@ -361,18 +361,21 @@ class QmedAnalysis(object):
         weights /= np.sum(weights)
         return weights
 
-    def find_donor_catchments(self, limit=10):
+    def find_donor_catchments(self, limit=10, dist_limit=250):
         """
         Return a suitable donor catchment to improve a QMED estimate based on catchment descriptors alone.
 
         :param limit: maximum number of catchments to return. Default: 10. Set to `None` to return all available
                       catchments.
         :type limit: int
+        :param dist_limit: maximum distance in km. between subject and donor catchment. Default: 250 km. Increasing the
+                           maximum distance will increase computation time!
+        :type dist_limit: float or int
         :return: list of nearby catchments
         :rtype: :class:`floodestimation.entities.Catchment`
         """
         if self.gauged_catchments:
-            return self.gauged_catchments.nearest_qmed_catchments(self.catchment, limit)
+            return self.gauged_catchments.nearest_qmed_catchments(self.catchment, limit, dist_limit)
         else:
             return []
 

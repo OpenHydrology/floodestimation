@@ -92,6 +92,9 @@ class CatchmentCollections(object):
         :type subject_catchment: :class:`floodestimation.entities.Catchment`
         :param limit: maximum number of catchments to return. Default: `None` (returns all available catchments).
         :type limit: int
+        :param dist_limit: maximum distance in km. between subject and donor catchment. Default: 500 km. Increasing the
+                           maximum distance will increase computation time!
+        :type dist_limit: float or int
         :return: list of catchments sorted by distance
         :rtype: list of :class:`floodestimation.entities.Catchment`
         """
