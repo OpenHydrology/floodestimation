@@ -95,28 +95,31 @@ class CatchmentCollections(object):
         :return: list of catchments sorted by distance
         :rtype: list of :class:`floodestimation.entities.Catchment`
         """
-        # Get a list of all catchments, excluding the subject_catchment itself
-        dist_sq = Catchment.distance_to(subject_catchment).label('dist_sq')
+
+        dist_sq = Catchment.distance_to(subject_catchment).label('dist_sq')  # Distance squared, calculated using SQL
         query = self.db_session.query(Catchment, dist_sq).\
             join(Catchment.amax_records).\
             join(Catchment.descriptors).\
-            filter(Catchment.id != subject_catchment.id,
-                   Catchment.is_suitable_for_qmed,
-                   Catchment.country == subject_catchment.country,
+            filter(Catchment.id != subject_catchment.id,            # Exclude subject catchment itself
+                   Catchment.is_suitable_for_qmed,                  # Only catchments suitable for QMED estimation
+                   Catchment.country == subject_catchment.country,  # SQL dist method does not cover cross-boundary dist
+                   # Within the distance limit
                    dist_sq <= dist_limit ** 2).\
             group_by(Catchment).\
             order_by(dist_sq).\
-            having(func.count(AmaxRecord.catchment_id) >= 10)
+            having(func.count(AmaxRecord.catchment_id) >= 10)       # At least 10 AMAX records
 
         if limit:
             rows = query[0:limit]
         else:
             rows = query.all()
+
+        # Add real `dist` attribute to catchment list using previously calculated SQL dist squared
         catchments = []
         for row in rows:
-            c = row[0]
-            c.dist = sqrt(row[1])
-            catchments.append(c)
+            catchment = row[0]
+            catchment.dist = sqrt(row[1])
+            catchments.append(catchment)
 
         return catchments
 
