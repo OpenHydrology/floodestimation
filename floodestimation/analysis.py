@@ -66,10 +66,10 @@ class QmedAnalysis(object):
         #: - `equal`: All donors have equal weights.
         #: - `first`: Use only the first (nearest) donor catchment.
         self.donor_weighting = 'idw'
-        #: Power parameter to use in IDW weighting method. Default: `2` (quadratic). Higher powers results in higher
+        #: Power parameter to use in IDW weighting method. Default: `3` (cubic). Higher powers results in higher
         #: weights for **nearby** donor catchments. A power of `1` indicates an inverse linear relationship between
         #: distance and weight.
-        self.idw_power = 2
+        self.idw_power = 3
 
     def qmed(self, method='best', **method_options):
         """
