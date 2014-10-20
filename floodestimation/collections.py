@@ -113,7 +113,7 @@ class CatchmentCollections(object):
             having(func.count(AmaxRecord.catchment_id) >= 10)       # At least 10 AMAX records
 
         if limit:
-            rows = query[0:limit]
+            rows = query[0:limit]  # Each row is tuple of (catchment, distance squared)
         else:
             rows = query.all()
 
