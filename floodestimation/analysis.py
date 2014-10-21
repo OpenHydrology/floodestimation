@@ -361,14 +361,14 @@ class QmedAnalysis(object):
         weights /= np.sum(weights)
         return weights
 
-    def find_donor_catchments(self, limit=10, dist_limit=250):
+    def find_donor_catchments(self, limit=20, dist_limit=500):
         """
         Return a suitable donor catchment to improve a QMED estimate based on catchment descriptors alone.
 
-        :param limit: maximum number of catchments to return. Default: 10. Set to `None` to return all available
+        :param limit: maximum number of catchments to return. Default: 20. Set to `None` to return all available
                       catchments.
         :type limit: int
-        :param dist_limit: maximum distance in km. between subject and donor catchment. Default: 250 km. Increasing the
+        :param dist_limit: maximum distance in km. between subject and donor catchment. Default: 500 km. Increasing the
                            maximum distance will increase computation time!
         :type dist_limit: float or int
         :return: list of nearby catchments

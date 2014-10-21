@@ -21,11 +21,49 @@ from floodestimation.analysis import QmedAnalysis
 from floodestimation.collections import CatchmentCollections
 from sqlalchemy import or_
 from sqlalchemy.sql.functions import func
+from math import sqrt
 
 
-def analyse_catchment(number, gauged_catchments):
+class ScienceReportCollections(CatchmentCollections):
+    def __init__(self, db_session, load_data='auto'):
+        self.catchment_ids = science_report_catchment_ids()
+        super().__init__(db_session, load_data)
+
+    def all_catchments(self):
+        query = self.db_session.query(Catchment). \
+            filter(Catchment.id.in_(self.catchment_ids))
+        return query.all()
+
+    def nearest_qmed_catchments(self, subject_catchment, limit=None, dist_limit=500):
+        dist_sq = Catchment.distance_to(subject_catchment).label('dist_sq')  # Distance squared, calculated using SQL
+        query = self.db_session.query(Catchment, dist_sq). \
+            join(Catchment.descriptors). \
+            filter(Catchment.id != subject_catchment.id,  # Exclude subject catchment itself
+                   Catchment.id.in_(self.catchment_ids),
+                   Catchment.country == subject_catchment.country,  # SQL dist method does not cover cross-boundary dist
+                   # Within the distance limit
+                   dist_sq <= dist_limit ** 2). \
+            group_by(Catchment). \
+            order_by(dist_sq)
+
+        if limit:
+            rows = query[0:limit]  # Each row is tuple of (catchment, distance squared)
+        else:
+            rows = query.all()
+
+        # Add real `dist` attribute to catchment list using previously calculated SQL dist squared
+        catchments = []
+        for row in rows:
+            catchment = row[0]
+            catchment.dist = sqrt(row[1])
+            catchments.append(catchment)
+
+        return catchments
+
+
+def analyse_catchment(catchment, gauged_catchments):
     result = {}
-    catchment = gauged_catchments.catchment_by_number(number)
+    #catchment = gauged_catchments.catchment_by_number(number)
     result['id'] = catchment.id
 
     analysis = QmedAnalysis(catchment)
@@ -68,15 +106,17 @@ def nrfa_qmed_catchments(db_session):
 if __name__ == '__main__':
     db_session = db.Session()
 
-    gauged_catchments = CatchmentCollections(db_session)
+    science_report_collections = ScienceReportCollections(db_session)
+    feh_catchments_collections = CatchmentCollections(db_session)
 
-    rural_catchment_ids = science_report_catchment_ids()
-    print("Total number of catchments: {}".format(len(rural_catchment_ids)))
+    subject_catchments = science_report_collections.all_catchments()
+    print("Total number of catchments: {}".format(len(subject_catchments)))
 
     with open('output.txt', mode='w') as output_file:
-        for i, id in enumerate(rural_catchment_ids):
-            print(i, id)
-            output = analyse_catchment(id, gauged_catchments)
+        for i, catchment in enumerate(subject_catchments):
+            print(i, catchment.id)
+            #output = analyse_catchment(catchment, feh_catchments_collections)
+            output = analyse_catchment(catchment, science_report_collections)
             output_file.write(
                 "{id}, {qmed_amax}, {qmed_descr}, {qmed_descr_idw}, {qmed_descr_first}, {qmed_descr_1999}, {qmed_descr_idw3}\n"
                 .format(**output))
