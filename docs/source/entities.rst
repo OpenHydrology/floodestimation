@@ -26,3 +26,9 @@
 
 .. autoclass:: floodestimation.entities.Comment
    :members:
+
+:class:`Point` --- Point coordinates
+---------------------------------------
+
+.. autoclass:: floodestimation.entities.Point
+   :members:

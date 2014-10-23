@@ -37,6 +37,17 @@ from . import db
 
 
 class Point(MutableComposite):
+    """
+    Point coordinate object
+
+    Example:
+
+    >>> from floodestimation.entities import Point
+    >>> point = Point(123000, 456000)
+
+    Coordinates systems are currently not supported. Instead use `Catchment.country = 'gb'` etc.
+
+    """
     def __init__(self, x, y):
         self.x = x
         self.y = y
