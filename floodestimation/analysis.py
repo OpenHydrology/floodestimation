@@ -142,11 +142,12 @@ class QmedAnalysis(object):
         :return: QMED in m³/s
         :rtype: float
         """
-        length = len(self.catchment.amax_records)
+        valid_flows = [record.flow for record in self.catchment.amax_records if record.flag == 0]
+        length = len(valid_flows)
         if length < 2:
             raise InsufficientDataError("Insufficient annual maximum flow records available for catchment {}."
                                         .format(self.catchment.id))
-        return np.median([record.flow for record in self.catchment.amax_records if record.flag == 0])
+        return np.median(valid_flows)
 
     def _area_exponent(self):
         """
