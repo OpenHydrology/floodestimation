@@ -132,7 +132,7 @@ class Cd3Parser(FehFileParser):
             self.object.area = float(row[1])
         elif row[0].lower() == 'nominal ngr':
             # (E, N) in meters.
-            self.object.point = (100*int(row[1]), 100*int(row[2]))
+            self.object.point = entities.Point(100*int(row[1]), 100*int(row[2]))
 
     def _section_descriptors(self, line):
         row = [s.strip() for s in line.split(',')]
@@ -152,7 +152,7 @@ class Cd3Parser(FehFileParser):
         # Coordinates
         else:
             # (E, N) in meters.
-            setattr(self.object.descriptors, name, (int(row[2]), int(row[3])))
+            setattr(self.object.descriptors, name, entities.Point(int(row[2]), int(row[3])))
             # Set country using info provided as part of coordinates.
             country_mapping = {'gb': 'gb',
                                'ireland': 'ni'}

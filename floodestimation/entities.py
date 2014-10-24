@@ -26,11 +26,47 @@ saving to a (sqlite) database. All class attributes therefore are :class:`sqlalc
 """
 
 from math import hypot
-from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey, PickleType
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey
+from sqlalchemy import func
+from sqlalchemy.orm import relationship, composite
+from sqlalchemy.ext.mutable import MutableComposite
+from sqlalchemy.ext.hybrid import hybrid_method
 # Current package imports
 from .analysis import QmedAnalysis, InsufficientDataError
 from . import db
+
+
+class Point(MutableComposite):
+    """
+    Point coordinate object
+
+    Example:
+
+    >>> from floodestimation.entities import Point
+    >>> point = Point(123000, 456000)
+
+    Coordinates systems are currently not supported. Instead use `Catchment.country = 'gb'` etc.
+
+    """
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __setattr__(self, key, value):
+        object.__setattr__(self, key, value)
+        # alert all parents to the change
+        self.changed()
+
+    def __composite_values__(self):
+        return self.x, self.y
+
+    def __eq__(self, other):
+        return isinstance(other, Point) and \
+            other.x == self.x and \
+            other.y == self.y
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 
 class Catchment(db.Base):
@@ -56,17 +92,21 @@ class Catchment(db.Base):
     #: Name of watercourse at the catchment outlet, e.g. `River Dee`
     watercourse = Column(String)
     #: Abbreviation of country, e.g. `gb`, `ni`.
-    country = Column(String(2))
+    country = Column(String(2), index=True)
     #: Width of the watercourse channel at the catchment outlet in m.
     channel_width = Column(Float)
     #: Catchment area in km²
     area = Column(Float)
-    #: Coordinates of catchment outlet as (E, N) tuple
-    point = Column(PickleType)
+
+    point_x = Column(Integer, index=True)
+    point_y = Column(Integer, index=True)
+    #: Coordinates of catchment outlet as :class:`.Point` object
+    point = composite(Point, point_x, point_y)
+
     #: Whether this catchment can be used to estimate QMED at other similar catchments
-    is_suitable_for_qmed = Column(Boolean)
+    is_suitable_for_qmed = Column(Boolean, index=True)
     #: Whether this catchment's annual maximum flow data can be used in pooling group analyses
-    is_suitable_for_pooling = Column(Boolean)
+    is_suitable_for_pooling = Column(Boolean, index=True)
     #: List of annual maximum flow records as :class:`.AmaxRecord` objects
     amax_records = relationship("AmaxRecord", order_by="AmaxRecord.water_year", backref="catchment")
     #: List of comments
@@ -89,6 +129,7 @@ class Catchment(db.Base):
         """
         return QmedAnalysis(self).qmed()
 
+    @hybrid_method
     def distance_to(self, other_catchment):
         """
         Returns the distance between the centroids of two catchments in kilometers.
@@ -100,14 +141,25 @@ class Catchment(db.Base):
         """
         try:
             if self.country == other_catchment.country:
-                return 0.001 * hypot(self.descriptors.centroid_ngr[0] - other_catchment.descriptors.centroid_ngr[0],
-                                     self.descriptors.centroid_ngr[1] - other_catchment.descriptors.centroid_ngr[1])
+                try:
+                    return 0.001 * hypot(self.descriptors.centroid_ngr.x - other_catchment.descriptors.centroid_ngr.x,
+                                         self.descriptors.centroid_ngr.y - other_catchment.descriptors.centroid_ngr.y)
+                except TypeError:
+                    # In case no centroid available, just return infinity which is helpful in most cases
+                    return float('+inf')
             else:
                 # If the catchments are in a different country (e.g. `ni` versus `gb`) then set distance to infinity.
                 return float('+inf')
         except (TypeError, KeyError):
             raise InsufficientDataError("Catchment `descriptors` attribute must be set first.")
-              
+
+    @distance_to.expression
+    def distance_to(cls, other_catchment):
+        return 1e-6 * ((Descriptors.centroid_ngr_x - other_catchment.descriptors.centroid_ngr_x) *
+                       (Descriptors.centroid_ngr_x - other_catchment.descriptors.centroid_ngr_x) +
+                       (Descriptors.centroid_ngr_y - other_catchment.descriptors.centroid_ngr_y) *
+                       (Descriptors.centroid_ngr_y - other_catchment.descriptors.centroid_ngr_y))
+
     def __repr__(self):
         return "{} at {} ({})".format(self.watercourse, self.location, self.id)
 
@@ -133,10 +185,19 @@ class Descriptors(db.Base):
 
     #: One-to-one reference to corresponding :class:`.Catchment` object
     catchment_id = Column(Integer, ForeignKey('catchments.id'), primary_key=True, nullable=False)
-    #: Catchment outlet national grid reference as (E, N) tuple. :attr:`.Catchment.country` indicates coordinate system.
-    ihdtm_ngr = Column(PickleType)
-    #: Catchment centre national grid reference as (E, N) tuple. :attr:`.Catchment.country` indicates coordinate system.
-    centroid_ngr = Column(PickleType)
+
+    ihdtm_ngr_x = Column(Integer)
+    ihdtm_ngr_y = Column(Integer)
+    #: Catchment outlet national grid reference as :class:`.Point` object. :attr:`.Catchment.country` indicates
+    #: coordinate system.
+    ihdtm_ngr = composite(Point, ihdtm_ngr_x, ihdtm_ngr_y)
+
+    centroid_ngr_x = Column(Integer, index=True)
+    centroid_ngr_y = Column(Integer, index=True)
+    #: Catchment centre national grid reference as :class:`.Point` object. :attr:`.Catchment.country` indicates
+    #: coordinate system.
+    centroid_ngr = composite(Point, centroid_ngr_x, centroid_ngr_y)
+
     #: Surface area in km² based on digital terrain model data
     dtm_area = Column(Float)
     #: Mean elevation in m
@@ -180,7 +241,7 @@ class Descriptors(db.Base):
     #: Urbanisation concentration index, 2000 data
     urbconc2000 = Column(Float)
     #: Urbanisation extent index, 2000 data
-    urbext2000 = Column(Float)
+    urbext2000 = Column(Float, index=True)
     #: Urbanisation location within catchment index, 2000 data
     urbloc2000 = Column(Float)
 
@@ -264,3 +325,4 @@ class Comment(db.Base):
 
     def __repr__(self):
         return "{}: {}".format(self.title, self.content)
+

@@ -1,6 +1,6 @@
 import unittest
 from floodestimation import parsers
-from floodestimation.entities import Catchment
+from floodestimation.entities import Catchment, Point
 
 
 class TestAmax(unittest.TestCase):
@@ -42,11 +42,11 @@ class TestCd3(unittest.TestCase):
         self.assertEqual(self.catchment.area, 424.0)
 
     def test_coordinate(self):
-        self.assertEqual(self.catchment.point, (336900, 700600))
+        self.assertEqual(self.catchment.point, Point(336900, 700600))
 
     def test_descriptors(self):
-        self.assertEqual(self.catchment.descriptors.ihdtm_ngr, (336950, 700550))
-        self.assertEqual(self.catchment.descriptors.centroid_ngr, (317325, 699832))
+        self.assertEqual(self.catchment.descriptors.ihdtm_ngr, Point(336950, 700550))
+        self.assertEqual(self.catchment.descriptors.centroid_ngr, Point(317325, 699832))
         self.assertEqual(self.catchment.descriptors.dtm_area, 416.56)
         self.assertEqual(self.catchment.descriptors.altbar, 151)
         self.assertEqual(self.catchment.descriptors.aspbar, 123)
@@ -97,8 +97,8 @@ class TestCd3Ireland(unittest.TestCase):
         self.assertEqual(self.catchment.country, 'ni')
 
     def test_coordinate(self):
-        self.assertEqual(self.catchment.point, (240500, 375700))
+        self.assertEqual(self.catchment.point, Point(240500, 375700))
 
     def test_descriptors(self):
-        self.assertEqual(self.catchment.descriptors.ihdtm_ngr, (240500, 375700))
-        self.assertEqual(self.catchment.descriptors.centroid_ngr, (232140, 375415))
+        self.assertEqual(self.catchment.descriptors.ihdtm_ngr, Point(240500, 375700))
+        self.assertEqual(self.catchment.descriptors.centroid_ngr, Point(232140, 375415))
