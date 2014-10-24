@@ -9,13 +9,23 @@ class TestAmax(unittest.TestCase):
     amax_records = parser.parse(file)
 
     def test_amax_parse_length(self):
-        self.assertEqual(len(self.amax_records), 3)
+        self.assertEqual(len(self.amax_records), 4)
 
     def test_amax_parse_first_item_flow(self):
         self.assertEqual(self.amax_records[0].flow, 34.995)
 
+    def test_amax_parse_first_item_water_year(self):
+        self.assertEqual(self.amax_records[0].water_year, 1968)
+
     def test_amax_parse_second_item_water_year(self):
         self.assertEqual(self.amax_records[1].water_year, 1969)
+
+    def test_amax_parse_valid_record(self):
+        self.assertEqual(self.amax_records[0].flag, 0)
+
+    def test_amax_parse_rejected_record(self):
+        self.assertEqual(self.parser.rejected_years, [1971, 2002, 2003])
+        self.assertEqual(self.amax_records[3].flag, 2)
 
 
 class TestCd3(unittest.TestCase):

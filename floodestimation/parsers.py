@@ -94,6 +94,10 @@ class AmaxParser(FehFileParser):
     #: Class to be returned by :meth:`parse`. In this case a list of :class:`AmaxRecord` objects.
     parsed_class = list
 
+    def __init__(self):
+        super().__init__()
+        self.rejected_years = []
+
     def _section_station_number(self, line):
         # Store station number (not used)
         self.station_number = line
@@ -105,14 +109,26 @@ class AmaxParser(FehFileParser):
         date = datetime.date(*time.strptime(row[0], "%d %b %Y")[0:3])  # :class:`datetime.date`
         # Flow rate in second column
         flow = float(row[1])
+        flag = 0
         if flow < 0:
             flow = None
+            flag = 1  # Invalid value
         # Stage in last column
         stage = float(row[2])
         if stage < 0:
             stage = None
-        # Create :class:`AmaxRecord` and add to object
-        self.object.append(entities.AmaxRecord(date, flow, stage))
+        # Create :class:`AmaxRecord`
+        record = entities.AmaxRecord(date, flow, stage)
+        # Set flag if the water year is included in the list of rejected years
+        if record.water_year in self.rejected_years:
+            flag = 2  # Rejected
+        record.flag = flag
+
+        self.object.append(record)
+
+    def _section_am_rejected(self, line):
+        row = [int(s.strip()) for s in line.split(',')]
+        self.rejected_years += list(range(row[0], row[1] + 1))  # Add 1 because AM file interval includes end year
 
 
 class Cd3Parser(FehFileParser):

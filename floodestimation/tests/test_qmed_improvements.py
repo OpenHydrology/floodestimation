@@ -63,7 +63,6 @@ class ScienceReportCollections(CatchmentCollections):
 
 def analyse_catchment(catchment, gauged_catchments):
     result = {}
-    #catchment = gauged_catchments.catchment_by_number(number)
     result['id'] = catchment.id
 
     analysis = QmedAnalysis(catchment)

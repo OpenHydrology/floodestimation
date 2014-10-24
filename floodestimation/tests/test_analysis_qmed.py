@@ -182,6 +182,13 @@ class TestCatchmentQmed(unittest.TestCase):
                                   AmaxRecord(date(2000, 12, 31), 1.0, 0.5)]
         self.assertEqual(QmedAnalysis(catchment).qmed(method='amax_records'), 1.5)
 
+    def test_amax_rejected_record(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 2.0, 0.5),
+                                  AmaxRecord(date(2000, 12, 31), 1.0, 0.5),
+                                  AmaxRecord(date(2000, 12, 31), 99.0, 0.5, flag=2)]
+        self.assertEqual(QmedAnalysis(catchment).qmed(method='amax_records'), 1.5)
+
     def test_amax_long_records(self):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 5.0, 0.5),

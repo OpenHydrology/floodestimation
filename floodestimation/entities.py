@@ -26,8 +26,7 @@ saving to a (sqlite) database. All class attributes therefore are :class:`sqlalc
 """
 
 from math import hypot
-from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey
-from sqlalchemy import func
+from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey, SmallInteger
 from sqlalchemy.orm import relationship, composite
 from sqlalchemy.ext.mutable import MutableComposite
 from sqlalchemy.ext.hybrid import hybrid_method
@@ -279,23 +278,28 @@ class AmaxRecord(db.Base):
     flow = Column(Float)
     #: Observed water level in m above local datum
     stage = Column(Float)
+    #: Data quality flag. 0 (default): valid value, 1: invalid value, 2: rejected record.
+    flag = Column(SmallInteger, index=True, default=0)
 
     WATER_YEAR_FIRST_MONTH = 10  # Should provide flexibility to use different first months
 
-    def __init__(self, date, flow, stage):
+    def __init__(self, date, flow, stage, flag=0):
         self.date = date
-        if date:
-            self.water_year = date.year
-            # Jan-Sep is 'previous' water year
-            if date.month < self.WATER_YEAR_FIRST_MONTH:
-                self.water_year -= 1
-        else:
-            self.water_year = None
+        self.water_year = self.water_year_from_date(date)
         self.flow = flow
         self.stage = stage
+        self.flag = flag
 
     def __repr__(self):
         return "{}: {:.1f} m³/s".format(self.water_year, self.flow)
+
+    @classmethod
+    def water_year_from_date(cls, date):
+        if date.month >= cls.WATER_YEAR_FIRST_MONTH:
+            return date.year
+        else:
+            # Jan-Sep is 'previous' water year
+            return date.year - 1
 
 
 class Comment(db.Base):

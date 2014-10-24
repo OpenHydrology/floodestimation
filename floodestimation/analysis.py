@@ -146,7 +146,7 @@ class QmedAnalysis(object):
         if length < 2:
             raise InsufficientDataError("Insufficient annual maximum flow records available for catchment {}."
                                         .format(self.catchment.id))
-        return np.median([record.flow for record in self.catchment.amax_records])
+        return np.median([record.flow for record in self.catchment.amax_records if record.flag == 0])
 
     def _area_exponent(self):
         """

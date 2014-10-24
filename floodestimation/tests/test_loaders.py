@@ -18,7 +18,7 @@ class TestLoaders(unittest.TestCase):
     def test_load_catchment(self):
         catchment = loaders.load_catchment('floodestimation/tests/data/17002.CD3')
         self.assertEqual(17002, catchment.id)
-        self.assertEqual(3, len(catchment.amax_records))
+        self.assertEqual(4, len(catchment.amax_records))
 
     def test_load_catchment_without_amax(self):
         catchment = loaders.load_catchment('floodestimation/tests/data/170021.CD3')
