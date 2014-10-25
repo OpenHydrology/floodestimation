@@ -314,7 +314,7 @@ class PotDataset(db.Base):
     catchment_id = Column(Integer, ForeignKey('catchments.id'), primary_key=True, nullable=False)
     #; Start date of flow record
     start_date = Column(Date)
-    #: End date of flow record
+    #: End date of flow record (inclusive)
     end_date = Column(Date)
     #: Flow threshold in m³/s
     threshold = Column(Float)
@@ -323,18 +323,22 @@ class PotDataset(db.Base):
     #: List of peaks-over-threshold records as :class:`.PotRecord` objects
     pot_data_gaps = relationship('PotDataGap', order_by='PotDataGap.start_date', backref='catchment')
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.pot_records = []
+        self.pot_data_gaps = []
+
     def record_length(self):
         """
         Return record length in years, including data gaps.
         """
-        # TODO
-        return 0
+        return ((self.end_date - self.start_date).days + 1) / 365 - self.total_gap_length()
 
     def total_gap_length(self):
         """
         Return the total length of POT gaps in years.
         """
-        return sum(self.pot_data_gaps.gap_length())
+        return sum(gap.gap_length() for gap in self.pot_data_gaps)
 
 
 class PotDataGap(db.Base):
@@ -346,15 +350,14 @@ class PotDataGap(db.Base):
     catchment_id = Column(Integer, ForeignKey('potdatasets.catchment_id'), primary_key=True, nullable=False)
     #: Start date of gap
     start_date = Column(Date, primary_key=True, nullable=False)
-    #: End date of gap
+    #: End date of gap (inclusive)
     end_date = Column(Date, nullable=False)
 
     def gap_length(self):
         """
         Return length of data gap in years.
         """
-        # TODO
-        return 0
+        return ((self.end_date - self.start_date).days + 1) / 365
 
 
 class PotRecord(db.Base):
