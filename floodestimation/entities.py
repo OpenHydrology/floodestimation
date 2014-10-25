@@ -320,7 +320,7 @@ class PotDataset(db.Base):
     threshold = Column(Float)
     #: List of peaks-over-threshold records as :class:`.PotRecord` objects
     pot_records = relationship('PotRecord', order_by='PotRecord.date', backref='catchment')
-    #: List of peaks-over-threshold records as :class:`.PotRecord` objects
+    #: List of peaks-over-threshold records as :class:`.PotDataGap` objects
     pot_data_gaps = relationship('PotDataGap', order_by='PotDataGap.start_date', backref='catchment')
 
     def __init__(self, **kwargs):
