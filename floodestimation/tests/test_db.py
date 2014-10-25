@@ -4,10 +4,13 @@ from floodestimation.entities import Catchment
 from sqlalchemy.schema import MetaData
 from sqlalchemy.orm.exc import NoResultFound
 
+
 class TestDatabaseCreation(unittest.TestCase):
+    all_tables = ['amaxrecords', 'catchments', 'comments', 'descriptors', 'potdatagaps', 'potdatasets', 'potrecords']
+
     def test_database_contains_all_tables(self):
         metadata = MetaData(bind=db.engine, reflect=True)
-        self.assertEqual(['amaxrecords', 'catchments', 'comments', 'descriptors'],
+        self.assertEqual(self.all_tables,
                          sorted(list(metadata.tables.keys())))
 
     def test_open_and_close_session(self):
@@ -21,7 +24,7 @@ class TestDatabaseCreation(unittest.TestCase):
 
         db.reset_db_tables()
         metadata = MetaData(bind=db.engine, reflect=True)
-        self.assertEqual(['amaxrecords', 'catchments', 'comments', 'descriptors'],
+        self.assertEqual(self.all_tables,
                          sorted(list(metadata.tables.keys())))
         self.assertEqual(db_session.query(Catchment).count(), 0)
 

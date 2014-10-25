@@ -108,9 +108,11 @@ class Catchment(db.Base):
     is_suitable_for_pooling = Column(Boolean, index=True)
     #: List of annual maximum flow records as :class:`.AmaxRecord` objects
     amax_records = relationship("AmaxRecord", order_by="AmaxRecord.water_year", backref="catchment")
+    #: Peaks-over-threshold dataset (one-to-one relationship)
+    pot_dataset = relationship("PotDataset", uselist=False, backref="catchment")
     #: List of comments
     comments = relationship("Comment", order_by="Comment.title", backref="catchment")
-    #: List of FEH catchment descriptors (one-to-one relationship)
+    #: FEH catchment descriptors (one-to-one relationship)
     descriptors = relationship("Descriptors", uselist=False, backref="catchment")
 
     def __init__(self, location=None, watercourse=None):
@@ -300,6 +302,89 @@ class AmaxRecord(db.Base):
         else:
             # Jan-Sep is 'previous' water year
             return date.year - 1
+
+
+class PotDataset(db.Base):
+    """
+    A peaks-over-threshold (POT) dataset including a list of :class:`.PotRecord` objects and some metadata such as start
+    and end of record.
+    """
+    __tablename__ = 'potdatasets'
+    #: One-to-one reference to corresponding :class:`.Catchment` object
+    catchment_id = Column(Integer, ForeignKey('catchments.id'), primary_key=True, nullable=False)
+    #; Start date of flow record
+    start_date = Column(Date)
+    #: End date of flow record
+    end_date = Column(Date)
+    #: Flow threshold in m³/s
+    threshold = Column(Float)
+    #: List of peaks-over-threshold records as :class:`.PotRecord` objects
+    pot_records = relationship('PotRecord', order_by='PotRecord.date', backref='catchment')
+    #: List of peaks-over-threshold records as :class:`.PotRecord` objects
+    pot_data_gaps = relationship('PotDataGap', order_by='PotDataGap.start_date', backref='catchment')
+
+    def record_length(self):
+        """
+        Return record length in years, including data gaps.
+        """
+        # TODO
+        return 0
+
+    def total_gap_length(self):
+        """
+        Return the total length of POT gaps in years.
+        """
+        return sum(self.pot_data_gaps.gap_length())
+
+
+class PotDataGap(db.Base):
+    """
+    A gap (period) in the peaks-over-threshold (POT) records.
+    """
+    __tablename__ = 'potdatagaps'
+    #: Many-to-one reference to corresponding :class:`.Catchment` object
+    catchment_id = Column(Integer, ForeignKey('potdatasets.catchment_id'), primary_key=True, nullable=False)
+    #: Start date of gap
+    start_date = Column(Date, primary_key=True, nullable=False)
+    #: End date of gap
+    end_date = Column(Date, nullable=False)
+
+    def gap_length(self):
+        """
+        Return length of data gap in years.
+        """
+        # TODO
+        return 0
+
+
+class PotRecord(db.Base):
+    """
+    A single peaks-over-threshold (POT) flow record.
+
+    Example:
+
+    >>> from floodestimation.entities import PotRecord
+    >>> from datetime import date
+    >>> record = PotRecord(date=date(1999,12,31), flow=51.2, stage=1.23)
+
+    """
+    __tablename__ = 'potrecords'
+    #: Many-to-one reference to corresponding :class:`.Catchment` object
+    catchment_id = Column(Integer, ForeignKey('potdatasets.catchment_id'), primary_key=True, nullable=False)
+    #: Date at which flow occured
+    date = Column(Date, primary_key=True, nullable=False)
+    #: Observed flow in m³/s
+    flow = Column(Float)
+    #: Observed water level in m above local datum
+    stage = Column(Float)
+
+    def __init__(self, date, flow, stage):
+        self.date = date
+        self.flow = flow
+        self.stage = stage
+
+    def __repr__(self):
+        return "{}: {:.1f} m³/s".format(self.date, self.flow)
 
 
 class Comment(db.Base):
