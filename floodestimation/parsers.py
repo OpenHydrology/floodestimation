@@ -44,18 +44,6 @@ import datetime
 from . import entities
 
 
-def parse_feh_date_format(s):
-    """
-    Return a date object from a string in FEH date format, e.g. `01 Jan 1970`
-
-    :param s: Formatted date string
-    :type s: str
-    :return: date object
-    :rtype: :class:`datetime.date`
-    """
-    return datetime.date(*time.strptime(s, "%d %b %Y")[0:3])
-
-
 class FehFileParser(object):
     """
     Generic parser for FEH file format.
@@ -101,6 +89,18 @@ class FehFileParser(object):
                         pass  # Skip unsupported section
         return self.object
 
+    @staticmethod
+    def parse_feh_date_format(s):
+        """
+        Return a date object from a string in FEH date format, e.g. `01 Jan 1970`
+
+        :param s: Formatted date string
+        :type s: str
+        :return: date object
+        :rtype: :class:`datetime.date`
+        """
+        return datetime.date(*time.strptime(s, "%d %b %Y")[0:3])
+
 
 class AmaxParser(FehFileParser):
     #: Class to be returned by :meth:`parse`. In this case a list of :class:`AmaxRecord` objects.
@@ -118,7 +118,7 @@ class AmaxParser(FehFileParser):
         # Spit line in columns
         row = [s.strip() for s in line.split(',')]
         # Date in first column
-        date = parse_feh_date_format(row[0])
+        date = self.parse_feh_date_format(row[0])
         # Flow rate in second column
         flow = float(row[1])
         flag = 0
@@ -149,31 +149,36 @@ class PotParser(FehFileParser):
 
     def _section_station_number(self, line):
         self.object.catchment_id = int(line.strip())
+        self.object.pot_records = []
 
     def _section_pot_details(self, line):
         row = [s.strip().lower() for s in line.split(',')]
         if row[0] == 'record period':
-            self.object.start_date = parse_feh_date_format(row[1])
-            self.object.end_date = parse_feh_date_format(row[2])
+            self.object.start_date = self.parse_feh_date_format(row[1])
+            self.object.end_date = self.parse_feh_date_format(row[2])
         elif row[0] == 'threshold':
             self.object.threshold = float(row[1])
 
     def _section_pot_gaps(self, line):
         row = [s.strip() for s in line.split(',')]
         pot_data_gap = entities.PotDataGap()
-        pot_data_gap.start_date = parse_feh_date_format(row[0])
-        pot_data_gap.end_date = parse_feh_date_format(row[1])
+        pot_data_gap.start_date = self.parse_feh_date_format(row[0])
+        pot_data_gap.end_date = self.parse_feh_date_format(row[1])
         self.object.pot_data_gaps.append(pot_data_gap)
 
     def _section_pot_values(self, line):
         row = [s.strip() for s in line.split(',')]
-        date = parse_feh_date_format(row[0])
+        date = self.parse_feh_date_format(row[0])
         flow = float(row[1])
         if flow < 0:
             flow = None
-        stage = float(row[2])
-        if stage < 0:
+        try:
+            stage = float(row[2])
+            if stage < 0:
+                stage = None
+        except ValueError:
             stage = None
+
         pot_record = entities.PotRecord(date, flow, stage)
         self.object.pot_records.append(pot_record)
 

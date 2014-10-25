@@ -118,6 +118,7 @@ class Catchment(db.Base):
     def __init__(self, location=None, watercourse=None):
         self.location = location
         self.watercourse = watercourse
+        self.amax_records = []
         # Start with empty set of descriptors, so we always do `catchment.descriptors.name = value`
         self.descriptors = Descriptors()
           
@@ -346,10 +347,13 @@ class PotDataGap(db.Base):
     A gap (period) in the peaks-over-threshold (POT) records.
     """
     __tablename__ = 'potdatagaps'
+    # We should really have catchment_id + start_date as primary key but unfortunately there are duplicates in the NRFA
+    # dataset!
+    id = Column(Integer, primary_key=True)
     #: Many-to-one reference to corresponding :class:`.Catchment` object
-    catchment_id = Column(Integer, ForeignKey('potdatasets.catchment_id'), primary_key=True, nullable=False)
+    catchment_id = Column(Integer, ForeignKey('potdatasets.catchment_id'), nullable=False, index=True)
     #: Start date of gap
-    start_date = Column(Date, primary_key=True, nullable=False)
+    start_date = Column(Date, nullable=False)
     #: End date of gap (inclusive)
     end_date = Column(Date, nullable=False)
 
@@ -372,10 +376,13 @@ class PotRecord(db.Base):
 
     """
     __tablename__ = 'potrecords'
+    # We should really have catchment_id + date as primary key but unfortunately there are duplicates in the NRFA
+    # dataset!
+    id = Column(Integer, primary_key=True)
     #: Many-to-one reference to corresponding :class:`.Catchment` object
-    catchment_id = Column(Integer, ForeignKey('potdatasets.catchment_id'), primary_key=True, nullable=False)
+    catchment_id = Column(Integer, ForeignKey('potdatasets.catchment_id'), nullable=False, index=True)
     #: Date at which flow occured
-    date = Column(Date, primary_key=True, nullable=False)
+    date = Column(Date, nullable=False)
     #: Observed flow in m³/s
     flow = Column(Float)
     #: Observed water level in m above local datum

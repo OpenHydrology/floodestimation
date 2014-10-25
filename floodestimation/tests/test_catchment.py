@@ -85,12 +85,18 @@ class TestCatchmentDatabase(unittest.TestCase):
     def setUpClass(cls):
         cls.db_session = db.Session()
 
+    def tearDown(self):
+        self.db_session.rollback()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.db_session.close()
+
     def test_add_catchment(self):
         catchment = Catchment(location="Aberdeen", watercourse="River Dee")
         self.db_session.add(catchment)
         result = self.db_session.query(Catchment).filter_by(location="Aberdeen", watercourse="River Dee").one()
         self.assertIs(catchment, result)
-        self.db_session.rollback()
 
     def test_add_catchment_with_amax(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -101,4 +107,3 @@ class TestCatchmentDatabase(unittest.TestCase):
         result = self.db_session.query(Catchment).filter_by(location="Aberdeen", watercourse="River Dee").one()
         self.assertEqual(catchment, result)
         self.assertEqual(catchment.amax_records, result.amax_records)
-        self.db_session.rollback()
