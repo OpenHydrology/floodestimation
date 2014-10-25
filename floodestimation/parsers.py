@@ -131,6 +131,41 @@ class AmaxParser(FehFileParser):
         self.rejected_years += list(range(row[0], row[1] + 1))  # Add 1 because AM file interval includes end year
 
 
+class PotParser(FehFileParser):
+    #: Class to be returned by :meth:`parse`. In this case a :class:`PotDataset` objects.
+    parsed_class = entities.PotDataset
+
+    def _section_station_number(self, line):
+        self.object.catchment_id = int(line.strip())
+
+    def _section_pot_details(self, line):
+        row = [s.strip().lower() for s in line.split(',')]
+        if row[0] == 'record period':
+            self.object.start_date = datetime.date(*time.strptime(row[1], "%d %b %Y")[0:3])
+            self.object.end_date = datetime.date(*time.strptime(row[2], "%d %b %Y")[0:3])
+        elif row[0] == 'threshold':
+            self.object.threshold = float(row[1])
+
+    def _section_pot_gaps(self, line):
+        row = [s.strip() for s in line.split(',')]
+        pot_data_gap = entities.PotDataGap()
+        pot_data_gap.start_date = datetime.date(*time.strptime(row[0], "%d %b %Y")[0:3])
+        pot_data_gap.end_date = datetime.date(*time.strptime(row[1], "%d %b %Y")[0:3])
+        self.object.pot_data_gaps.append(pot_data_gap)
+
+    def _section_pot_values(self, line):
+        row = [s.strip() for s in line.split(',')]
+        date = datetime.date(*time.strptime(row[0], "%d %b %Y")[0:3])
+        flow = float(row[1])
+        if flow < 0:
+            flow = None
+        stage = float(row[2])
+        if stage < 0:
+            stage = None
+        pot_record = entities.PotRecord(date, flow, stage)
+        self.object.pot_records.append(pot_record)
+
+
 class Cd3Parser(FehFileParser):
     #: Class to be returned by :meth:`parse`. In this case :class:`Catchment` objects.
     parsed_class = entities.Catchment
