@@ -204,7 +204,7 @@ class QmedAnalysis(object):
             raise InsufficientDataError("Insufficient POT flow records available for catchment {}."
                                         .format(self.catchment.id))
         # TODO: filter out part years
-        position = 0.7907 * length + 0.5397
+        position = 0.790715789 * length + 0.539684211
         i = floor(position)
         w = 1 + i - position  # This is equivalent to table 12.1!
 

@@ -201,7 +201,6 @@ class TestCatchmentQmed(unittest.TestCase):
     def test_pot_1_year(self):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.pot_dataset = PotDataset(start_date=date(1999, 1, 1), end_date=date(1999, 12, 31))
-
         catchment.pot_dataset.pot_records = [PotRecord(date(1999, 1, 1), 2.0, 0.5),
                                              PotRecord(date(1999, 12, 31), 1.0, 0.5)]
         self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='pot_records'), 1.6696)
@@ -209,11 +208,10 @@ class TestCatchmentQmed(unittest.TestCase):
     def test_pot_2_years(self):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.pot_dataset = PotDataset(start_date=date(1998, 1, 1), end_date=date(1999, 12, 31))
-
         catchment.pot_dataset.pot_records = [PotRecord(date(1999, 1, 1), 3.0, 0.5),
                                              PotRecord(date(1999, 2, 1), 2.0, 0.5),
                                              PotRecord(date(1999, 12, 31), 1.0, 0.5)]
-        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='pot_records'), 1.8789)
+        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='pot_records'), 1.8789, 4)
 
     def test_all(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -279,7 +277,7 @@ class TestCatchmentQmed(unittest.TestCase):
         catchment.pot_dataset.pot_records = [PotRecord(date(1999, 1, 1), 3.0, 0.5),
                                              PotRecord(date(1999, 2, 1), 2.0, 0.5),
                                              PotRecord(date(1999, 12, 31), 1.0, 0.5)]
-        self.assertAlmostEqual(catchment.qmed(), 1.8789)
+        self.assertAlmostEqual(catchment.qmed(), 1.8789, 4)
 
     def test_best_method_amax_over_pot(self):
         catchment = Catchment("Aberdeen", "River Dee")
