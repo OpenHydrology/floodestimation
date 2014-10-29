@@ -16,7 +16,7 @@
 # Current package imports
 from . import db
 # Need to import all entities to create corresponding database tables
-from .entities import Catchment, AmaxRecord, Comment, Descriptors
+from .entities import Catchment, AmaxRecord, PotDataset, PotDataGap, PotRecord, Comment, Descriptors
 
 # Create database tables if they don't exist yet
 db.create_db_tables()

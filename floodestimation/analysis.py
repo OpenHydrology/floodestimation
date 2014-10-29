@@ -19,10 +19,22 @@
 """
 Module containing flood estimation analysis methods, including QMED, growth curves etc.
 """
-from math import log, exp, sqrt
+from math import log, exp, sqrt, floor
 import lmoments3 as lm
 import numpy as np
 from scipy import optimize
+
+
+def valid_flows_array(catchment):
+    """
+    Return array of valid flows (i.e. excluding rejected years etc)
+
+    :param catchment: gauged catchment with amax_records set
+    :type catchment: :class:`floodestimation.entities.Catchment`
+    :return: 1D array of flow values
+    :rtype: :class:`numpy.ndarray`
+    """
+    return np.array([record.flow for record in catchment.amax_records if record.flag == 0])
 
 
 class QmedAnalysis(object):
@@ -36,12 +48,12 @@ class QmedAnalysis(object):
     >>> catchment = Catchment("Aberdeen", "River Dee")
     >>> catchment.descriptors = Descriptors(dtm_area=1, bfihost=0.50, sprhost=50, saar=1000, farl=1, urbext=0)
     >>> QmedAnalysis(catchment).qmed_all_methods()
-    {'descriptors': 0.5908579150223052, 'channel_width': None, 'area': 1.172, 'amax_records': None,
-    'descriptors_1999': 0.2671386414098229}
+    {'descriptors': 0.5908579150223052, 'pot_records': None, 'channel_width': None,
+    'descriptors_1999': 0.2671386414098229, 'area': 1.172, 'amax_records': None}
 
     """
     # : Methods available to estimate QMED, in order of best/preferred method
-    methods = ('amax_records', 'descriptors', 'descriptors_1999', 'area', 'channel_width')
+    methods = ('amax_records', 'pot_records', 'descriptors', 'descriptors_1999', 'area', 'channel_width')
 
     def __init__(self, catchment, gauged_catchments=None):
         """
@@ -82,7 +94,9 @@ class QmedAnalysis(object):
         `method`          `method_options`       notes
         ================= ====================== =======================================================================
         `amax_records`    n/a                    Simple median of annual maximum flow records using
-                                                 `Catchment.amax_records`
+                                                 `Catchment.amax_records`.
+        `pot_records`     n/a                    Uses peaks-over-threshold (POT) flow records. Suitable for flow records
+                                                 shorter than 14 years.
         `descriptors`                            Synonym for `method=descriptors2008`.
         `descriptors2008` `as_rural=False`       FEH 2008 regression methodology using `Catchment.descriptors`. Setting
                           `donor_catchments=[]`  `as_rural=True` returns rural estimate and setting `donor_catchments` to
@@ -103,7 +117,28 @@ class QmedAnalysis(object):
         :rtype: float
         """
         if method == 'best':
-            for method in self.methods:
+            # Rules for gauged catchments
+            if self.catchment.pot_dataset:
+                if self.catchment.amax_records:
+                    if len(self.catchment.amax_records) <= self.catchment.pot_dataset.record_length() < 14:
+                        use_method = 'pot_records'
+                    elif len(self.catchment.amax_records) >= 2:
+                        use_method = 'amax_records'
+                    else:
+                        use_method = None
+                elif self.catchment.pot_dataset.record_length() >= 1:
+                    use_method = 'pot_records'
+                else:
+                    use_method = None
+            elif len(self.catchment.amax_records) >= 2:
+                use_method = 'amax_records'
+            else:
+                use_method = None  # None of the gauged methods will work
+            if use_method:
+                return getattr(self, '_qmed_from_' + use_method)()
+
+            # Ungauged methods
+            for method in self.methods[1:]:
                 try:
                     # Return the first method that works
                     return getattr(self, '_qmed_from_' + method)(**method_options)
@@ -111,7 +146,9 @@ class QmedAnalysis(object):
                     pass
             # In case none of them worked
             return None
+
         else:
+            # A specific method has been requested
             try:
                 return getattr(self, '_qmed_from_' + method)(**method_options)
             except AttributeError:
@@ -142,11 +179,39 @@ class QmedAnalysis(object):
         :return: QMED in m³/s
         :rtype: float
         """
-        length = len(self.catchment.amax_records)
-        if length < 2:
+        valid_flows = valid_flows_array(self.catchment)
+        n = len(valid_flows)
+        if n < 2:
             raise InsufficientDataError("Insufficient annual maximum flow records available for catchment {}."
                                         .format(self.catchment.id))
-        return np.median([record.flow for record in self.catchment.amax_records])
+        return np.median(valid_flows)
+
+    def _qmed_from_pot_records(self):
+        """
+        Return QMED estimate based on peaks-over-threshold (POT) records.
+
+        Methodology source: FEH, Vol. 3, pp. 77-78
+
+        :return: QMED in m³/s
+        :rtype: float
+        """
+        pot_dataset = self.catchment.pot_dataset
+        if not pot_dataset:
+            raise InsufficientDataError("POT dataset must be set for catchment {} to estimate QMED from POT data."
+                                        .format(self.catchment.id))
+        length = pot_dataset.record_length()  # record length minus gaps in years
+        if length < 1:
+            raise InsufficientDataError("Insufficient POT flow records available for catchment {}."
+                                        .format(self.catchment.id))
+        # TODO: filter out part years
+        position = 0.790715789 * length + 0.539684211
+        i = floor(position)
+        w = 1 + i - position  # This is equivalent to table 12.1!
+
+        flows = [record.flow for record in self.catchment.pot_dataset.pot_records]
+        flows.sort(reverse=True)
+
+        return w * flows[i - 1] + (1 - w) * flows[i]
 
     def _area_exponent(self):
         """
@@ -444,7 +509,7 @@ class GrowthCurveAnalysis(object):
         :return: 1D array of flow values devided by QMED
         :rtype: :class:`numpy.ndarray`
         """
-        flows = np.array([record.flow for record in catchment.amax_records])
+        flows = valid_flows_array(catchment)
         return flows / np.median(flows)
 
     def _var_and_skew(self, catchments):

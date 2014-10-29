@@ -26,8 +26,7 @@ saving to a (sqlite) database. All class attributes therefore are :class:`sqlalc
 """
 
 from math import hypot
-from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey
-from sqlalchemy import func
+from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey, SmallInteger
 from sqlalchemy.orm import relationship, composite
 from sqlalchemy.ext.mutable import MutableComposite
 from sqlalchemy.ext.hybrid import hybrid_method
@@ -109,14 +108,17 @@ class Catchment(db.Base):
     is_suitable_for_pooling = Column(Boolean, index=True)
     #: List of annual maximum flow records as :class:`.AmaxRecord` objects
     amax_records = relationship("AmaxRecord", order_by="AmaxRecord.water_year", backref="catchment")
+    #: Peaks-over-threshold dataset (one-to-one relationship)
+    pot_dataset = relationship("PotDataset", uselist=False, backref="catchment")
     #: List of comments
     comments = relationship("Comment", order_by="Comment.title", backref="catchment")
-    #: List of FEH catchment descriptors (one-to-one relationship)
+    #: FEH catchment descriptors (one-to-one relationship)
     descriptors = relationship("Descriptors", uselist=False, backref="catchment")
 
     def __init__(self, location=None, watercourse=None):
         self.location = location
         self.watercourse = watercourse
+        self.amax_records = []
         # Start with empty set of descriptors, so we always do `catchment.descriptors.name = value`
         self.descriptors = Descriptors()
           
@@ -279,23 +281,120 @@ class AmaxRecord(db.Base):
     flow = Column(Float)
     #: Observed water level in m above local datum
     stage = Column(Float)
+    #: Data quality flag. 0 (default): valid value, 1: invalid value, 2: rejected record.
+    flag = Column(SmallInteger, index=True, default=0)
 
     WATER_YEAR_FIRST_MONTH = 10  # Should provide flexibility to use different first months
 
+    def __init__(self, date, flow, stage, flag=0):
+        self.date = date
+        self.water_year = self.water_year_from_date(date)
+        self.flow = flow
+        self.stage = stage
+        self.flag = flag
+
+    def __repr__(self):
+        return "{}: {:.1f} m³/s".format(self.water_year, self.flow)
+
+    @classmethod
+    def water_year_from_date(cls, date):
+        if date.month >= cls.WATER_YEAR_FIRST_MONTH:
+            return date.year
+        else:
+            # Jan-Sep is 'previous' water year
+            return date.year - 1
+
+
+class PotDataset(db.Base):
+    """
+    A peaks-over-threshold (POT) dataset including a list of :class:`.PotRecord` objects and some metadata such as start
+    and end of record.
+    """
+    __tablename__ = 'potdatasets'
+    #: One-to-one reference to corresponding :class:`.Catchment` object
+    catchment_id = Column(Integer, ForeignKey('catchments.id'), primary_key=True, nullable=False)
+    #; Start date of flow record
+    start_date = Column(Date)
+    #: End date of flow record (inclusive)
+    end_date = Column(Date)
+    #: Flow threshold in m³/s
+    threshold = Column(Float)
+    #: List of peaks-over-threshold records as :class:`.PotRecord` objects
+    pot_records = relationship('PotRecord', order_by='PotRecord.date', backref='catchment')
+    #: List of peaks-over-threshold records as :class:`.PotDataGap` objects
+    pot_data_gaps = relationship('PotDataGap', order_by='PotDataGap.start_date', backref='catchment')
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.pot_records = []
+        self.pot_data_gaps = []
+
+    def record_length(self):
+        """
+        Return record length in years, including data gaps.
+        """
+        return ((self.end_date - self.start_date).days + 1) / 365 - self.total_gap_length()
+
+    def total_gap_length(self):
+        """
+        Return the total length of POT gaps in years.
+        """
+        return sum(gap.gap_length() for gap in self.pot_data_gaps)
+
+
+class PotDataGap(db.Base):
+    """
+    A gap (period) in the peaks-over-threshold (POT) records.
+    """
+    __tablename__ = 'potdatagaps'
+    # We should really have catchment_id + start_date as primary key but unfortunately there are duplicates in the NRFA
+    # dataset!
+    id = Column(Integer, primary_key=True)
+    #: Many-to-one reference to corresponding :class:`.Catchment` object
+    catchment_id = Column(Integer, ForeignKey('potdatasets.catchment_id'), nullable=False, index=True)
+    #: Start date of gap
+    start_date = Column(Date, nullable=False)
+    #: End date of gap (inclusive)
+    end_date = Column(Date, nullable=False)
+
+    def gap_length(self):
+        """
+        Return length of data gap in years.
+        """
+        return ((self.end_date - self.start_date).days + 1) / 365
+
+
+class PotRecord(db.Base):
+    """
+    A single peaks-over-threshold (POT) flow record.
+
+    Example:
+
+    >>> from floodestimation.entities import PotRecord
+    >>> from datetime import date
+    >>> record = PotRecord(date=date(1999,12,31), flow=51.2, stage=1.23)
+
+    """
+    __tablename__ = 'potrecords'
+    # We should really have catchment_id + date as primary key but unfortunately there are duplicates in the NRFA
+    # dataset!
+    id = Column(Integer, primary_key=True)
+    #: Many-to-one reference to corresponding :class:`.Catchment` object
+    catchment_id = Column(Integer, ForeignKey('potdatasets.catchment_id'), nullable=False, index=True)
+    #: Date at which flow occured
+    date = Column(Date, nullable=False)
+    #: Observed flow in m³/s
+    flow = Column(Float)
+    #: Observed water level in m above local datum
+    stage = Column(Float)
+
     def __init__(self, date, flow, stage):
         self.date = date
-        if date:
-            self.water_year = date.year
-            # Jan-Sep is 'previous' water year
-            if date.month < self.WATER_YEAR_FIRST_MONTH:
-                self.water_year -= 1
-        else:
-            self.water_year = None
         self.flow = flow
         self.stage = stage
 
     def __repr__(self):
-        return "{}: {:.1f} m³/s".format(self.water_year, self.flow)
+        return "{}: {:.1f} m³/s".format(self.date, self.flow)
 
 
 class Comment(db.Base):

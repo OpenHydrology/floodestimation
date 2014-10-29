@@ -3,7 +3,7 @@ import os
 from numpy.testing import assert_almost_equal
 from urllib.request import pathname2url
 from datetime import date
-from floodestimation.entities import Catchment, AmaxRecord, Descriptors, Point
+from floodestimation.entities import Catchment, AmaxRecord, Descriptors, Point, PotDataset, PotRecord, PotDataGap
 from floodestimation.collections import CatchmentCollections
 from floodestimation import db
 from floodestimation import settings
@@ -14,17 +14,17 @@ class TestCatchmentQmed(unittest.TestCase):
     def test_channel_width_1(self):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.channel_width = 1
-        self.assertEqual(QmedAnalysis(catchment).qmed(method='channel_width'), 0.182)
+        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='channel_width'), 0.182)
 
     def test_channel_width_2(self):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.channel_width = 2.345
-        self.assertEqual(round(QmedAnalysis(catchment).qmed(method='channel_width'), 4), 0.9839)
+        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='channel_width'), 0.9839, 4)
 
     def test_channel_width_3(self):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.channel_width = 50
-        self.assertEqual(round(QmedAnalysis(catchment).qmed(method='channel_width'), 4), 420.7576)
+        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='channel_width'), 420.7576, 4)
 
     def test_channel_no_width(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -36,17 +36,17 @@ class TestCatchmentQmed(unittest.TestCase):
     def test_area_1(self):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.descriptors.dtm_area = 1
-        self.assertEqual(QmedAnalysis(catchment).qmed(method='area'), 1.172)
+        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='area'), 1.172)
 
     def test_area_2(self):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.descriptors.dtm_area = 2.345
-        self.assertEqual(round(QmedAnalysis(catchment).qmed(method='area'), 4), 2.6946)
+        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='area'), 2.6946, 4)
 
     def test_area_3(self):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.descriptors.dtm_area = 100
-        self.assertEqual(round(QmedAnalysis(catchment).qmed(method='area'), 4), 81.2790)
+        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='area'), 81.2790, 4)
 
     def test_no_area(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -63,7 +63,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             saar=1000,
                                             farl=1,
                                             urbext=0)
-        self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors_1999'), 4), 0.2671)
+        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors_1999'), 0.2671, 4)
 
     def test_descriptors_1999_2(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -73,7 +73,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             saar=2000,
                                             farl=0.5,
                                             urbext=0)
-        self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors_1999'), 4), 0.3729)
+        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors_1999'), 0.3729, 4)
 
     def test_descriptors_1999_3(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -83,7 +83,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             saar=1000,
                                             farl=1,
                                             urbext=0)
-        self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors_1999'), 4), 18.5262)
+        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors_1999'), 18.5262, 4)
 
     def test_no_descriptors_1999(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -100,7 +100,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             saar=1000,
                                             farl=1,
                                             urbext=0)
-        self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors_2008'), 4), 0.5909)
+        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors_2008'), 0.5909, 4)
 
     def test_descriptors_2008_2(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -110,7 +110,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             saar=2000,
                                             farl=0.5,
                                             urbext=0)
-        self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors_2008'), 4), 0.6173)
+        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors_2008'), 0.6173, 4)
 
     def test_descriptors_2008_3(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -120,7 +120,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             saar=1000,
                                             farl=1,
                                             urbext=0)
-        self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors_2008'), 4), 29.7497)
+        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors_2008'), 29.7497, 4)
 
     def test_descriptors_2008_rural(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -130,7 +130,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             saar=1000,
                                             farl=1,
                                             urbext=1)
-        self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors_2008', as_rural=True), 4), 0.5909)
+        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors_2008', as_rural=True), 0.5909, 4)
 
     def test_descriptors_2008_urban_adjustment(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -140,7 +140,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             saar=1000,
                                             farl=1,
                                             urbext=1)
-        self.assertEqual(round(QmedAnalysis(catchment).urban_adj_factor(), 4), 2.215)
+        self.assertAlmostEqual(QmedAnalysis(catchment).urban_adj_factor(), 2.215, 4)
 
     def test_descriptors_2008_urban(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -150,7 +150,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             saar=1000,
                                             farl=1,
                                             urbext=1)
-        self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors_2008', as_rural=False), 4), 1.3087)
+        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors_2008', as_rural=False), 1.3087, 4)
 
     def test_no_descriptors_2008(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -167,7 +167,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             saar=1000,
                                             farl=1,
                                             urbext=1)
-        self.assertEqual(round(QmedAnalysis(catchment).qmed(method='descriptors', as_rural=True), 4), 0.5909)
+        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors', as_rural=True), 0.5909, 4)
 
     def test_amax_odd_records(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -182,6 +182,13 @@ class TestCatchmentQmed(unittest.TestCase):
                                   AmaxRecord(date(2000, 12, 31), 1.0, 0.5)]
         self.assertEqual(QmedAnalysis(catchment).qmed(method='amax_records'), 1.5)
 
+    def test_amax_rejected_record(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 2.0, 0.5),
+                                  AmaxRecord(date(2000, 12, 31), 1.0, 0.5),
+                                  AmaxRecord(date(2000, 12, 31), 99.0, 0.5, flag=2)]
+        self.assertEqual(QmedAnalysis(catchment).qmed(method='amax_records'), 1.5)
+
     def test_amax_long_records(self):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 5.0, 0.5),
@@ -190,6 +197,21 @@ class TestCatchmentQmed(unittest.TestCase):
                                   AmaxRecord(date(2002, 12, 31), 2.0, 0.5),
                                   AmaxRecord(date(2003, 12, 31), 3.0, 0.5)]
         self.assertEqual(QmedAnalysis(catchment).qmed(method='amax_records'), 3)
+
+    def test_pot_1_year(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.pot_dataset = PotDataset(start_date=date(1999, 1, 1), end_date=date(1999, 12, 31))
+        catchment.pot_dataset.pot_records = [PotRecord(date(1999, 1, 1), 2.0, 0.5),
+                                             PotRecord(date(1999, 12, 31), 1.0, 0.5)]
+        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='pot_records'), 1.6696)
+
+    def test_pot_2_years(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.pot_dataset = PotDataset(start_date=date(1998, 1, 1), end_date=date(1999, 12, 31))
+        catchment.pot_dataset.pot_records = [PotRecord(date(1999, 1, 1), 3.0, 0.5),
+                                             PotRecord(date(1999, 2, 1), 2.0, 0.5),
+                                             PotRecord(date(1999, 12, 31), 1.0, 0.5)]
+        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='pot_records'), 1.8789, 4)
 
     def test_all(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -206,7 +228,7 @@ class TestCatchmentQmed(unittest.TestCase):
         self.assertEqual(qmeds['amax_records'], 1)
         self.assertEqual(qmeds['channel_width'], 0.182)
         self.assertEqual(qmeds['area'], 1.172)
-        self.assertEqual(round(qmeds['descriptors_1999'], 4), 0.2671)
+        self.assertAlmostEqual(qmeds['descriptors_1999'], 0.2671, 4)
 
     def test_best_method_none(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -231,13 +253,41 @@ class TestCatchmentQmed(unittest.TestCase):
                                             saar=1000,
                                             farl=1,
                                             urbext=0)
-        self.assertEqual(round(catchment.qmed(), 4), 0.5909)
+        self.assertAlmostEqual(catchment.qmed(), 0.5909, 4)
 
     def test_best_method_amax(self):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 1.0, 0.5),
                                   AmaxRecord(date(2000, 12, 31), 1.0, 0.5)]
         self.assertEqual(catchment.qmed(), 1.0)
+
+    def test_best_method_pot(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.pot_dataset = PotDataset(start_date=date(1999, 1, 1), end_date=date(1999, 12, 31))
+
+        catchment.pot_dataset.pot_records = [PotRecord(date(1999, 1, 1), 2.0, 0.5),
+                                             PotRecord(date(1999, 12, 31), 1.0, 0.5)]
+        self.assertAlmostEqual(catchment.qmed(), 1.6696)
+
+    def test_best_method_pot_over_amax(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 1.0, 0.5),
+                                  AmaxRecord(date(2000, 12, 31), 1.0, 0.5)]
+        catchment.pot_dataset = PotDataset(start_date=date(1998, 1, 1), end_date=date(1999, 12, 31))
+        catchment.pot_dataset.pot_records = [PotRecord(date(1999, 1, 1), 3.0, 0.5),
+                                             PotRecord(date(1999, 2, 1), 2.0, 0.5),
+                                             PotRecord(date(1999, 12, 31), 1.0, 0.5)]
+        self.assertAlmostEqual(catchment.qmed(), 1.8789, 4)
+
+    def test_best_method_amax_over_pot(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 2.0, 0.5),
+                                  AmaxRecord(date(2000, 12, 31), 1.0, 0.5)]
+        catchment.pot_dataset = PotDataset(start_date=date(1999, 1, 1), end_date=date(1999, 12, 31))
+        catchment.pot_dataset.pot_records = [PotRecord(date(1999, 1, 1), 3.0, 0.5),
+                                             PotRecord(date(1999, 2, 1), 2.0, 0.5),
+                                             PotRecord(date(1999, 12, 31), 1.0, 0.5)]
+        self.assertAlmostEqual(catchment.qmed(), 1.5)
 
     def test_best_method_order(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -299,7 +349,7 @@ class TestQmedDonor(unittest.TestCase):
 
     def test_donor_adjustment_factor(self):
         # 1.0/ 0.5909
-        self.assertEqual(round(QmedAnalysis(self.catchment)._donor_adj_factor(self.donor_catchment), 4), 1.6925)
+        self.assertAlmostEqual(QmedAnalysis(self.catchment)._donor_adj_factor(self.donor_catchment), 1.6925, 4)
 
     def test_donor_corrected_qmed(self):
         # 0.6173 * 1.6925

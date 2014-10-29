@@ -1,8 +1,8 @@
 :mod:`floodestimation.analysis` --- Flood estimation analyses
 =============================================================
 
-:class:`QmedAnalysis` --- Estimating the mean annual flood
-----------------------------------------------------------
+:class:`QmedAnalysis` --- Estimating the median annual flood
+------------------------------------------------------------
 
 .. autoclass:: floodestimation.analysis.QmedAnalysis
    :members:

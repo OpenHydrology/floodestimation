@@ -38,13 +38,25 @@ def load_catchment(cd3_file_path):
     :rtype: :class:`floodestimation.entities.Catchment`
     """
     am_file_path = path.splitext(cd3_file_path)[0] + '.AM'
+    pot_file_path = path.splitext(cd3_file_path)[0] + '.PT'
 
     catchment = parsers.Cd3Parser().parse(cd3_file_path)
+
+    # AMAX records
     try:
         catchment.amax_records = parsers.AmaxParser().parse(am_file_path)
     except (OSError, IOError) as e:
         if e.errno == ENOENT:  # FileNotFoundError in Python >= 3.3
             catchment.amax_records = []
+        else:
+            raise
+
+    # POT records
+    try:
+        catchment.pot_dataset = parsers.PotParser().parse(pot_file_path)
+    except (OSError, IOError) as e:
+        if e.errno == ENOENT:  # FileNotFoundError in Python >= 3.3
+            pass
         else:
             raise
 
