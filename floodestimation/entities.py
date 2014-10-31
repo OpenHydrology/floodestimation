@@ -26,6 +26,7 @@ saving to a (sqlite) database. All class attributes therefore are :class:`sqlalc
 """
 
 from math import hypot
+from datetime import timedelta
 from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey, SmallInteger
 from sqlalchemy.orm import relationship, composite
 from sqlalchemy.ext.mutable import MutableComposite
@@ -305,6 +306,26 @@ class AmaxRecord(db.Base):
             return date.year - 1
 
 
+class PotPeriod(object):
+    def __init__(self, start_date, end_date):
+        #: Start date of flow record
+        self.start_date = start_date
+        #: End date of flow record (inclusive)
+        self.end_date = end_date
+
+    def period_length(self):
+        """
+        Return record length in years.
+        """
+        return ((self.end_date - self.start_date).days + 1) / 365
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __repr__(self):
+        return "PotPeriod {} to {}".format(self.start_date, self.end_date)
+
+
 class PotDataset(db.Base):
     """
     A peaks-over-threshold (POT) dataset including a list of :class:`.PotRecord` objects and some metadata such as start
@@ -313,7 +334,7 @@ class PotDataset(db.Base):
     __tablename__ = 'potdatasets'
     #: One-to-one reference to corresponding :class:`.Catchment` object
     catchment_id = Column(Integer, ForeignKey('catchments.id'), primary_key=True, nullable=False)
-    #; Start date of flow record
+    #: Start date of flow record
     start_date = Column(Date)
     #: End date of flow record (inclusive)
     end_date = Column(Date)
@@ -340,6 +361,25 @@ class PotDataset(db.Base):
         Return the total length of POT gaps in years.
         """
         return sum(gap.gap_length() for gap in self.pot_data_gaps)
+
+    def continuous_periods(self):
+        """
+        Return a list of continuous data periods by removing the data gaps from the overall record.
+        """
+        result = []
+
+        # For the first period
+        start_date = self.start_date
+        for gap in self.pot_data_gaps:
+            end_date = gap.start_date - timedelta(days=1)
+            result.append(PotPeriod(start_date, end_date))
+            # For the next period
+            start_date = gap.end_date + timedelta(days=1)
+        # For the last period
+        end_date = self.end_date
+        result.append(PotPeriod(start_date, end_date))
+
+        return result
 
 
 class PotDataGap(db.Base):

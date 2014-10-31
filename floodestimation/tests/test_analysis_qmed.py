@@ -213,6 +213,54 @@ class TestCatchmentQmed(unittest.TestCase):
                                              PotRecord(date(1999, 12, 31), 1.0, 0.5)]
         self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='pot_records'), 1.8789, 4)
 
+    def test_pot_records_by_month(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.pot_dataset = PotDataset(start_date=date(1998, 10, 1), end_date=date(2000, 1, 31))
+        catchment.pot_dataset.pot_records = [PotRecord(date(1999, 1, 1), 3.0, 0.5),
+                                             PotRecord(date(1999, 2, 1), 2.0, 0.5),
+                                             PotRecord(date(1999, 2, 15), 2.0, 0.5),
+                                             PotRecord(date(1999, 12, 31), 1.0, 0.5)]
+        analysis = QmedAnalysis(catchment)
+        records_by_month = analysis._pot_month_counts(catchment.pot_dataset)
+        expected = [2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2]
+        result =[len(month) for month in records_by_month]
+        self.assertEqual(result, expected)
+        n = analysis._min_pot_month_count(records_by_month)
+        self.assertEqual(n, 1)
+
+    def test_pot_complete_years(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.pot_dataset = PotDataset(start_date=date(1998, 10, 1), end_date=date(2000, 1, 31))
+        catchment.pot_dataset.pot_records = [PotRecord(date(1999, 1, 1), 3.0, 0.5),
+                                             PotRecord(date(1999, 2, 1), 2.0, 0.5),
+                                             PotRecord(date(1999, 2, 15), 2.0, 0.5),
+                                             PotRecord(date(1999, 12, 31), 1.0, 0.5)]
+        analysis = QmedAnalysis(catchment)
+        records, n = analysis._complete_pot_years(catchment.pot_dataset)
+        result = [record.date for record in records]
+        expected = [date(1999, 2, 1),
+                    date(1999, 2, 15),
+                    date(1999, 12, 31)]
+        self.assertEqual(result, expected)
+
+    def test_pot_complete_years_2(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.pot_dataset = PotDataset(start_date=date(1998, 10, 1), end_date=date(2000, 1, 31))
+        catchment.pot_dataset.pot_records = [PotRecord(date(1998, 10, 1), 3.0, 0.5),
+                                             PotRecord(date(1999, 1, 1), 3.0, 0.5),
+                                             PotRecord(date(1999, 2, 1), 2.0, 0.5),
+                                             PotRecord(date(1999, 2, 15), 2.0, 0.5),
+                                             PotRecord(date(1999, 12, 31), 1.0, 0.5),
+                                             PotRecord(date(2000, 1, 5), 1.0, 0.5)]
+        analysis = QmedAnalysis(catchment)
+        records, n = analysis._complete_pot_years(catchment.pot_dataset)
+        result = [record.date for record in records]
+        expected = [date(1999, 2, 1),
+                    date(1999, 2, 15),
+                    date(1999, 12, 31),
+                    date(2000, 1, 5)]
+        self.assertEqual(result, expected)
+
     def test_all(self):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.channel_width = 1
