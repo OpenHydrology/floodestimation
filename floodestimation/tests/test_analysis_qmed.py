@@ -225,8 +225,6 @@ class TestCatchmentQmed(unittest.TestCase):
         expected = [2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2]
         result =[len(month) for month in records_by_month]
         self.assertEqual(result, expected)
-        n = analysis._min_pot_month_count(records_by_month)
-        self.assertEqual(n, 1)
 
     def test_pot_complete_years(self):
         catchment = Catchment("Aberdeen", "River Dee")

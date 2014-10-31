@@ -215,6 +215,12 @@ class QmedAnalysis(object):
         return w * flows[i - 1] + (1 - w) * flows[i]
 
     def _pot_month_counts(self, pot_dataset):
+        """
+        Return a list of 12 sets. Each sets contains the years included in the POT record period.
+
+        :param pot_dataset: POT dataset (records and meta data)
+        :type pot_dataset: :class:`floodestimation.entities.PotDataset`
+        """
         periods = pot_dataset.continuous_periods()
         result = [set() for x in range(12)]
         for period in periods:
@@ -233,15 +239,26 @@ class QmedAnalysis(object):
                     year += 1
         return result
 
-    def _min_pot_month_count(self, records_by_month):
-        return min([len(month) for month in records_by_month])
-
     def _complete_pot_years(self, pot_dataset):
+        """
+        Return a tuple of a list of :class:`PotRecord`s filtering out part-complete years; and the number of complete
+        years.
+
+        This method creates complete years by ensuring there is an equal number of each month in the entire record,
+        taking into account data gaps. A month is considered to be covered by the record if there is at least a single
+        day of the month in any continuous period. (There doesn't have to be a record!) "Leftover" months not needed are
+        left at the beginning of the record, i.e. recent records are prioritised over older records.
+
+        :param pot_dataset: POT dataset (records and meta data)
+        :type pot_dataset: :class:`floodestimation.entities.PotDataset`
+        :return: list of POT records
+        :rtype: list of :class:`floodestimation.entities.PotRecord`
+        """
         # Create a list of 12 sets, one for each month. Each set represents the years for which the POT record includes
         # a particular month.
         month_counts = self._pot_month_counts(pot_dataset)
         # Number of complete years
-        n = self._min_pot_month_count(month_counts)
+        n = min([len(month) for month in month_counts])
         # Use the last available years only such that there are equal numbers of each month; i.e. part years are
         # excluded at the beginning of the record
         years_to_use = [sorted(month)[-n:] for month in month_counts]
