@@ -423,7 +423,7 @@ class QmedAnalysis(object):
         :rtype: float
         """
         donor_qmed_amax = QmedAnalysis(donor_catchment).qmed(method='amax_records')
-        donor_qmed_descr = QmedAnalysis(donor_catchment).qmed(method='descriptors', as_rural=True)
+        donor_qmed_descr = QmedAnalysis(donor_catchment).qmed(method='descriptors')
         return (donor_qmed_amax / donor_qmed_descr) ** self._error_correlation(donor_catchment)
 
     def _donor_weights(self, donor_catchments):
