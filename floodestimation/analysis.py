@@ -199,19 +199,72 @@ class QmedAnalysis(object):
         if not pot_dataset:
             raise InsufficientDataError("POT dataset must be set for catchment {} to estimate QMED from POT data."
                                         .format(self.catchment.id))
-        length = pot_dataset.record_length()  # record length minus gaps in years
+
+        complete_year_records, length = self._complete_pot_years(pot_dataset)
         if length < 1:
             raise InsufficientDataError("Insufficient POT flow records available for catchment {}."
                                         .format(self.catchment.id))
-        # TODO: filter out part years
+
         position = 0.790715789 * length + 0.539684211
         i = floor(position)
         w = 1 + i - position  # This is equivalent to table 12.1!
 
-        flows = [record.flow for record in self.catchment.pot_dataset.pot_records]
+        flows = [record.flow for record in complete_year_records]
         flows.sort(reverse=True)
 
         return w * flows[i - 1] + (1 - w) * flows[i]
+
+    def _pot_month_counts(self, pot_dataset):
+        """
+        Return a list of 12 sets. Each sets contains the years included in the POT record period.
+
+        :param pot_dataset: POT dataset (records and meta data)
+        :type pot_dataset: :class:`floodestimation.entities.PotDataset`
+        """
+        periods = pot_dataset.continuous_periods()
+        result = [set() for x in range(12)]
+        for period in periods:
+            year = period.start_date.year
+            month = period.start_date.month
+            while True:
+                # Month by month, add the year
+                result[month - 1].add(year)
+                # If at end of period, break loop
+                if year == period.end_date.year and month == period.end_date.month:
+                    break
+                # Next month (and year if needed)
+                month += 1
+                if month == 13:
+                    month = 1
+                    year += 1
+        return result
+
+    def _complete_pot_years(self, pot_dataset):
+        """
+        Return a tuple of a list of :class:`PotRecord`s filtering out part-complete years; and the number of complete
+        years.
+
+        This method creates complete years by ensuring there is an equal number of each month in the entire record,
+        taking into account data gaps. A month is considered to be covered by the record if there is at least a single
+        day of the month in any continuous period. (There doesn't have to be a record!) "Leftover" months not needed are
+        left at the beginning of the record, i.e. recent records are prioritised over older records.
+
+        :param pot_dataset: POT dataset (records and meta data)
+        :type pot_dataset: :class:`floodestimation.entities.PotDataset`
+        :return: list of POT records
+        :rtype: list of :class:`floodestimation.entities.PotRecord`
+        """
+        # Create a list of 12 sets, one for each month. Each set represents the years for which the POT record includes
+        # a particular month.
+        month_counts = self._pot_month_counts(pot_dataset)
+        # Number of complete years
+        n = min([len(month) for month in month_counts])
+        # Use the last available years only such that there are equal numbers of each month; i.e. part years are
+        # excluded at the beginning of the record
+        years_to_use = [sorted(month)[-n:] for month in month_counts]
+        return (
+            [record for record in pot_dataset.pot_records if record.date.year in years_to_use[record.date.month - 1]],
+            n)
 
     def _area_exponent(self):
         """
@@ -387,7 +440,7 @@ class QmedAnalysis(object):
         :rtype: float
         """
         donor_qmed_amax = QmedAnalysis(donor_catchment).qmed(method='amax_records')
-        donor_qmed_descr = QmedAnalysis(donor_catchment).qmed(method='descriptors', as_rural=True)
+        donor_qmed_descr = QmedAnalysis(donor_catchment).qmed(method='descriptors')
         return (donor_qmed_amax / donor_qmed_descr) ** self._error_correlation(donor_catchment)
 
     def _donor_weights(self, donor_catchments):
