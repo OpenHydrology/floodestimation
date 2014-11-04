@@ -8,7 +8,7 @@ from copy import copy
 from numpy.testing import assert_almost_equal
 from datetime import date
 from urllib.request import pathname2url
-from floodestimation.entities import Catchment, Descriptors, AmaxRecord
+from floodestimation.entities import Catchment, Descriptors, AmaxRecord, Point
 from floodestimation.analysis import GrowthCurveAnalysis
 from floodestimation import db
 from floodestimation import settings
@@ -31,7 +31,7 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
                                                 farl=0.5,
                                                 urbext=0,
                                                 fpext=0.2,
-                                                centroid_ngr=(276125, 688424))
+                                                centroid_ngr=Point(276125, 688424))
 
     def tearDown(self):
         self.db_session.rollback()

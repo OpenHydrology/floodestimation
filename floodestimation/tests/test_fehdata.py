@@ -4,9 +4,6 @@ from urllib.request import pathname2url
 
 import floodestimation.settings as settings
 import floodestimation.fehdata as fehdata
-import floodestimation.parsers as parsers
-from floodestimation.db import Session
-from floodestimation.entities import Catchment
 
 
 class TestDatabase(unittest.TestCase):

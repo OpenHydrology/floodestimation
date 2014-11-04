@@ -89,10 +89,26 @@ class FehFileParser(object):
                         pass  # Skip unsupported section
         return self.object
 
+    @staticmethod
+    def parse_feh_date_format(s):
+        """
+        Return a date object from a string in FEH date format, e.g. `01 Jan 1970`
+
+        :param s: Formatted date string
+        :type s: str
+        :return: date object
+        :rtype: :class:`datetime.date`
+        """
+        return datetime.date(*time.strptime(s, "%d %b %Y")[0:3])
+
 
 class AmaxParser(FehFileParser):
     #: Class to be returned by :meth:`parse`. In this case a list of :class:`AmaxRecord` objects.
     parsed_class = list
+
+    def __init__(self):
+        super().__init__()
+        self.rejected_years = []
 
     def _section_station_number(self, line):
         # Store station number (not used)
@@ -102,17 +118,69 @@ class AmaxParser(FehFileParser):
         # Spit line in columns
         row = [s.strip() for s in line.split(',')]
         # Date in first column
-        date = datetime.date(*time.strptime(row[0], "%d %b %Y")[0:3])  # :class:`datetime.date`
+        date = self.parse_feh_date_format(row[0])
         # Flow rate in second column
         flow = float(row[1])
+        flag = 0
         if flow < 0:
             flow = None
+            flag = 1  # Invalid value
         # Stage in last column
         stage = float(row[2])
         if stage < 0:
             stage = None
-        # Create :class:`AmaxRecord` and add to object
-        self.object.append(entities.AmaxRecord(date, flow, stage))
+        # Create :class:`AmaxRecord`
+        record = entities.AmaxRecord(date, flow, stage)
+        # Set flag if the water year is included in the list of rejected years
+        if record.water_year in self.rejected_years:
+            flag = 2  # Rejected
+        record.flag = flag
+
+        self.object.append(record)
+
+    def _section_am_rejected(self, line):
+        row = [int(s.strip()) for s in line.split(',')]
+        self.rejected_years += list(range(row[0], row[1] + 1))  # Add 1 because AM file interval includes end year
+
+
+class PotParser(FehFileParser):
+    #: Class to be returned by :meth:`parse`. In this case a :class:`PotDataset` objects.
+    parsed_class = entities.PotDataset
+
+    def _section_station_number(self, line):
+        self.object.catchment_id = int(line.strip())
+        self.object.pot_records = []
+
+    def _section_pot_details(self, line):
+        row = [s.strip().lower() for s in line.split(',')]
+        if row[0] == 'record period':
+            self.object.start_date = self.parse_feh_date_format(row[1])
+            self.object.end_date = self.parse_feh_date_format(row[2])
+        elif row[0] == 'threshold':
+            self.object.threshold = float(row[1])
+
+    def _section_pot_gaps(self, line):
+        row = [s.strip() for s in line.split(',')]
+        pot_data_gap = entities.PotDataGap()
+        pot_data_gap.start_date = self.parse_feh_date_format(row[0])
+        pot_data_gap.end_date = self.parse_feh_date_format(row[1])
+        self.object.pot_data_gaps.append(pot_data_gap)
+
+    def _section_pot_values(self, line):
+        row = [s.strip() for s in line.split(',')]
+        date = self.parse_feh_date_format(row[0])
+        flow = float(row[1])
+        if flow < 0:
+            flow = None
+        try:
+            stage = float(row[2])
+            if stage < 0:
+                stage = None
+        except ValueError:
+            stage = None
+
+        pot_record = entities.PotRecord(date, flow, stage)
+        self.object.pot_records.append(pot_record)
 
 
 class Cd3Parser(FehFileParser):
@@ -132,7 +200,7 @@ class Cd3Parser(FehFileParser):
             self.object.area = float(row[1])
         elif row[0].lower() == 'nominal ngr':
             # (E, N) in meters.
-            self.object.point = (100*int(row[1]), 100*int(row[2]))
+            self.object.point = entities.Point(100*int(row[1]), 100*int(row[2]))
 
     def _section_descriptors(self, line):
         row = [s.strip() for s in line.split(',')]
@@ -152,7 +220,7 @@ class Cd3Parser(FehFileParser):
         # Coordinates
         else:
             # (E, N) in meters.
-            setattr(self.object.descriptors, name, (int(row[2]), int(row[3])))
+            setattr(self.object.descriptors, name, entities.Point(int(row[2]), int(row[3])))
             # Set country using info provided as part of coordinates.
             country_mapping = {'gb': 'gb',
                                'ireland': 'ni'}

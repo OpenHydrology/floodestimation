@@ -1,6 +1,7 @@
 import unittest
+from datetime import date
 from floodestimation import parsers
-from floodestimation.entities import Catchment
+from floodestimation.entities import Catchment, Point
 
 
 class TestAmax(unittest.TestCase):
@@ -9,13 +10,51 @@ class TestAmax(unittest.TestCase):
     amax_records = parser.parse(file)
 
     def test_amax_parse_length(self):
-        self.assertEqual(len(self.amax_records), 3)
+        self.assertEqual(len(self.amax_records), 4)
 
     def test_amax_parse_first_item_flow(self):
         self.assertEqual(self.amax_records[0].flow, 34.995)
 
+    def test_amax_parse_first_item_water_year(self):
+        self.assertEqual(self.amax_records[0].water_year, 1968)
+
     def test_amax_parse_second_item_water_year(self):
         self.assertEqual(self.amax_records[1].water_year, 1969)
+
+    def test_amax_parse_valid_record(self):
+        self.assertEqual(self.amax_records[0].flag, 0)
+
+    def test_amax_parse_rejected_record(self):
+        self.assertEqual(self.parser.rejected_years, [1971, 2002, 2003])
+        self.assertEqual(self.amax_records[3].flag, 2)
+
+
+class TestPot(unittest.TestCase):
+    parser = parsers.PotParser()
+    file = 'floodestimation/tests/data/17002.PT'
+    pot_dataset = parser.parse(file)
+
+    def test_meta_data(self):
+        self.assertEqual(self.pot_dataset.catchment_id, 17002)
+        self.assertEqual(self.pot_dataset.start_date, date(1968, 12, 21))
+        self.assertEqual(self.pot_dataset.end_date, date(2006, 8, 19))
+        self.assertAlmostEqual(self.pot_dataset.threshold, 23.809)
+
+    def test_record_count(self):
+        self.assertEqual(len(self.pot_dataset.pot_records), 146)
+
+    def test_first_record(self):
+        self.assertEqual(self.pot_dataset.pot_records[0].date, date(1969, 1, 12))
+        self.assertAlmostEqual(self.pot_dataset.pot_records[0].flow, 34.995)
+        self.assertAlmostEqual(self.pot_dataset.pot_records[0].stage, 1.040)
+
+    def test_gaps_count(self):
+        self.assertEqual(len(self.pot_dataset.pot_data_gaps), 6)
+
+    def test_first_gap(self):
+        self.assertEqual(self.pot_dataset.pot_data_gaps[0].start_date, date(1977, 9, 7))
+        self.assertEqual(self.pot_dataset.pot_data_gaps[0].end_date, date(1977, 9, 27))
+        self.assertAlmostEqual(self.pot_dataset.pot_data_gaps[0].gap_length(), 21/365)
 
 
 class TestCd3(unittest.TestCase):
@@ -42,11 +81,11 @@ class TestCd3(unittest.TestCase):
         self.assertEqual(self.catchment.area, 424.0)
 
     def test_coordinate(self):
-        self.assertEqual(self.catchment.point, (336900, 700600))
+        self.assertEqual(self.catchment.point, Point(336900, 700600))
 
     def test_descriptors(self):
-        self.assertEqual(self.catchment.descriptors.ihdtm_ngr, (336950, 700550))
-        self.assertEqual(self.catchment.descriptors.centroid_ngr, (317325, 699832))
+        self.assertEqual(self.catchment.descriptors.ihdtm_ngr, Point(336950, 700550))
+        self.assertEqual(self.catchment.descriptors.centroid_ngr, Point(317325, 699832))
         self.assertEqual(self.catchment.descriptors.dtm_area, 416.56)
         self.assertEqual(self.catchment.descriptors.altbar, 151)
         self.assertEqual(self.catchment.descriptors.aspbar, 123)
@@ -97,8 +136,8 @@ class TestCd3Ireland(unittest.TestCase):
         self.assertEqual(self.catchment.country, 'ni')
 
     def test_coordinate(self):
-        self.assertEqual(self.catchment.point, (240500, 375700))
+        self.assertEqual(self.catchment.point, Point(240500, 375700))
 
     def test_descriptors(self):
-        self.assertEqual(self.catchment.descriptors.ihdtm_ngr, (240500, 375700))
-        self.assertEqual(self.catchment.descriptors.centroid_ngr, (232140, 375415))
+        self.assertEqual(self.catchment.descriptors.ihdtm_ngr, Point(240500, 375700))
+        self.assertEqual(self.catchment.descriptors.centroid_ngr, Point(232140, 375415))

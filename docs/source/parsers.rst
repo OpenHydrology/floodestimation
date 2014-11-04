@@ -24,3 +24,11 @@
    :show-inheritance:
    :inherited-members:
    :members:
+
+:class:`PotParser` --- Parsing peaks-over-threshold (POT) records
+-----------------------------------------------------------------
+
+.. autoclass:: floodestimation.parsers.PotParser
+   :show-inheritance:
+   :inherited-members:
+   :members:

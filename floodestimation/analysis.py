@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2014  Neil Nutt <neilnutt[at]googlemail[dot]com> and
-# Florenz A.P. Hollebrandse <find_location_param.a.p.hollebrandse@protonmail.ch>
+# Florenz A.P. Hollebrandse <f.a.p.hollebrandse@protonmail.ch>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,10 +19,22 @@
 """
 Module containing flood estimation analysis methods, including QMED, growth curves etc.
 """
-from math import log, floor, ceil, exp, sqrt
+from math import log, exp, sqrt, floor
 import lmoments3 as lm
 import numpy as np
 from scipy import optimize
+
+
+def valid_flows_array(catchment):
+    """
+    Return array of valid flows (i.e. excluding rejected years etc)
+
+    :param catchment: gauged catchment with amax_records set
+    :type catchment: :class:`floodestimation.entities.Catchment`
+    :return: 1D array of flow values
+    :rtype: :class:`numpy.ndarray`
+    """
+    return np.array([record.flow for record in catchment.amax_records if record.flag == 0])
 
 
 class QmedAnalysis(object):
@@ -36,26 +48,40 @@ class QmedAnalysis(object):
     >>> catchment = Catchment("Aberdeen", "River Dee")
     >>> catchment.descriptors = Descriptors(dtm_area=1, bfihost=0.50, sprhost=50, saar=1000, farl=1, urbext=0)
     >>> QmedAnalysis(catchment).qmed_all_methods()
-    {'descriptors': 0.5908579150223052, 'channel_width': None, 'area': 1.172, 'amax_records': None,
-    'descriptors_1999': 0.2671386414098229}
+    {'descriptors': 0.5908579150223052, 'pot_records': None, 'channel_width': None,
+    'descriptors_1999': 0.2671386414098229, 'area': 1.172, 'amax_records': None}
 
     """
     # : Methods available to estimate QMED, in order of best/preferred method
-    methods = ('amax_records', 'descriptors', 'descriptors_1999', 'area', 'channel_width')
+    methods = ('amax_records', 'pot_records', 'descriptors', 'descriptors_1999', 'area', 'channel_width')
 
-    def __init__(self, catchment, gauged_catchment_collections=None):
+    def __init__(self, catchment, gauged_catchments=None):
         """
         Creates a QMED analysis object.
 
         :param catchment: subject catchment
-        :type catchment: :class:`floodestimation.entities.Catchment`
-        :param gauged_catchment_collections: catchment collections objects for retrieval of gauged data for donor
-                                              analyses
-        :type gauged_catchment_collections: :class:`floodestimation.collections.CatchmentCollections`
+        :type catchment: :class:`.entities.Catchment`
+        :param gauged_catchments: catchment collections objects for retrieval of gauged data for donor analyses
+        :type gauged_catchments: :class:`.collections.CatchmentCollections`
         """
 
+        #: Subject catchment
         self.catchment = catchment
-        self.gauged_catchments = gauged_catchment_collections
+        #: :class:`.collections.CatchmentCollections` object for retrieval of gauged data for donor based analyses
+        #: (optional)
+        self.gauged_catchments = gauged_catchments
+
+        #: Method for weighting multiple QMED donors, options are:
+        #:
+        #: - `idw` (default): Use an Inverse Distance Weighting (IDW) method. Donor catchments nearby have higher
+        #:   weighting than catchments further away.
+        #: - `equal`: All donors have equal weights.
+        #: - `first`: Use only the first (nearest) donor catchment.
+        self.donor_weighting = 'idw'
+        #: Power parameter to use in IDW weighting method. Default: `3` (cubic). Higher powers results in higher
+        #: weights for **nearby** donor catchments. A power of `1` indicates an inverse linear relationship between
+        #: distance and weight.
+        self.idw_power = 3
 
     def qmed(self, method='best', **method_options):
         """
@@ -68,12 +94,14 @@ class QmedAnalysis(object):
         `method`          `method_options`       notes
         ================= ====================== =======================================================================
         `amax_records`    n/a                    Simple median of annual maximum flow records using
-                                                 `Catchment.amax_records`
+                                                 `Catchment.amax_records`.
+        `pot_records`     n/a                    Uses peaks-over-threshold (POT) flow records. Suitable for flow records
+                                                 shorter than 14 years.
         `descriptors`                            Synonym for `method=descriptors2008`.
         `descriptors2008` `as_rural=False`       FEH 2008 regression methodology using `Catchment.descriptors`. Setting
-                          `donor_catchment=None` `as_rural=True` returns rural estimate and setting `donor_catchment` to
-                                                 a specific :class:`Catchment` object **overrides** automatic selection
-                                                 of the most suitable donor catchment.
+                          `donor_catchments=[]`  `as_rural=True` returns rural estimate and setting `donor_catchments` to
+                                                 a specific list of :class:`Catchment` object **overrides** automatic
+                                                 selection of the most suitable donor catchment.
         `descriptors1999` as_rural=False         FEH 1999 regression methodology.
         `area`            n/a                    Simplified FEH 1999 regression methodology using
                                                  `Cachment.descriptors.dtm_area` only.
@@ -89,15 +117,38 @@ class QmedAnalysis(object):
         :rtype: float
         """
         if method == 'best':
-            for method in self.methods:
+            # Rules for gauged catchments
+            if self.catchment.pot_dataset:
+                if self.catchment.amax_records:
+                    if len(self.catchment.amax_records) <= self.catchment.pot_dataset.record_length() < 14:
+                        use_method = 'pot_records'
+                    elif len(self.catchment.amax_records) >= 2:
+                        use_method = 'amax_records'
+                    else:
+                        use_method = None
+                elif self.catchment.pot_dataset.record_length() >= 1:
+                    use_method = 'pot_records'
+                else:
+                    use_method = None
+            elif len(self.catchment.amax_records) >= 2:
+                use_method = 'amax_records'
+            else:
+                use_method = None  # None of the gauged methods will work
+            if use_method:
+                return getattr(self, '_qmed_from_' + use_method)()
+
+            # Ungauged methods
+            for method in self.methods[1:]:
                 try:
                     # Return the first method that works
                     return getattr(self, '_qmed_from_' + method)(**method_options)
-                except InsufficientDataError:
+                except (TypeError, InsufficientDataError):
                     pass
             # In case none of them worked
             return None
+
         else:
+            # A specific method has been requested
             try:
                 return getattr(self, '_qmed_from_' + method)(**method_options)
             except AttributeError:
@@ -128,10 +179,92 @@ class QmedAnalysis(object):
         :return: QMED in m³/s
         :rtype: float
         """
-        length = len(self.catchment.amax_records)
-        if length < 2:
-            raise InsufficientDataError("Insufficient annual maximum flow records available.")
-        return np.median([record.flow for record in self.catchment.amax_records])
+        valid_flows = valid_flows_array(self.catchment)
+        n = len(valid_flows)
+        if n < 2:
+            raise InsufficientDataError("Insufficient annual maximum flow records available for catchment {}."
+                                        .format(self.catchment.id))
+        return np.median(valid_flows)
+
+    def _qmed_from_pot_records(self):
+        """
+        Return QMED estimate based on peaks-over-threshold (POT) records.
+
+        Methodology source: FEH, Vol. 3, pp. 77-78
+
+        :return: QMED in m³/s
+        :rtype: float
+        """
+        pot_dataset = self.catchment.pot_dataset
+        if not pot_dataset:
+            raise InsufficientDataError("POT dataset must be set for catchment {} to estimate QMED from POT data."
+                                        .format(self.catchment.id))
+
+        complete_year_records, length = self._complete_pot_years(pot_dataset)
+        if length < 1:
+            raise InsufficientDataError("Insufficient POT flow records available for catchment {}."
+                                        .format(self.catchment.id))
+
+        position = 0.790715789 * length + 0.539684211
+        i = floor(position)
+        w = 1 + i - position  # This is equivalent to table 12.1!
+
+        flows = [record.flow for record in complete_year_records]
+        flows.sort(reverse=True)
+
+        return w * flows[i - 1] + (1 - w) * flows[i]
+
+    def _pot_month_counts(self, pot_dataset):
+        """
+        Return a list of 12 sets. Each sets contains the years included in the POT record period.
+
+        :param pot_dataset: POT dataset (records and meta data)
+        :type pot_dataset: :class:`floodestimation.entities.PotDataset`
+        """
+        periods = pot_dataset.continuous_periods()
+        result = [set() for x in range(12)]
+        for period in periods:
+            year = period.start_date.year
+            month = period.start_date.month
+            while True:
+                # Month by month, add the year
+                result[month - 1].add(year)
+                # If at end of period, break loop
+                if year == period.end_date.year and month == period.end_date.month:
+                    break
+                # Next month (and year if needed)
+                month += 1
+                if month == 13:
+                    month = 1
+                    year += 1
+        return result
+
+    def _complete_pot_years(self, pot_dataset):
+        """
+        Return a tuple of a list of :class:`PotRecord`s filtering out part-complete years; and the number of complete
+        years.
+
+        This method creates complete years by ensuring there is an equal number of each month in the entire record,
+        taking into account data gaps. A month is considered to be covered by the record if there is at least a single
+        day of the month in any continuous period. (There doesn't have to be a record!) "Leftover" months not needed are
+        left at the beginning of the record, i.e. recent records are prioritised over older records.
+
+        :param pot_dataset: POT dataset (records and meta data)
+        :type pot_dataset: :class:`floodestimation.entities.PotDataset`
+        :return: list of POT records
+        :rtype: list of :class:`floodestimation.entities.PotRecord`
+        """
+        # Create a list of 12 sets, one for each month. Each set represents the years for which the POT record includes
+        # a particular month.
+        month_counts = self._pot_month_counts(pot_dataset)
+        # Number of complete years
+        n = min([len(month) for month in month_counts])
+        # Use the last available years only such that there are equal numbers of each month; i.e. part years are
+        # excluded at the beginning of the record
+        years_to_use = [sorted(month)[-n:] for month in month_counts]
+        return (
+            [record for record in pot_dataset.pot_records if record.date.year in years_to_use[record.date.month - 1]],
+            n)
 
     def _area_exponent(self):
         """
@@ -210,7 +343,7 @@ class QmedAnalysis(object):
         """
         return self._qmed_from_descriptors_2008(**method_options)
 
-    def _qmed_from_descriptors_2008(self, as_rural=False, donor_catchment=None):
+    def _qmed_from_descriptors_2008(self, as_rural=False, donor_catchments=[]):
         """
         Return QMED estimation based on FEH catchment descriptors, 2008 methodology.
 
@@ -218,9 +351,9 @@ class QmedAnalysis(object):
 
         :param as_rural: assume catchment is fully rural. Default: false.
         :type as rural: bool
-        :param donor_catchment: override donor catchment to improve QMED catchment. If `None` (default), donor catchment
+        :param donor_catchments: override donor catchment to improve QMED catchment. If `None` (default), donor catchment
         will be searched automatically
-        :type donor_catchment: :class:`Catchment`
+        :type donor_catchments: :class:`Catchment`
         :return: QMED in m³/s
         :rtype: float
         """
@@ -230,16 +363,12 @@ class QmedAnalysis(object):
                          * 0.1536 ** (1000 / self.catchment.descriptors.saar) \
                          * self.catchment.descriptors.farl ** 3.4451 \
                          * 0.0460 ** (self.catchment.descriptors.bfihost ** 2.0)
-            # Apply donor adjustment if donor provided
-            if not donor_catchment:
-                # For just now, pick the first suitable catchment.
-                # TODO: implement algorithm to use multiple donors
-                try:
-                    donor_catchment = self.find_donor_catchments()[0]
-                except IndexError:
-                    pass
-            if donor_catchment:
-                qmed_rural *= self._donor_adj_factor(donor_catchment)
+            if not donor_catchments:
+                # If no donor catchments are provided, find the nearest 25
+                donor_catchments = self.find_donor_catchments()
+            if donor_catchments:
+                # If found multiply rural estimate with weighted adjustment factors from all donors
+                qmed_rural *= np.sum(self._donor_weights(donor_catchments) * self._donor_adj_factors(donor_catchments))
             if as_rural:
                 return qmed_rural
             else:
@@ -265,7 +394,11 @@ class QmedAnalysis(object):
         :return: urban adjustment factor
         :rtype: float
         """
-        return self._pruaf() * (1 + self.catchment.descriptors.urbext) ** 0.83
+        try:
+            return self._pruaf() * (1 + self.catchment.descriptors.urbext) ** 0.83
+        except TypeError:
+            # Sometimes urbext is not set, so don't adjust at all (rather than throwing an error).
+            return 1
 
     def _error_correlation(self, other_catchment):
         """
@@ -281,6 +414,20 @@ class QmedAnalysis(object):
         distance = self.catchment.distance_to(other_catchment)
         return 0.4598 * exp(-0.0200 * distance) + (1 - 0.4598) * exp(-0.4785 * distance)
 
+    def _donor_adj_factors(self, donor_catchments):
+        """
+        Return QMED adjustment factors for a list of donor catchments.
+
+        :param donor_catchments: Catchments to use as donors
+        :type donor_catchments: list of :class:`Catchment`
+        :return: Array of adjustment factors
+        :rtype: :class:`numpy.ndarray`
+        """
+        adj_factors = np.ones(len(donor_catchments))
+        for index, donor in enumerate(donor_catchments):
+            adj_factors[index] = self._donor_adj_factor(donor)
+        return adj_factors
+
     def _donor_adj_factor(self, donor_catchment):
         """
         Return QMED adjustment factor using a donor catchment
@@ -293,18 +440,60 @@ class QmedAnalysis(object):
         :rtype: float
         """
         donor_qmed_amax = QmedAnalysis(donor_catchment).qmed(method='amax_records')
-        donor_qmed_descr = QmedAnalysis(donor_catchment).qmed(method='descriptors', as_rural=True)
+        donor_qmed_descr = QmedAnalysis(donor_catchment).qmed(method='descriptors')
         return (donor_qmed_amax / donor_qmed_descr) ** self._error_correlation(donor_catchment)
 
-    def find_donor_catchments(self):
+    def _donor_weights(self, donor_catchments):
+        """
+        Return numpy array of donor weights using inverse distance weighting method
+
+        :param donor_catchments: Catchments to use as donors
+        :type donor_catchments: list of :class:`Catchment`
+        :return: Array of weights which sum to 1
+        :rtype: :class:`numpy.ndarray`
+        """
+        weights = np.zeros(len(donor_catchments))
+        for index, donor in enumerate(donor_catchments):
+            if self.donor_weighting == 'idw':
+                if not hasattr(donor, 'dist'):
+                    # Donors provided by `collections` module already have a `dist` attribute.
+                    donor.dist = donor.distance_to(self.catchment)
+                try:
+                    weights[index] = 1 / donor.dist ** self.idw_power
+                except ZeroDivisionError:
+                    # If one of the donor catchments has a zero distance, simply set weight to very large number. Can't
+                    # use `float('inf')` because we need to devide by sum of weights later.
+                    weights[index] = 1e99
+
+            elif self.donor_weighting == 'equal':
+                weights = np.ones(len(donor_catchments))
+
+            elif self.donor_weighting == 'first':
+                weights[0] = 1
+
+            else:
+                raise Exception(
+                    "Invalid value for attribute `donor_weighting`. Must be one of `idw`, `equal` or `first`")
+
+        # Assure sum of weights==1
+        weights /= np.sum(weights)
+        return weights
+
+    def find_donor_catchments(self, limit=20, dist_limit=500):
         """
         Return a suitable donor catchment to improve a QMED estimate based on catchment descriptors alone.
 
+        :param limit: maximum number of catchments to return. Default: 20. Set to `None` to return all available
+                      catchments.
+        :type limit: int
+        :param dist_limit: maximum distance in km. between subject and donor catchment. Default: 500 km. Increasing the
+                           maximum distance will increase computation time!
+        :type dist_limit: float or int
         :return: list of nearby catchments
         :rtype: :class:`floodestimation.entities.Catchment`
         """
         if self.gauged_catchments:
-            return self.gauged_catchments.nearest_qmed_catchments(self.catchment)
+            return self.gauged_catchments.nearest_qmed_catchments(self.catchment, limit, dist_limit)
         else:
             return []
 
@@ -318,9 +507,12 @@ class GrowthCurveAnalysis(object):
     #: Available distribution functions for growth curves
     distributions = ('glo', 'gev')
 
-    def __init__(self, catchment, gauged_catchment_collections=None):
+    def __init__(self, catchment, gauged_catchments=None):
+        #: Subject catchment
         self.catchment = catchment
-        self.gauged_cachments = gauged_catchment_collections
+        #: :class:`.collections.CatchmentCollections` object for retrieval of gauged data for donor based analyses
+        #: (optional)
+        self.gauged_cachments = gauged_catchments
         #: List of donor catchments. Either set manually or by calling :meth:`.find_donor_catchments` or implicitly when
         #: calling :meth:`.growth_curve()`.
         self.donor_catchments = []
@@ -370,7 +562,7 @@ class GrowthCurveAnalysis(object):
         :return: 1D array of flow values devided by QMED
         :rtype: :class:`numpy.ndarray`
         """
-        flows = np.array([record.flow for record in catchment.amax_records])
+        flows = valid_flows_array(catchment)
         return flows / np.median(flows)
 
     def _var_and_skew(self, catchments):

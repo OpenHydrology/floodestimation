@@ -19,11 +19,12 @@
 This module contains collections for easy retrieval of standard lists or scalars from the database with gauged catchment
 data.
 """
-
+from math import sqrt
 from operator import attrgetter
-from sqlalchemy import or_
+from sqlalchemy import or_, between, text
+from sqlalchemy.sql.functions import func
 # Current package imports
-from .entities import Catchment, Descriptors
+from .entities import Catchment, Descriptors, AmaxRecord
 from . import loaders
 from . import db
 
@@ -82,25 +83,51 @@ class CatchmentCollections(object):
         """
         return self.db_session.query(Catchment).get(number)
 
-    def nearest_qmed_catchments(self, subject_catchment):
+    def nearest_qmed_catchments(self, subject_catchment, limit=None, dist_limit=500):
         """
         Return a list of catchments sorted by distance to `subject_catchment` **and filtered to only include catchments
         suitable for QMED analyses**.
 
         :param subject_catchment: catchment object to measure distances to
         :type subject_catchment: :class:`floodestimation.entities.Catchment`
+        :param limit: maximum number of catchments to return. Default: `None` (returns all available catchments).
+        :type limit: int
+        :param dist_limit: maximum distance in km. between subject and donor catchment. Default: 500 km. Increasing the
+                           maximum distance will increase computation time!
+        :type dist_limit: float or int
         :return: list of catchments sorted by distance
         :rtype: list of :class:`floodestimation.entities.Catchment`
         """
-        # Get a list of all catchment, excluding the subject_catchment itself
-        catchments = self.db_session.query(Catchment).filter(Catchment.id != subject_catchment.id,
-                                                             Catchment.is_suitable_for_qmed).all()
-        # Sort by distance to subject_catchment
-        catchments.sort(key=lambda c: c.distance_to(subject_catchment))
+
+        dist_sq = Catchment.distance_to(subject_catchment).label('dist_sq')  # Distance squared, calculated using SQL
+        query = self.db_session.query(Catchment, dist_sq).\
+            join(Catchment.amax_records).\
+            join(Catchment.descriptors).\
+            filter(Catchment.id != subject_catchment.id,            # Exclude subject catchment itself
+                   Catchment.is_suitable_for_qmed,                  # Only catchments suitable for QMED estimation
+                   Catchment.country == subject_catchment.country,  # SQL dist method does not cover cross-boundary dist
+                   # Within the distance limit
+                   dist_sq <= dist_limit ** 2).\
+            group_by(Catchment).\
+            order_by(dist_sq).\
+            having(func.count(AmaxRecord.catchment_id) >= 10)       # At least 10 AMAX records
+
+        if limit:
+            rows = query[0:limit]  # Each row is tuple of (catchment, distance squared)
+        else:
+            rows = query.all()
+
+        # Add real `dist` attribute to catchment list using previously calculated SQL dist squared
+        catchments = []
+        for row in rows:
+            catchment = row[0]
+            catchment.dist = sqrt(row[1])
+            catchments.append(catchment)
+
         return catchments
 
     def most_similar_catchments(self, subject_catchment, similarity_dist_function, records_limit=500,
-                                include_subject_catchment = 'auto'):
+                                include_subject_catchment='auto'):
         """
         Return a list of catchments sorted by hydrological similarity defined by `similarity_distance_function`
 
@@ -120,13 +147,14 @@ class CatchmentCollections(object):
                    or_(Descriptors.urbext2000 < 0.03, Descriptors.urbext2000 == None))
         if include_subject_catchment == 'exclude':
             # Remove subject catchment from donor list (if already in)
-            catchments = query.filter(Catchment.id != subject_catchment.id).all()
+            query = query.filter(Catchment.id != subject_catchment.id)
         elif include_subject_catchment == 'force':
             # Add the subject catchment regardless of urbext of pooling suitability
             sc_query = self.db_session.query(Catchment).filter(Catchment.id == subject_catchment.id)
-            catchments = query.union(sc_query).all()
-        else:
-            catchments = query.all()
+            query = query.union(sc_query)
+        #else:
+        #    catchments = query.all()
+        catchments = query.all()
 
         # Store the similarity distance as an additional attribute for each catchment
         for catchment in catchments:
