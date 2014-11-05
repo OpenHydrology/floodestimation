@@ -126,7 +126,9 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         self.assertAlmostEqual(params[0], 1)
         self.assertAlmostEqual(params[1], 0.2202, places=4)
         self.assertAlmostEqual(params[2], 0.0908, places=4)
-        self.assertAlmostEqual(growth_curve.distr_kurtosis, 0.1735, places=4)  # TODO: verify correct value
+        # Kurtosis calculated from L-skew using eqns on
+        # http://researcher.watson.ibm.com/researcher/view_group.php?id=2639
+        self.assertAlmostEqual(growth_curve.distr_kurtosis, 0.1735, places=4)
 
     def test_dist_param_location(self):
         catchment = load_catchment('floodestimation/tests/data/37017.CD3')
