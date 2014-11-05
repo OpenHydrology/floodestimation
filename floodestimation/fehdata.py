@@ -98,7 +98,7 @@ def clear_cache():
 
 def amax_files():
     """
-    Return all annual maximum flow (*.am) files in cache folder and sub folders.
+    Return all annual maximum flow (`*.am`) files in cache folder and sub folders.
 
     :return: List of file paths
     :rtype: list
@@ -109,7 +109,7 @@ def amax_files():
 
 def cd3_files():
     """
-    Return all catchment descriptor files (*.cd3) files in cache folder and sub folders.
+    Return all catchment descriptor files (`*.cd3`) files in cache folder and sub folders.
 
     :return: List of file paths
     :rtype: list

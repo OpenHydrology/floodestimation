@@ -513,8 +513,8 @@ class GrowthCurveAnalysis(object):
         #: :class:`.collections.CatchmentCollections` object for retrieval of gauged data for donor based analyses
         #: (optional)
         self.gauged_cachments = gauged_catchments
-        #: List of donor catchments. Either set manually or by calling :meth:`.find_donor_catchments` or implicitly when
-        #: calling :meth:`.growth_curve()`.
+        #: List of donor catchments. Either set manually or by calling
+        #: :meth:`.GrowthCurveAnalysis.find_donor_catchments` or implicitly when calling :meth:`.growth_curve()`.
         self.donor_catchments = []
 
     def growth_curve(self, method='best', **method_options):
@@ -525,7 +525,7 @@ class GrowthCurveAnalysis(object):
         `method`               `method_options`       notes
         ====================== ====================== ==================================================================
         `enhanced_single_site` `distr='glo'`          Preferred method for gauged catchments (i.e. with
-                                                      `Catchment.amax_record').
+                                                      `Catchment.amax_record`).
         `single_site`          `distr='glo'`          Alternative method for gauged catchments. Uses AMAX data from
                                                       subject station only.
         `pooling_group`        `distr='glo'`          Only possible method for ungauged catchments.
