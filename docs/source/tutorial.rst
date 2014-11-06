@@ -4,10 +4,10 @@ Tutorial and introduction to :mod:`floodestimation`
 Installation and requirements
 -----------------------------
 
-The :mod:`floodestimation` package will be available (TODO!) on the Python Package Index (PyPI) website. Installation would be
-straightforward and is typically done like this from a shell prompt:
+The :mod:`floodestimation` package is available for download on the Python Package Index (PyPI) website. Installation
+is straightforward and is typically done like this from a command prompt:
 
-.. code-block:: shell
+.. code-block:: bash
 
     pip install floodestimation
 
@@ -15,12 +15,15 @@ On Windows `pip` is typically installed under `C:\\Program Files\\Python33\\Scri
 
 In case of downloading the package manually, the following other packages are required and must be availabe:
 
-- `appdirs`
-- `sqlalchemy`
 - `numpy`
 - `scipy`
+- `appdirs`
+- `sqlalchemy`
+- `lmoments3`
 
-The :mod:`floodestimation` package has been tested with Python 3.2 to 3.4.
+Installation packages for `numpy` and `scipy` for Windows are available on Gholk
+
+The :mod:`floodestimation` package has been tested with Python 3.3 to 3.4.
 
 Typical workflow
 ----------------
@@ -70,14 +73,14 @@ throughout the program.
 
     dee_catchment = load_catchment('River Dee.CD3')
 
-This loads the catchment from the `.CD3` file as an :class:`floodestimation.entities.Catchment` object. See the
+This loads the catchment from the `.CD3` file as an :class:`.entities.Catchment` object. See the
 `reference manual <entities.html>`_ for a detailed description of all object attributes.
 
 .. code-block:: python
 
     gauged_catchments = CatchmentCollections(db_session)
 
-This creates a :class:`floodestimation.collections.CatchmentCollections` object for quick access to gauged catchment
+This creates a :class:`.collections.CatchmentCollections` object for quick access to gauged catchment
 data stored in the database. The **first time**, when the database is still empty, the data will be automatically
 downloaded from the `National River Flow Archive website <http://www.ceh.ac.uk/data/nrfa/peakflow_overview.html>`_. This
 might take a little while.
@@ -87,9 +90,9 @@ might take a little while.
     analysis = QmedAnalysis(dee_catchment, gauged_catchments)
     dee_catchment_qmed = qmed_analysis.qmed()
 
-The :class:`floodestimation.analysis.QmedAnalysis` object provides a comprehensive set of methods to estimate QMED. The
-library will automatically identify the best method based on which data is available when calling :meth:`qmed()` without
-arguments. The following methods are available:
+The :class:`.analysis.QmedAnalysis` object provides a comprehensive set of methods to estimate QMED. The library will
+automatically identify the best method based on which data is available when calling :meth:`qmed()` without arguments.
+The following methods are available:
 
 - Using annual maximum flow records (for gauged catchments)
 - Using the Flood Estimation Handbook regression method (`science report SC050050
@@ -130,14 +133,14 @@ Explained step by step:
 
     gc_analysis = GrowthCurveAnalysis(dee_catchment, gauged_catchments)
 
-Th :class:`floodestimation.analysis.GrowthCurveAnalysis` provides methods to estimate growth curves for a catchment,
+Th :class:`.analysis.GrowthCurveAnalysis` provides methods to estimate growth curves for a catchment,
 using data from catchment itself or the collection of gauged catchments using a pooling group approach.
 
 .. code-block:: python
 
     dee_growth_curve = gc_analysis.growth_curve()
 
-Calling the :meth:`floodestimation.analysis.GrowthCurveAnalysis.growth_curve()` returns a growth curve method/function
+Calling the :meth:`.analysis.GrowthCurveAnalysis.growth_curve()` returns a growth curve method/function
 which can be used like this: `flow = dee_growth_curve(aep=0.01)`. The method parameter `aep` can be a single annual
 exceedance probability (AEP) value or a list of values. If a list of values is provided the returned value is a
 :class:`numpy.ndarray` of flows. The growth curve is estimated using one of the following methods:
@@ -171,5 +174,5 @@ frequency curve.
             format(donor.id, donor.location, donor.similarity_dist, donor.distance_to(dee_catchment)))
 
 The list of donor catchments used in the analysis can be accessed using the
-:attr:`floodestimation.analysis.GrowthCurveAnalysis.donor_catchments` attribute. This is a simple list of
-:class:`floodestimation.entities.Catchment` objects with an additional attribute :attr:`similarity_dist`.
+:attr:`.analysis.GrowthCurveAnalysis.donor_catchments` attribute. This is a simple list of
+:class:`.entities.Catchment` objects with an additional attribute :attr:`similarity_dist`.
