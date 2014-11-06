@@ -29,13 +29,13 @@ from . import parsers
 
 def load_catchment(cd3_file_path):
     """
-    Load catchment object from a CD3 file. This assumes there is also a corresponding AM file in the same folder as the
-    CD3 file.
+    Load catchment object from a `.CD3` file. If there is also a corresponding `.AM` file (annual maximum flow data) or
+    a `.PT` file (peaks over threshold data) in the same folder as the CD3 file, these datasets will also be loaded.
 
     :param cd3_file_path: File location of CD3 file
     :type cd3_file_path: str
-    :return: Catchment object including the `amax_records` attribute.
-    :rtype: :class:`floodestimation.entities.Catchment`
+    :return: Catchment object with the `amax_records` and `pot_dataset` attributes set (if data available).
+    :rtype: :class:`.entities.Catchment`
     """
     am_file_path = path.splitext(cd3_file_path)[0] + '.AM'
     pot_file_path = path.splitext(cd3_file_path)[0] + '.PT'
@@ -68,7 +68,7 @@ def gauged_catchments_to_db(session):
     Retrieves all gauged catchments (incl. catchment descriptors and annual maximum flow data) from the National River
     Flow Archive and saves it to a (sqlite) database.
 
-    :param session: database session to use, typically :meth:`floodestimation.db.Session()`
+    :param session: database session to use, typically `floodestimation.db.Session()`
     :type session: `sqlalchemy.orm.session.Session`
     """
     fehdata.clear_cache()
