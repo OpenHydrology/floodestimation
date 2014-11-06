@@ -21,7 +21,8 @@ In case of downloading the package manually, the following other packages are re
 - `sqlalchemy`
 - `lmoments3`
 
-Installation packages for `numpy` and `scipy` for Windows are available on Gholk
+Installation packages for `numpy` and `scipy` for Windows are available on the `Unoffical Windows Binaries for Python
+Extension Packages website <http://www.lfd.uci.edu/~gholke/pythonlibs/>`_.
 
 The :mod:`floodestimation` package has been tested with Python 3.3 to 3.4.
 
