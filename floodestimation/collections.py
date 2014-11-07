@@ -142,9 +142,13 @@ class CatchmentCollections(object):
         :return: list of catchments sorted by similarity
         :type: list of :class:`floodestimation.entities.Catchment`
         """
-        query = self.db_session.query(Catchment).join(Descriptors). \
+        query = self.db_session.query(Catchment).\
+            join(Catchment.descriptors). \
+            join(Catchment.amax_records).\
             filter(Catchment.is_suitable_for_pooling,
-                   or_(Descriptors.urbext2000 < 0.03, Descriptors.urbext2000 == None))
+                   or_(Descriptors.urbext2000 < 0.03, Descriptors.urbext2000 == None)).\
+            group_by(Catchment).\
+            having(func.count(AmaxRecord.catchment_id) >= 10)  # At least 10 AMAX records
         if include_subject_catchment == 'exclude':
             # Remove subject catchment from donor list (if already in)
             query = query.filter(Catchment.id != subject_catchment.id)
