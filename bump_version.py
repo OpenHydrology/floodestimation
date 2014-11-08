@@ -88,7 +88,8 @@ def update_doc_conf(new_version):
 def update_changelog(new_version):
     file_name = 'CHANGELOG.txt'
 
-    new_content = ['version {}.{}.{} ({})\n'.format(new_version[0], new_version[1], new_version[2], date.today())]
+    header = 'version {}.{}.{} ({})'.format(new_version[0], new_version[1], new_version[2], date.today())
+    new_content = [header + '\n', '-' * len(header) + '\n']
     with open(file_name) as file:
         for line in file:
             new_content.append(line)
