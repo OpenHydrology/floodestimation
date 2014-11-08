@@ -2,6 +2,7 @@ import os
 import sys
 import tempfile
 import shutil
+from datetime import date
 
 
 HELP_TEXT = \
@@ -28,11 +29,17 @@ def main(argv):
     new_version[level_index] = old_version[level_index] + 1
 
     print("Previous version: {}.{}.{}".format(*old_version))
+    print("Current version:  {}.{}.{}".format(*new_version))
 
     update_package_setup(new_version)
-    update_doc_conf(new_version)
+    print("Packup setup.py updated.")
 
-    print("Current version:  {}.{}.{}".format(*new_version))
+    update_doc_conf(new_version)
+    print("Documentation conf.py updated.")
+
+    update_changelog(new_version)
+    print("CHANGELOG.txt updated.")
+
 
 
 def existing_version():
@@ -69,6 +76,21 @@ def update_doc_conf(new_version):
                 line = "version = '{}.{}'\n".format(*new_version[0:2])
             elif line.strip().startswith('release'):
                 line = "release = '{}.{}.{}'\n".format(*new_version)
+            new_content.append(line)
+
+    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False) as temp_file:
+        for line in new_content:
+            temp_file.write(line)
+    shutil.copy(temp_file.name, file_name)
+    os.remove(temp_file.name)
+
+
+def update_changelog(new_version):
+    file_name = 'CHANGELOG.txt'
+
+    new_content = ['version {}.{}.{} ({})\n'.format(new_version[0], new_version[1], new_version[2], date.today())]
+    with open(file_name) as file:
+        for line in file:
             new_content.append(line)
 
     with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False) as temp_file:
