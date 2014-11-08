@@ -1,0 +1,82 @@
+import os
+import sys
+import tempfile
+import shutil
+
+
+HELP_TEXT = \
+"""One of the following arguments must be supplied:
+- 'major': to increase major version number, e.g. from 1.2.3 to 2.0.0
+- 'minor': to increase minor version number, e.g. from 1.2.3 to 1.3.0
+- 'patch': to increase patch number, e..g from 1.2.3 to 1.2.4"""
+
+LEVELS = ['major', 'minor', 'patch']
+
+
+def main(argv):
+    try:
+        level_index = LEVELS.index(argv[0].lower())  # 0, 1 or 2
+    except (IndexError, ValueError):
+        print(HELP_TEXT)
+        sys.exit()
+
+    old_version = existing_version()
+
+    new_version = [0, 0, 0]
+    for index, value in enumerate(new_version[0:level_index]):
+        new_version[index] = old_version[index]
+    new_version[level_index] = old_version[level_index] + 1
+
+    print("Previous version: {}.{}.{}".format(*old_version))
+
+    update_package_setup(new_version)
+    update_doc_conf(new_version)
+
+    print("Current version:  {}.{}.{}".format(*new_version))
+
+
+def existing_version():
+    with open('setup.py') as setup_file:
+        for line in setup_file:
+            if line.strip().startswith('version'):
+                return [int(s) for s in line.strip().split('=')[1].strip("',").split('.')]
+
+
+def update_package_setup(new_version):
+    file_name= 'setup.py'
+
+    new_content = []
+    with open(file_name) as file:
+        for line in file:
+            if line.strip().startswith('version'):
+                line = "    version='{}.{}.{}',\n".format(*new_version)
+            new_content.append(line)
+
+    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False) as temp_file:
+        for line in new_content:
+            temp_file.write(line)
+    shutil.copy(temp_file.name, file_name)
+    os.remove(temp_file.name)
+
+
+def update_doc_conf(new_version):
+    file_name = './docs/source/conf.py'
+
+    new_content = []
+    with open(file_name) as file:
+        for line in file:
+            if line.strip().startswith('version'):
+                line = "version = '{}.{}'\n".format(*new_version[0:2])
+            elif line.strip().startswith('release'):
+                line = "release = '{}.{}.{}'\n".format(*new_version)
+            new_content.append(line)
+
+    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False) as temp_file:
+        for line in new_content:
+            temp_file.write(line)
+    shutil.copy(temp_file.name, file_name)
+    os.remove(temp_file.name)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
