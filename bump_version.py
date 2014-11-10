@@ -41,7 +41,6 @@ def main(argv):
     print("CHANGELOG.txt updated.")
 
 
-
 def existing_version():
     with open('setup.py') as setup_file:
         for line in setup_file:
@@ -49,40 +48,40 @@ def existing_version():
                 return [int(s) for s in line.strip().split('=')[1].strip("',").split('.')]
 
 
+def replace_file_content(file_name, content):
+    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False) as temp_file:
+        for line in content:
+            temp_file.write(line)
+    shutil.copy(temp_file.name, file_name)
+    os.remove(temp_file.name)
+
+
 def update_package_setup(new_version):
     file_name= 'setup.py'
 
     new_content = []
-    with open(file_name) as file:
-        for line in file:
+    with open(file_name) as f:
+        for line in f:
             if line.strip().startswith('version'):
                 line = "    version='{}.{}.{}',\n".format(*new_version)
             new_content.append(line)
 
-    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False) as temp_file:
-        for line in new_content:
-            temp_file.write(line)
-    shutil.copy(temp_file.name, file_name)
-    os.remove(temp_file.name)
+    replace_file_content(file_name, new_content)
 
 
 def update_doc_conf(new_version):
     file_name = './docs/source/conf.py'
 
     new_content = []
-    with open(file_name) as file:
-        for line in file:
+    with open(file_name) as f:
+        for line in f:
             if line.strip().startswith('version'):
                 line = "version = '{}.{}'\n".format(*new_version[0:2])
             elif line.strip().startswith('release'):
                 line = "release = '{}.{}.{}'\n".format(*new_version)
             new_content.append(line)
 
-    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False) as temp_file:
-        for line in new_content:
-            temp_file.write(line)
-    shutil.copy(temp_file.name, file_name)
-    os.remove(temp_file.name)
+    replace_file_content(file_name, new_content)
 
 
 def update_changelog(new_version):
@@ -90,15 +89,11 @@ def update_changelog(new_version):
 
     header = 'version {}.{}.{} ({})'.format(new_version[0], new_version[1], new_version[2], date.today())
     new_content = [header + '\n', '-' * len(header) + '\n']
-    with open(file_name) as file:
-        for line in file:
+    with open(file_name) as f:
+        for line in f:
             new_content.append(line)
 
-    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False) as temp_file:
-        for line in new_content:
-            temp_file.write(line)
-    shutil.copy(temp_file.name, file_name)
-    os.remove(temp_file.name)
+    replace_file_content(file_name, new_content)
 
 
 if __name__ == "__main__":
