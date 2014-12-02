@@ -2,4 +2,4 @@ appdirs
 sqlalchemy
 numpy
 scipy
-lmoments3
+lmoments3>=1.0.1

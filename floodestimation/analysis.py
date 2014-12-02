@@ -20,7 +20,9 @@
 Module containing flood estimation analysis methods, including QMED, growth curves etc.
 """
 from math import log, exp, sqrt, floor
+import copy
 import lmoments3 as lm
+import lmoments3.distr as lm_distr
 import numpy as np
 from scipy import optimize
 
@@ -607,7 +609,7 @@ class GrowthCurveAnalysis(object):
         Methodology source: Science Report SC050050, para. 6.7.5
         """
         z = self._dimensionless_flows(catchment)
-        l1, l2, t3 = lm.samlmu(z, nmom=3)
+        l1, l2, t3 = lm.lmom_ratios(z, nmom=3)
         return l2 / l1, t3
 
     def _l_cv_weight(self, donor_catchment):
@@ -785,25 +787,29 @@ class GrowthCurve():
         #: Sample L-kurtosis (t4, not used to create distribution function)
         self.kurtosis = kurtosis
         try:
-            self._inverse_cdf = getattr(lm, 'qua' + self.distr)
-            #: Distribution function parameters: `[location, scale, shape]`. Except for the `location` parameter, all
-            #: other parameters are estimated using the sample variance and skew linear moments.
-            self.params = getattr(lm, 'pel' + distr)([1, var, skew])
-            self.params[0] = self._solve_location_param()
+            #: Statistical distribution as scipy `rv_continous` class, extended with L-moment methods.
+            self.distr_f = getattr(lm_distr, distr)
+            #: Distribution function parameter. Except for the `loc` parameter, all other parameters are estimated using
+            #: the sample variance and skew linear moments.
+            self.params = self.distr_f.lmom_fit(lmom_ratios=[1, var, skew])
+            self.params['loc'] = self._solve_location_param()
 
             #: The **distribution's** L-kurtosis which may be different from the **sample** L-kurtosis (t4).
-            self.distr_kurtosis = getattr(lm, 'lmr' + distr)(self.params, 4)[3]
+            self.distr_kurtosis = self.distr_f.lmom_ratios(nmom=4, **self.params)[3]
         except AttributeError:
             raise InsufficientDataError("Distribution function `{}` does not exist.".format(distr))
 
     def __call__(self, aep):
-        return self._inverse_cdf(1 - np.array(aep), self.params)
+        return self.distr_f.ppf(1 - np.array(aep), **self.params)
 
     def _solve_location_param(self):
         """
         We're lazy here and simply iterate to find the location parameter such that growth_curve(0.5)=1.
         """
-        f = lambda location: self._inverse_cdf(0.5, [location] + self.params[1:3]) - 1
+        params = copy.copy(self.params)
+        del params['loc']
+
+        f = lambda location: self.distr_f.ppf(0.5, loc=location, **params) - 1
         return optimize.brentq(f, -10, 10)
 
     def kurtosis_fit(self):
