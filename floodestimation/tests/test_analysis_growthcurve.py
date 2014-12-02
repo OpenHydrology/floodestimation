@@ -123,9 +123,9 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         growth_curve = analysis.growth_curve(method='single_site')
         params = growth_curve.params
 
-        self.assertAlmostEqual(params[0], 1)
-        self.assertAlmostEqual(params[1], 0.2202, places=4)
-        self.assertAlmostEqual(params[2], 0.0908, places=4)
+        self.assertAlmostEqual(params['loc'], 1)
+        self.assertAlmostEqual(params['scale'], 0.2202, places=4)
+        self.assertAlmostEqual(params['k'], 0.0908, places=4)
         # Kurtosis calculated from L-skew using eqns on
         # http://researcher.watson.ibm.com/researcher/view_group.php?id=2639
         self.assertAlmostEqual(growth_curve.distr_kurtosis, 0.1735, places=4)
