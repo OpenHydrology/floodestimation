@@ -1,6 +1,5 @@
 from setuptools import setup
 from os import path
-from codecs import open
 
 here = path.abspath(path.dirname(__file__))
 # Get the long description from the relevant file
