@@ -57,7 +57,7 @@ class QmedAnalysis(object):
     # : Methods available to estimate QMED, in order of best/preferred method
     methods = ('amax_records', 'pot_records', 'descriptors', 'descriptors_1999', 'area', 'channel_width')
 
-    def __init__(self, catchment, gauged_catchments=None):
+    def __init__(self, catchment, gauged_catchments=None, results_log=None):
         """
         Creates a QMED analysis object.
 
@@ -65,6 +65,8 @@ class QmedAnalysis(object):
         :type catchment: :class:`.entities.Catchment`
         :param gauged_catchments: catchment collections objects for retrieval of gauged data for donor analyses
         :type gauged_catchments: :class:`.collections.CatchmentCollections`
+        :param results_log: dict to store intermediate results
+        :type results_log: dict
         """
 
         #: Subject catchment
@@ -72,6 +74,10 @@ class QmedAnalysis(object):
         #: :class:`.collections.CatchmentCollections` object for retrieval of gauged data for donor based analyses
         #: (optional)
         self.gauged_catchments = gauged_catchments
+        if results_log:
+            self.results_log = results_log
+        else:
+            self.results_log = {}
 
         #: Method for weighting multiple QMED donors, options are:
         #:
@@ -365,17 +371,37 @@ class QmedAnalysis(object):
                          * 0.1536 ** (1000 / self.catchment.descriptors.saar) \
                          * self.catchment.descriptors.farl ** 3.4451 \
                          * 0.0460 ** (self.catchment.descriptors.bfihost ** 2.0)
+            # Log intermediate results
+            self.results_log['qmed_descr_rural'] = qmed_rural
+
             if donor_catchments is None:
                 # If no donor catchments are provided, find the nearest 25
                 donor_catchments = self.find_donor_catchments()
             if donor_catchments:
                 # If found multiply rural estimate with weighted adjustment factors from all donors
-                qmed_rural *= np.sum(self._donor_weights(donor_catchments) * self._donor_adj_factors(donor_catchments))
+                weights = self._donor_weights(donor_catchments)
+                factors = self._donor_adj_factors(donor_catchments)
+                donor_adj_factor = np.sum(weights * factors)
+                qmed_rural *= donor_adj_factor
+
+                # Log intermediate results
+                self.results_log['donors'] = donor_catchments
+                for i, donor in enumerate(self.results_log['donors']):
+                    donor.weight = weights[i]
+                    donor.factor = factors[i]
+                self.results_log['donor_adj_factor'] = donor_adj_factor
+                self.results_log['qmed_adj_rural'] = qmed_rural
+
             if as_rural:
                 return qmed_rural
             else:
                 # Apply urbanisation adjustment
-                return qmed_rural * self.urban_adj_factor()
+                urban_adj_factor = self.urban_adj_factor()
+
+                # Log intermediate results
+                self.results_log['urban_adj_factor'] = urban_adj_factor
+                self.results_log['qmed_descr_urban'] = self.results_log['qmed_descr_rural'] * urban_adj_factor
+                return qmed_rural * urban_adj_factor
         except (TypeError, KeyError):
             raise InsufficientDataError("Catchment `descriptors` attribute must be set first.")
 
