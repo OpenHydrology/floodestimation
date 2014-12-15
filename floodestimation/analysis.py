@@ -345,7 +345,7 @@ class QmedAnalysis(object):
         """
         return self._qmed_from_descriptors_2008(**method_options)
 
-    def _qmed_from_descriptors_2008(self, as_rural=False, donor_catchments=[]):
+    def _qmed_from_descriptors_2008(self, as_rural=False, donor_catchments=None):
         """
         Return QMED estimation based on FEH catchment descriptors, 2008 methodology.
 
@@ -353,8 +353,8 @@ class QmedAnalysis(object):
 
         :param as_rural: assume catchment is fully rural. Default: false.
         :type as rural: bool
-        :param donor_catchments: override donor catchment to improve QMED catchment. If `None` (default), donor catchment
-        will be searched automatically
+        :param donor_catchments: override donor catchment to improve QMED catchment. If `None` (default),
+        donor catchment will be searched automatically, if empty list, no donors will be used.
         :type donor_catchments: :class:`Catchment`
         :return: QMED in m³/s
         :rtype: float
@@ -365,7 +365,7 @@ class QmedAnalysis(object):
                          * 0.1536 ** (1000 / self.catchment.descriptors.saar) \
                          * self.catchment.descriptors.farl ** 3.4451 \
                          * 0.0460 ** (self.catchment.descriptors.bfihost ** 2.0)
-            if not donor_catchments:
+            if donor_catchments is None:
                 # If no donor catchments are provided, find the nearest 25
                 donor_catchments = self.find_donor_catchments()
             if donor_catchments:
