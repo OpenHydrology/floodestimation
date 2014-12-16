@@ -24,7 +24,7 @@ APP_AUTHOR = 'Open Hydrology'
 
 # URL to retrieve json file with settings, e.g. FEH data download locations
 OPEN_HYDROLOGY_JSON_URL = \
-    'https://github.com/OpenHydrology/StatisticalFloodEstimationTool/blob/master/floodestimation/fehdata.json'
+    'https://raw.githubusercontent.com/OpenHydrology/floodestimation/master/floodestimation/fehdata.json'
 # Default FEH data download location
 FEH_DATA_URL = 'http://www.ceh.ac.uk/data/nrfa/peak_flow/WINFAP-FEH_v3.3.4.zip'
 

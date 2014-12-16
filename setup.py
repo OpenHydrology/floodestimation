@@ -37,4 +37,7 @@ setup(
         'appdirs',
         'sqlalchemy'
     ],
+    package_data={
+        'floodestimation': ['feh_data.json'],
+    },
 )
