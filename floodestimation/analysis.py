@@ -74,7 +74,7 @@ class QmedAnalysis(object):
         #: :class:`.collections.CatchmentCollections` object for retrieval of gauged data for donor based analyses
         #: (optional)
         self.gauged_catchments = gauged_catchments
-        if results_log:
+        if results_log is not None:
             self.results_log = results_log
         else:
             self.results_log = {}
@@ -535,7 +535,7 @@ class GrowthCurveAnalysis(object):
     #: Available distribution functions for growth curves
     distributions = ('glo', 'gev')
 
-    def __init__(self, catchment, gauged_catchments=None):
+    def __init__(self, catchment, gauged_catchments=None, results_log=None):
         #: Subject catchment
         self.catchment = catchment
         #: :class:`.collections.CatchmentCollections` object for retrieval of gauged data for donor based analyses
@@ -544,6 +544,10 @@ class GrowthCurveAnalysis(object):
         #: List of donor catchments. Either set manually or by calling
         #: :meth:`.GrowthCurveAnalysis.find_donor_catchments` or implicitly when calling :meth:`.growth_curve()`.
         self.donor_catchments = []
+        if results_log is not None:
+            self.results_log = results_log
+        else:
+            self.results_log = {}
 
     def growth_curve(self, method='best', **method_options):
         """
