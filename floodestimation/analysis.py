@@ -603,8 +603,9 @@ class GrowthCurveAnalysis(object):
 
         Methodology source: Science Report SC050050, para. 6.4.1-6.4.2
         """
-        if not hasattr(catchments, '__getitem__'):
+        if not hasattr(catchments, '__getitem__'):  # In case of a single catchment
             l_cv, l_skew = self._l_cv_and_skew(self.catchment)
+            self.results_log['donors'] = []
         else:
             # Prepare arrays for donor L-CVs and L-SKEWs and their weights
             n = len(catchments)
@@ -630,6 +631,21 @@ class GrowthCurveAnalysis(object):
             l_skew_weights /= sum(l_skew_weights)  # Weights sum to 1
             l_skew = sum(l_skew_weights * l_skews)
 
+            # Record intermediate results (donors)
+            self.results_log['donors'] = catchments
+            total_record_length = 0
+            for index, donor in enumerate(self.results_log['donors']):
+                donor.l_cv = l_cvs[index]
+                donor.l_cv_weight = l_cv_weights[index]
+                donor.l_skew = l_skews[index]
+                donor.l_skew_weight = l_skew_weights[index]
+                donor.record_length = len(donor.amax_records)
+                total_record_length += donor.record_length
+            self.results_log['donors_record_length'] = total_record_length
+
+        # Record intermediate results
+        self.results_log['l_cv'] = l_cv
+        self.results_log['l_skew'] = l_skew
         return l_cv, l_skew
 
     def _l_cv_and_skew(self, catchment):
@@ -702,7 +718,12 @@ class GrowthCurveAnalysis(object):
         """
         if not self.donor_catchments:
             self.find_donor_catchments()
-        return GrowthCurve(distr, *self._var_and_skew(self.donor_catchments))
+        gc = GrowthCurve(distr, *self._var_and_skew(self.donor_catchments))
+
+        # Record intermediate results
+        self.results_log['distr_name'] = distr.upper()
+        self.results_log['distr_params'] = gc.params
+        return gc
 
     def _growth_curve_enhanced_single_site(self, distr='glo'):
         """
@@ -714,20 +735,6 @@ class GrowthCurveAnalysis(object):
         if not self.donor_catchments:
             self.find_donor_catchments(include_subject_catchment='force')
         return GrowthCurve(distr, *self._var_and_skew(self.donor_catchments))
-
-    @staticmethod
-    def _growth_curve_function(distr, var, skew):
-        """
-        Return a growth curve function/method for a given `distribution` with variance `var` and skew `skew`. The
-        returned growth curve function is an inverse cumulative distribution function with parameter `aep`.
-        """
-        try:
-            params = getattr(lm, 'pel' + distr)([1, var, skew])
-            #params[0] = 1
-            f = getattr(lm, 'qua' + distr)
-            return lambda aep: f(1 - np.array(aep), params)
-        except AttributeError:
-            raise InsufficientDataError("Distribution function `{}` does not exist.".format(distr))
 
     #: Dict of weighting factors and standard deviation for catchment descriptors to use in calculating the similarity
     #: distance measure between the subject catchment and each donor catchment. The dict is structured like this:
