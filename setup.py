@@ -38,6 +38,6 @@ setup(
         'sqlalchemy'
     ],
     package_data={
-        'floodestimation': ['feh_data.json'],
+        'floodestimation': ['fehdata.json'],
     },
 )
