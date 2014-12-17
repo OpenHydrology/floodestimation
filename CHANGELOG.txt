@@ -1,3 +1,9 @@
+version 0.1.3 (2014-12-17)
+--------------------------
+- Setup fixes to include json config file
+- Added intermediate results for analyses (incomplete)
+- Providing empty list for donors forces not using donors at all
+
 version 0.1.2 (2014-12-02)
 --------------------------
 - Compatibility with `lmoments3` package version 1.0

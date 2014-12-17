@@ -57,7 +57,7 @@ class QmedAnalysis(object):
     # : Methods available to estimate QMED, in order of best/preferred method
     methods = ('amax_records', 'pot_records', 'descriptors', 'descriptors_1999', 'area', 'channel_width')
 
-    def __init__(self, catchment, gauged_catchments=None):
+    def __init__(self, catchment, gauged_catchments=None, results_log=None):
         """
         Creates a QMED analysis object.
 
@@ -65,6 +65,8 @@ class QmedAnalysis(object):
         :type catchment: :class:`.entities.Catchment`
         :param gauged_catchments: catchment collections objects for retrieval of gauged data for donor analyses
         :type gauged_catchments: :class:`.collections.CatchmentCollections`
+        :param results_log: dict to store intermediate results
+        :type results_log: dict
         """
 
         #: Subject catchment
@@ -72,6 +74,10 @@ class QmedAnalysis(object):
         #: :class:`.collections.CatchmentCollections` object for retrieval of gauged data for donor based analyses
         #: (optional)
         self.gauged_catchments = gauged_catchments
+        if results_log is not None:
+            self.results_log = results_log
+        else:
+            self.results_log = {}
 
         #: Method for weighting multiple QMED donors, options are:
         #:
@@ -345,7 +351,7 @@ class QmedAnalysis(object):
         """
         return self._qmed_from_descriptors_2008(**method_options)
 
-    def _qmed_from_descriptors_2008(self, as_rural=False, donor_catchments=[]):
+    def _qmed_from_descriptors_2008(self, as_rural=False, donor_catchments=None):
         """
         Return QMED estimation based on FEH catchment descriptors, 2008 methodology.
 
@@ -353,8 +359,8 @@ class QmedAnalysis(object):
 
         :param as_rural: assume catchment is fully rural. Default: false.
         :type as rural: bool
-        :param donor_catchments: override donor catchment to improve QMED catchment. If `None` (default), donor catchment
-        will be searched automatically
+        :param donor_catchments: override donor catchment to improve QMED catchment. If `None` (default),
+        donor catchment will be searched automatically, if empty list, no donors will be used.
         :type donor_catchments: :class:`Catchment`
         :return: QMED in m³/s
         :rtype: float
@@ -365,17 +371,37 @@ class QmedAnalysis(object):
                          * 0.1536 ** (1000 / self.catchment.descriptors.saar) \
                          * self.catchment.descriptors.farl ** 3.4451 \
                          * 0.0460 ** (self.catchment.descriptors.bfihost ** 2.0)
-            if not donor_catchments:
+            # Log intermediate results
+            self.results_log['qmed_descr_rural'] = qmed_rural
+
+            if donor_catchments is None:
                 # If no donor catchments are provided, find the nearest 25
                 donor_catchments = self.find_donor_catchments()
             if donor_catchments:
                 # If found multiply rural estimate with weighted adjustment factors from all donors
-                qmed_rural *= np.sum(self._donor_weights(donor_catchments) * self._donor_adj_factors(donor_catchments))
+                weights = self._donor_weights(donor_catchments)
+                factors = self._donor_adj_factors(donor_catchments)
+                donor_adj_factor = np.sum(weights * factors)
+                qmed_rural *= donor_adj_factor
+
+                # Log intermediate results
+                self.results_log['donors'] = donor_catchments
+                for i, donor in enumerate(self.results_log['donors']):
+                    donor.weight = weights[i]
+                    donor.factor = factors[i]
+                self.results_log['donor_adj_factor'] = donor_adj_factor
+                self.results_log['qmed_adj_rural'] = qmed_rural
+
             if as_rural:
                 return qmed_rural
             else:
                 # Apply urbanisation adjustment
-                return qmed_rural * self.urban_adj_factor()
+                urban_adj_factor = self.urban_adj_factor()
+
+                # Log intermediate results
+                self.results_log['urban_adj_factor'] = urban_adj_factor
+                self.results_log['qmed_descr_urban'] = self.results_log['qmed_descr_rural'] * urban_adj_factor
+                return qmed_rural * urban_adj_factor
         except (TypeError, KeyError):
             raise InsufficientDataError("Catchment `descriptors` attribute must be set first.")
 
@@ -509,7 +535,7 @@ class GrowthCurveAnalysis(object):
     #: Available distribution functions for growth curves
     distributions = ('glo', 'gev')
 
-    def __init__(self, catchment, gauged_catchments=None):
+    def __init__(self, catchment, gauged_catchments=None, results_log=None):
         #: Subject catchment
         self.catchment = catchment
         #: :class:`.collections.CatchmentCollections` object for retrieval of gauged data for donor based analyses
@@ -518,6 +544,10 @@ class GrowthCurveAnalysis(object):
         #: List of donor catchments. Either set manually or by calling
         #: :meth:`.GrowthCurveAnalysis.find_donor_catchments` or implicitly when calling :meth:`.growth_curve()`.
         self.donor_catchments = []
+        if results_log is not None:
+            self.results_log = results_log
+        else:
+            self.results_log = {}
 
     def growth_curve(self, method='best', **method_options):
         """
@@ -573,8 +603,9 @@ class GrowthCurveAnalysis(object):
 
         Methodology source: Science Report SC050050, para. 6.4.1-6.4.2
         """
-        if not hasattr(catchments, '__getitem__'):
+        if not hasattr(catchments, '__getitem__'):  # In case of a single catchment
             l_cv, l_skew = self._l_cv_and_skew(self.catchment)
+            self.results_log['donors'] = []
         else:
             # Prepare arrays for donor L-CVs and L-SKEWs and their weights
             n = len(catchments)
@@ -600,6 +631,21 @@ class GrowthCurveAnalysis(object):
             l_skew_weights /= sum(l_skew_weights)  # Weights sum to 1
             l_skew = sum(l_skew_weights * l_skews)
 
+            # Record intermediate results (donors)
+            self.results_log['donors'] = catchments
+            total_record_length = 0
+            for index, donor in enumerate(self.results_log['donors']):
+                donor.l_cv = l_cvs[index]
+                donor.l_cv_weight = l_cv_weights[index]
+                donor.l_skew = l_skews[index]
+                donor.l_skew_weight = l_skew_weights[index]
+                donor.record_length = len(donor.amax_records)
+                total_record_length += donor.record_length
+            self.results_log['donors_record_length'] = total_record_length
+
+        # Record intermediate results
+        self.results_log['l_cv'] = l_cv
+        self.results_log['l_skew'] = l_skew
         return l_cv, l_skew
 
     def _l_cv_and_skew(self, catchment):
@@ -672,7 +718,12 @@ class GrowthCurveAnalysis(object):
         """
         if not self.donor_catchments:
             self.find_donor_catchments()
-        return GrowthCurve(distr, *self._var_and_skew(self.donor_catchments))
+        gc = GrowthCurve(distr, *self._var_and_skew(self.donor_catchments))
+
+        # Record intermediate results
+        self.results_log['distr_name'] = distr.upper()
+        self.results_log['distr_params'] = gc.params
+        return gc
 
     def _growth_curve_enhanced_single_site(self, distr='glo'):
         """
@@ -684,20 +735,6 @@ class GrowthCurveAnalysis(object):
         if not self.donor_catchments:
             self.find_donor_catchments(include_subject_catchment='force')
         return GrowthCurve(distr, *self._var_and_skew(self.donor_catchments))
-
-    @staticmethod
-    def _growth_curve_function(distr, var, skew):
-        """
-        Return a growth curve function/method for a given `distribution` with variance `var` and skew `skew`. The
-        returned growth curve function is an inverse cumulative distribution function with parameter `aep`.
-        """
-        try:
-            params = getattr(lm, 'pel' + distr)([1, var, skew])
-            #params[0] = 1
-            f = getattr(lm, 'qua' + distr)
-            return lambda aep: f(1 - np.array(aep), params)
-        except AttributeError:
-            raise InsufficientDataError("Distribution function `{}` does not exist.".format(distr))
 
     #: Dict of weighting factors and standard deviation for catchment descriptors to use in calculating the similarity
     #: distance measure between the subject catchment and each donor catchment. The dict is structured like this:

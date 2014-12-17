@@ -1,6 +1,5 @@
 from setuptools import setup
 from os import path
-from codecs import open
 
 here = path.abspath(path.dirname(__file__))
 # Get the long description from the relevant file
@@ -9,7 +8,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='floodestimation',
-    version='0.1.2',
+    version='0.1.3',
     packages=['floodestimation'],
     url='https://github.com/OpenHydrology/floodestimation',
     license='GPLv3',
@@ -38,4 +37,7 @@ setup(
         'appdirs',
         'sqlalchemy'
     ],
+    package_data={
+        'floodestimation': ['fehdata.json'],
+    },
 )
