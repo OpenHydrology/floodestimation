@@ -98,23 +98,24 @@ class QmedAnalysis(object):
         The preferred/best order of methods is defined by :attr:`qmed_methods`. Alternatively, a method can be supplied
         e.g. `method='descriptors_1999'` to force the use of a particular method.
 
-        ================= ====================== =======================================================================
-        `method`          `method_options`       notes
-        ================= ====================== =======================================================================
-        `amax_records`    n/a                    Simple median of annual maximum flow records using
-                                                 `Catchment.amax_records`.
-        `pot_records`     n/a                    Uses peaks-over-threshold (POT) flow records. Suitable for flow records
-                                                 shorter than 14 years.
-        `descriptors`                            Synonym for `method=descriptors2008`.
-        `descriptors2008` `as_rural=False`       FEH 2008 regression methodology using `Catchment.descriptors`. Setting
-                          `donor_catchments=[]`  `as_rural=True` returns rural estimate and setting `donor_catchments` to
-                                                 a specific list of :class:`Catchment` object **overrides** automatic
-                                                 selection of the most suitable donor catchment.
-        `descriptors1999` as_rural=False         FEH 1999 regression methodology.
-        `area`            n/a                    Simplified FEH 1999 regression methodology using
-                                                 `Cachment.descriptors.dtm_area` only.
-        `channel_width`   n/a                    Emperical regression method using the river channel width only.
-        ================= ====================== =======================================================================
+        ================= ======================= ======================================================================
+        `method`          `method_options`        notes
+        ================= ======================= ======================================================================
+        `amax_records`    n/a                     Simple median of annual maximum flow records using
+                                                  `Catchment.amax_records`.
+        `pot_records`     n/a                     Uses peaks-over-threshold (POT) flow records. Suitable for flow
+                                                  records shorter than 14 years.
+        `descriptors`                             Synonym for `method=descriptors2008`.
+        `descriptors2008` `as_rural=False`        FEH 2008 regression methodology using `Catchment.descriptors`. Setting
+                          `donor_catchments=None` `as_rural=True` returns rural estimate and setting `donor_catchments`
+                                                  to a specific list of :class:`Catchment` object **overrides**
+                                                  automatic selection of the most suitable donor catchment. An empty
+                                                  list forces no donors to be used at all.
+        `descriptors1999` as_rural=False          FEH 1999 regression methodology.
+        `area`            n/a                     Simplified FEH 1999 regression methodology using
+                                                  `Cachment.descriptors.dtm_area` only.
+        `channel_width`   n/a                     Emperical regression method using the river channel width only.
+        ================= ======================= ======================================================================
 
         :param method: methodology to use to estimate QMED. Default: automatically choose best method.
         :type method: str
