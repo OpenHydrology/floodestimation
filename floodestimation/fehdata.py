@@ -68,9 +68,9 @@ def _retrieve_download_url():
         if remote_config['nrfa_url'].startswith('.'):
             remote_config['nrfa_url'] = 'file:' + pathname2url(os.path.abspath(remote_config['nrfa_url']))
 
+        # Save retrieved config data
         settings.config['nrfa']['version'] = remote_config['nrfa_version']
         settings.config['nrfa']['url'] = remote_config['nrfa_url']
-        settings.config['nrfa']['last_download'] = datetime.now().isoformat()
         settings.config.save()
 
         return remote_config['nrfa_url']
@@ -87,6 +87,9 @@ def download_data():
     with urlopen(_retrieve_download_url()) as f:
         with open(os.path.join(settings.CACHE_FOLDER, CACHE_ZIP), "wb") as local_file:
             local_file.write(f.read())
+
+    settings.config['nrfa']['last_download'] = datetime.now().isoformat()
+    settings.config.save()
 
 
 def unzip_data():
