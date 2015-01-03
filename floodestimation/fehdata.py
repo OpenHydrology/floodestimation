@@ -40,6 +40,7 @@ For parsing CD3 files and AMAX files see :mod:`floodestimation.parsers`.
 
 
 from urllib.request import urlopen, pathname2url
+from datetime import datetime
 import os
 import shutil
 import json
@@ -61,15 +62,21 @@ def _retrieve_download_url():
     """
     try:
         # Try to obtain the url from the Open Hydrology json config file.
-        with urlopen(settings.OPEN_HYDROLOGY_JSON_URL, timeout=10) as f:
-            config = json.loads(f.read().decode('utf-8'))
+        with urlopen(settings.config['nrfa']['oh_json_url'], timeout=10) as f:
+            remote_config = json.loads(f.read().decode('utf-8'))
         # This is just for testing, assuming a relative local file path starting with ./
-        if config['feh_data_url'].startswith('.'):
-            config['feh_data_url'] = 'file:' + pathname2url(os.path.abspath(config['feh_data_url']))
-        return config['feh_data_url']
+        if remote_config['nrfa_url'].startswith('.'):
+            remote_config['nrfa_url'] = 'file:' + pathname2url(os.path.abspath(remote_config['nrfa_url']))
+
+        settings.config['nrfa']['version'] = remote_config['nrfa_version']
+        settings.config['nrfa']['url'] = remote_config['nrfa_url']
+        settings.config['nrfa']['last_download'] = datetime.now().isoformat()
+        settings.config.save()
+
+        return remote_config['nrfa_url']
     except:
         # If that fails (for whatever reason) use the fallback constant.
-        return settings.FEH_DATA_URL
+        return settings.config['nrfa']['url']
 
 
 def download_data():

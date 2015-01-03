@@ -13,7 +13,8 @@ from floodestimation.entities import Catchment
 class TestCatchmentCollection(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        settings.OPEN_HYDROLOGY_JSON_URL = 'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
+        settings.config['nrfa']['oh_json_url'] = \
+            'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
         cls.db_session = db.Session()
 
     def tearDown(self):

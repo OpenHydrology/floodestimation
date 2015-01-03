@@ -11,7 +11,8 @@ class TestDatabase(unittest.TestCase):
     # data, unzipping the data and counting the number of am and cd3 files.
 
     def setUp(self):
-        settings.OPEN_HYDROLOGY_JSON_URL = 'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
+        settings.config['nrfa']['oh_json_url'] = \
+            'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
 
     def test_0_download_url_retrieval(self):
         self.assertTrue(fehdata._retrieve_download_url().endswith(r'/floodestimation/tests/data/FEH_data_small.zip'))
