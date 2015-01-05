@@ -82,3 +82,8 @@ def create_db_tables():
 def reset_db_tables():
     Base.metadata.drop_all(engine)
     create_db_tables()
+
+
+def empty_db_tables():
+    for table in reversed(metadata.sorted_tables):
+        engine.execute(table.delete())

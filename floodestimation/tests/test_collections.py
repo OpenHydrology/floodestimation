@@ -23,7 +23,7 @@ class TestCatchmentCollection(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.db_session.close()
-        db.reset_db_tables()
+        db.empty_db_tables()
 
     def test_catchment_by_number(self):
         expected = loaders.load_catchment('floodestimation/tests/data/17002.CD3')
