@@ -1,7 +1,7 @@
 import unittest
 import os
 from urllib.request import pathname2url
-
+from datetime import datetime
 import floodestimation.settings as settings
 import floodestimation.fehdata as fehdata
 
@@ -36,3 +36,10 @@ class TestDatabase(unittest.TestCase):
 
     def test_e_cd3_files(self):
         self.assertEqual(len(fehdata.cd3_files()), 6)
+
+    def test_f_metadata(self):
+        metadata = fehdata.nrfa_metadata()
+        self.assertIsNotNone(metadata['url'])
+        self.assertIsNotNone(metadata['version'])
+        self.assertIsNotNone(metadata['last_download'])
+        self.assertLess((datetime.utcnow() - metadata['last_download']).total_seconds(), 120)  # Less than 120 s. ago

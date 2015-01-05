@@ -45,7 +45,6 @@ import os
 import shutil
 import json
 from zipfile import ZipFile
-from codecs import open
 # Current package imports
 from . import settings
 
@@ -88,8 +87,29 @@ def download_data():
         with open(os.path.join(settings.CACHE_FOLDER, CACHE_ZIP), "wb") as local_file:
             local_file.write(f.read())
 
-    settings.config['nrfa']['last_download'] = datetime.now().isoformat()
+    settings.config['nrfa']['last_download'] = str(datetime.utcnow().timestamp())
     settings.config.save()
+
+
+def nrfa_metadata():
+    """
+    Return metadata on the NRFA data.
+
+    Returned metadata is a dict with the following elements:
+
+    - `url`: string with NRFA data download URL
+    - `version`: string with NRFA version number, e.g. '3.3.4'
+    - `last_download`: datetime of last download
+
+    :return: metadata
+    :rtype: dict
+    """
+    result = {
+        'url': settings.config.get('nrfa', 'url', fallback=None) or None,  # Empty strings '' become None
+        'version': settings.config.get('nrfa', 'version', fallback=None) or None,
+        'last_download': settings.config.get_datetime('nrfa', 'last_download', fallback=None) or None
+    }
+    return result
 
 
 def unzip_data():
