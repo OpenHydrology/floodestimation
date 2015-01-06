@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014  Florenz A.P. Hollebrandse <f.a.p.hollebrandse@protonmail.ch>
+# Copyright (c) 2014-2015  Florenz A.P. Hollebrandse <f.a.p.hollebrandse@protonmail.ch>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -49,8 +49,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.schema import MetaData
+import os.path
 # Current package imports
-from . import settings
+from .settings import config
 
 #: Base class all entities that should be stored as a table in the database should be inheriting from. For example:
 #:
@@ -65,7 +66,7 @@ from . import settings
 Base = declarative_base()
 
 # Set up database engine and session class
-engine = create_engine('sqlite:///' + settings.DB_FILE_PATH)
+engine = create_engine('sqlite:///' + os.path.join(config['db']['folder'], config['db']['filename']))
 metadata = MetaData(bind=engine, reflect=True)
 
 # When interaction with the database, modules should start a new `session` instance by simply calling `Session()`.
@@ -77,6 +78,9 @@ def create_db_tables():
     # This method is called from `floodestimation.__init__.py` to ensure that the database exist with valid tables when
     # importing and calling `Session()`.
     Base.metadata.create_all(engine)
+    # Update db.metadata
+    global metadata
+    metadata = MetaData(bind=engine, reflect=True)
 
 
 def reset_db_tables():
@@ -85,5 +89,8 @@ def reset_db_tables():
 
 
 def empty_db_tables():
+    """
+    Empty all database tables.
+    """
     for table in reversed(metadata.sorted_tables):
         engine.execute(table.delete())

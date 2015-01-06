@@ -40,6 +40,7 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.db_session.close()
+        db.empty_db_tables()
 
     def test_find_donors_without_collection(self):
         analysis = GrowthCurveAnalysis(self.catchment)

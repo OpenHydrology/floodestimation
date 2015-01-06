@@ -7,7 +7,6 @@ from floodestimation import db
 from floodestimation import loaders
 from floodestimation import settings
 from floodestimation.collections import CatchmentCollections
-from floodestimation.entities import Catchment
 
 
 class TestCatchmentCollection(unittest.TestCase):
@@ -16,6 +15,7 @@ class TestCatchmentCollection(unittest.TestCase):
         settings.config['nrfa']['oh_json_url'] = \
             'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
         cls.db_session = db.Session()
+        db.empty_db_tables()
 
     def tearDown(self):
         self.db_session.rollback()
