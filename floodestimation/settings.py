@@ -31,7 +31,6 @@ class Config(configparser.ConfigParser):
     FILE_NAME = 'config.ini'
     APP_NAME = 'fehdata'
     APP_ORG = 'Open Hydrology'
-    MAX_INTERPOLATION_DEPTH = 2
 
     def __init__(self):
         configparser.ConfigParser.__init__(self)
