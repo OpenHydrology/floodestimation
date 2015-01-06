@@ -46,9 +46,10 @@ import shutil
 import json
 from zipfile import ZipFile
 # Current package imports
-from . import settings
+from .settings import config
 
 
+CACHE_FOLDER = config.defaults()['cache_folder']
 CACHE_ZIP = 'FEH_data.zip'
 
 
@@ -61,21 +62,21 @@ def _retrieve_download_url():
     """
     try:
         # Try to obtain the url from the Open Hydrology json config file.
-        with urlopen(settings.config['nrfa']['oh_json_url'], timeout=10) as f:
+        with urlopen(config['nrfa']['oh_json_url'], timeout=10) as f:
             remote_config = json.loads(f.read().decode('utf-8'))
         # This is just for testing, assuming a relative local file path starting with ./
         if remote_config['nrfa_url'].startswith('.'):
             remote_config['nrfa_url'] = 'file:' + pathname2url(os.path.abspath(remote_config['nrfa_url']))
 
         # Save retrieved config data
-        settings.config['nrfa']['version'] = remote_config['nrfa_version']
-        settings.config['nrfa']['url'] = remote_config['nrfa_url']
-        settings.config.save()
+        config['nrfa']['version'] = remote_config['nrfa_version']
+        config['nrfa']['url'] = remote_config['nrfa_url']
+        config.save()
 
         return remote_config['nrfa_url']
     except:
         # If that fails (for whatever reason) use the fallback constant.
-        return settings.config['nrfa']['url']
+        return config['nrfa']['url']
 
 
 def download_data():
@@ -84,11 +85,11 @@ def download_data():
     folder.
     """
     with urlopen(_retrieve_download_url()) as f:
-        with open(os.path.join(settings.CACHE_FOLDER, CACHE_ZIP), "wb") as local_file:
+        with open(os.path.join(CACHE_FOLDER, CACHE_ZIP), "wb") as local_file:
             local_file.write(f.read())
 
-    settings.config['nrfa']['last_download'] = str(datetime.utcnow().timestamp())
-    settings.config.save()
+    config['nrfa']['downloaded_on'] = str(datetime.utcnow().timestamp())
+    config.save()
 
 
 def nrfa_metadata():
@@ -99,15 +100,17 @@ def nrfa_metadata():
 
     - `url`: string with NRFA data download URL
     - `version`: string with NRFA version number, e.g. '3.3.4'
-    - `last_download`: datetime of last download
+    - `published_on`: datetime of data release/publication (only month and year are accurate, rest should be ignored)
+    - `downloaded_on`: datetime of last download
 
     :return: metadata
     :rtype: dict
     """
     result = {
-        'url': settings.config.get('nrfa', 'url', fallback=None) or None,  # Empty strings '' become None
-        'version': settings.config.get('nrfa', 'version', fallback=None) or None,
-        'last_download': settings.config.get_datetime('nrfa', 'last_download', fallback=None) or None
+        'url': config.get('nrfa', 'url', fallback=None) or None,  # Empty strings '' become None
+        'version': config.get('nrfa', 'version', fallback=None) or None,
+        'published_on': config.get_datetime('nrfa', 'published_on', fallback=None) or None,
+        'downloaded_on': config.get_datetime('nrfa', 'downloaded_on', fallback=None) or None
     }
     return result
 
@@ -116,16 +119,16 @@ def unzip_data():
     """
     Extract all files from downloaded FEH data zip file.
     """
-    with ZipFile(os.path.join(settings.CACHE_FOLDER, CACHE_ZIP), 'r') as zf:
-        zf.extractall(path=settings.CACHE_FOLDER)
+    with ZipFile(os.path.join(CACHE_FOLDER, CACHE_ZIP), 'r') as zf:
+        zf.extractall(path=CACHE_FOLDER)
 
 
 def clear_cache():
     """
     Delete all files from cache folder.
     """
-    shutil.rmtree(settings.CACHE_FOLDER)
-    os.makedirs(settings.CACHE_FOLDER)
+    shutil.rmtree(CACHE_FOLDER)
+    os.makedirs(CACHE_FOLDER)
 
 
 def amax_files():
@@ -135,7 +138,7 @@ def amax_files():
     :return: List of file paths
     :rtype: list
     """
-    return [os.path.join(dp, f) for dp, dn, filenames in os.walk(settings.CACHE_FOLDER)
+    return [os.path.join(dp, f) for dp, dn, filenames in os.walk(CACHE_FOLDER)
             for f in filenames if os.path.splitext(f)[1].lower() == '.am']
 
 
@@ -146,5 +149,5 @@ def cd3_files():
     :return: List of file paths
     :rtype: list
     """
-    return [os.path.join(dp, f) for dp, dn, filenames in os.walk(settings.CACHE_FOLDER)
+    return [os.path.join(dp, f) for dp, dn, filenames in os.walk(CACHE_FOLDER)
             for f in filenames if os.path.splitext(f)[1].lower() == '.cd3']
