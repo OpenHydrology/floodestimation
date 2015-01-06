@@ -2,8 +2,8 @@ import unittest
 import os
 from urllib.request import pathname2url
 from datetime import datetime
-import floodestimation.settings as settings
-import floodestimation.fehdata as fehdata
+from floodestimation.settings import config
+from floodestimation import fehdata
 
 
 class TestDatabase(unittest.TestCase):
@@ -11,7 +11,7 @@ class TestDatabase(unittest.TestCase):
     # data, unzipping the data and counting the number of am and cd3 files.
 
     def setUp(self):
-        settings.config['nrfa']['oh_json_url'] = \
+        config['nrfa']['oh_json_url'] = \
             'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
 
     def test_0_download_url_retrieval(self):
@@ -19,17 +19,17 @@ class TestDatabase(unittest.TestCase):
 
     def test_a_clear_cache(self):
         fehdata.clear_cache()
-        self.assertFalse(os.listdir(settings.CACHE_FOLDER))
+        self.assertFalse(os.listdir(config['DEFAULT']['cache_folder']))
 
     def test_b_download(self):
         fehdata.download_data()
-        self.assertTrue(os.path.isfile(os.path.join(settings.CACHE_FOLDER, fehdata.CACHE_ZIP)))
+        self.assertTrue(os.path.isfile(os.path.join(config['DEFAULT']['cache_folder'], fehdata.CACHE_ZIP)))
 
     def test_c_unzip(self):
         fehdata.unzip_data()
-        self.assertTrue(os.path.isdir(os.path.join(settings.CACHE_FOLDER, 'Not suitable for QMED or Pooling')))
-        self.assertTrue(os.path.isdir(os.path.join(settings.CACHE_FOLDER, 'Suitable for Pooling')))
-        self.assertTrue(os.path.isdir(os.path.join(settings.CACHE_FOLDER, 'Suitable for QMED')))
+        self.assertTrue(os.path.isdir(os.path.join(config['DEFAULT']['cache_folder'], 'Not suitable for QMED or Pooling')))
+        self.assertTrue(os.path.isdir(os.path.join(config['DEFAULT']['cache_folder'], 'Suitable for Pooling')))
+        self.assertTrue(os.path.isdir(os.path.join(config['DEFAULT']['cache_folder'], 'Suitable for QMED')))
 
     def test_d_amax_files(self):
         self.assertEqual(len(fehdata.amax_files()), 6)
@@ -41,5 +41,7 @@ class TestDatabase(unittest.TestCase):
         metadata = fehdata.nrfa_metadata()
         self.assertIsNotNone(metadata['url'])
         self.assertIsNotNone(metadata['version'])
-        self.assertIsNotNone(metadata['last_download'])
-        self.assertLess((datetime.utcnow() - metadata['last_download']).total_seconds(), 120)  # Less than 120 s. ago
+        self.assertIsNotNone(metadata['published_on'])
+        self.assertLess((datetime.utcnow() - metadata['published_on']).total_seconds(), 2 * 365 * 24 * 3600)  # 2 yrs
+        self.assertIsNotNone(metadata['downloaded_on'])
+        self.assertLess((datetime.utcnow() - metadata['downloaded_on']).total_seconds(), 120)  # Less than 120 s. ago

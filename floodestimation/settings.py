@@ -21,22 +21,6 @@ from datetime import datetime
 from appdirs import AppDirs
 
 
-# Some standard names
-APP_NAME = 'fehdata'
-APP_AUTHOR = 'Open Hydrology'
-
-# Folder to store data
-DATA_FOLDER = AppDirs(APP_NAME, APP_AUTHOR).user_data_dir
-os.makedirs(DATA_FOLDER, exist_ok=True)
-
-# Cache folder
-CACHE_FOLDER = AppDirs(APP_NAME, APP_AUTHOR).user_cache_dir
-os.makedirs(CACHE_FOLDER, exist_ok=True)
-
-# Sqlite database for FEH data
-DB_FILE_PATH = os.path.join(DATA_FOLDER, 'fehdata.sqlite')
-
-
 class Config(configparser.ConfigParser):
     """
     Configuration/settings object.
@@ -45,12 +29,18 @@ class Config(configparser.ConfigParser):
     folder. Data is read immediately when object initiated. Data are only written to user file.
     """
     FILE_NAME = 'config.ini'
+    APP_NAME = 'fehdata'
+    APP_ORG = 'Open Hydrology'
+    MAX_INTERPOLATION_DEPTH = 2
 
     def __init__(self):
         configparser.ConfigParser.__init__(self)
+
         here = os.path.abspath(os.path.dirname(__file__))
+        self._app_folders = AppDirs(self.APP_NAME, self.APP_ORG)
         self._default_config_file = os.path.join(here, self.FILE_NAME)
-        self._user_config_file = os.path.join(DATA_FOLDER, self.FILE_NAME)
+        self._user_config_file = os.path.join(self._app_folders.user_config_dir, self.FILE_NAME)
+
         self.read_defaults()
         self.read()
 
@@ -71,7 +61,19 @@ class Config(configparser.ConfigParser):
         self.read_defaults()
 
     def read_defaults(self):
-        # Read defaults
+        # Setup standard folders
+        data_folder = self._app_folders.user_data_dir
+        os.makedirs(data_folder, exist_ok=True)
+        cache_folder = self._app_folders.user_cache_dir
+        os.makedirs(cache_folder, exist_ok=True)
+
+        # Make them available in the defaults section
+        self['DEFAULT'] = {
+            'data_folder': data_folder,
+            'cache_folder': cache_folder
+        }
+
+        # Read any other default sections and options from the package's config file
         self.read_file(open(self._default_config_file, encoding='utf-8'))
 
     def read(self):

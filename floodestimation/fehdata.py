@@ -49,8 +49,8 @@ from zipfile import ZipFile
 from .settings import config
 
 
-CACHE_FOLDER = config.defaults()['cache_folder']
-CACHE_ZIP = 'FEH_data.zip'
+CACHE_FOLDER = config['DEFAULT']['cache_folder']
+CACHE_ZIP = 'nrfa_data.zip'
 
 
 def _retrieve_download_url():
