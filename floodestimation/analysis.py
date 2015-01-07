@@ -411,66 +411,27 @@ class QmedAnalysis(object):
         except (TypeError, KeyError):
             raise InsufficientDataError("Catchment `descriptors` attribute must be set first.")
 
-    def _urban_expansion(self, year):
-        """
-        Return urban expansion factor (UEF) for a given year.
-
-        Base year is 2000, i.e. the factor is 1 for the year 2000.
-
-        Methodology source: report FD1919/TR, p. 23
-
-        :param year: Year to provide urban expansion for
-        :type year: float
-        :return: Urban expansion factor
-        :rtype: float
-        """
-
-        # Number of decimal places increase to solve uef(2000)=1
-        result = 0.7851 + 0.2124 * atan((year - 1967.5) / 20.331792998)
-
-        self.results_log['urban_expansion_year'] = year
-        self.results_log['urban_expansion'] = result
-        return result
-
-    def urbext(self):
-        """
-        Return estimated `urbext2000` parameter for the analysis year.
-
-        The analysis year (:attr:`.year`) defaults to the current year.
-
-        Methodology source: report FD1919/TR, p. 23
-
-        :return: Adjusted `urbext2000` parameter
-        :rtype: float
-        """
-        try:
-            result = self.catchment.descriptors.urbext2000 * self._urban_expansion(self.year)
-        except TypeError:
-            # Sometimes urbext2000 is not set, so don't adjust at all (rather than throwing an error).
-            result = 0
-
-        self.results_log['urbext_year'] = self.year
-        self.results_log['urbext'] = result
-        return result
-
     def _pruaf(self):
         """
         Return percentage runoff urban adjustment factor.
 
         Methodology source: eqn. 6, Kjeldsen 2010
         """
-        return 1 + 0.47 * self.urbext() * self.catchment.descriptors.bfihost / (1 - self.catchment.descriptors.bfihost)
+        return 1 + 0.47 * self.catchment.descriptors.urbext(self.year) * \
+                   self.catchment.descriptors.bfihost / (1 - self.catchment.descriptors.bfihost)
 
     def urban_adj_factor(self):
         """
         Return urban adjustment factor (UAF) used to adjust QMED and growth curves.
 
-        Methodology source: eqn 8., Kjeldsen 2010
+        Methodology source: eqn. 8, Kjeldsen 2010
 
         :return: urban adjustment factor
         :rtype: float
         """
-        result = self._pruaf() ** 2.16 * (1 + self.urbext()) ** 0.37
+        urbext = self.catchment.descriptors.urbext(self.year)
+        result = self._pruaf() ** 2.16 * (1 + urbext) ** 0.37
+        self.results_log['urban_extent'] = urbext
         self.results_log['urban_adj_factor'] = result
         return result
 

@@ -25,7 +25,7 @@ saving to a (sqlite) database. All class attributes therefore are :class:`sqlalc
 
 """
 
-from math import hypot
+from math import hypot, atan
 from datetime import timedelta
 from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey, SmallInteger
 from sqlalchemy.orm import relationship, composite
@@ -247,6 +247,26 @@ class Descriptors(db.Base):
     urbext2000 = Column(Float, index=True)
     #: Urbanisation location within catchment index, 2000 data
     urbloc2000 = Column(Float)
+
+    def urbext(self, year):
+        """
+        Estimate the `urbext2000` parameter for a given year assuming a nation-wide urbanisation curve.
+
+        Methodology source: eqn 5.5, report FD1919/TR
+
+        :param year: Year to provide estimate for
+        :type year: float
+        :return: Urban extent parameter
+        :rtype: float
+        """
+
+        # Decimal places increased to ensure year 2000 corresponds with 1
+        urban_expansion = 0.7851 + 0.2124 * atan((year - 1967.5) / 20.331792998)
+        try:
+            return self.catchment.descriptors.urbext2000 * urban_expansion
+        except TypeError:
+            # Sometimes urbext2000 is not set, assume zero
+            return 0
 
 
 class AmaxRecord(db.Base):

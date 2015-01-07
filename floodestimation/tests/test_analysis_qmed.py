@@ -170,39 +170,6 @@ class TestCatchmentQmed(unittest.TestCase):
                                             urbext2000=1)
         self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors', as_rural=True), 0.5909, 4)
 
-    def test_urban_expansion_2000(self):
-        catchment = Catchment("Aberdeen", "River Dee")
-        analysis = QmedAnalysis(catchment)
-        self.assertAlmostEqual(analysis._urban_expansion(2000), 1)
-
-    def test_urban_expansion_1970(self):
-        catchment = Catchment("Aberdeen", "River Dee")
-        analysis = QmedAnalysis(catchment)
-        self.assertAlmostEqual(analysis._urban_expansion(1970), 0.8110863)
-
-    def test_urban_expansion_2015(self):
-        catchment = Catchment("Aberdeen", "River Dee")
-        analysis = QmedAnalysis(catchment)
-        self.assertAlmostEqual(analysis._urban_expansion(2015), 1.0328339)
-
-    def test_urbext_2000(self):
-        catchment = Catchment("Aberdeen", "River Dee")
-        catchment.descriptors = Descriptors(urbext2000=1.2345)
-        analysis = QmedAnalysis(catchment, year=2000)
-        self.assertGreaterEqual(analysis.urbext(), 1.2345)
-
-    def test_urbext_2015(self):
-        catchment = Catchment("Aberdeen", "River Dee")
-        catchment.descriptors = Descriptors(urbext2000=1.2345)
-        analysis = QmedAnalysis(catchment, year=2015)
-        self.assertAlmostEqual(analysis.urbext(), 1.2750335)
-
-    def test_urbext_today(self):
-        catchment = Catchment("Aberdeen", "River Dee")
-        catchment.descriptors = Descriptors(urbext2000=1.2345)
-        analysis = QmedAnalysis(catchment)
-        self.assertGreaterEqual(analysis.urbext(), 1.275033)
-
     def test_amax_odd_records(self):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 3.0, 0.5),
