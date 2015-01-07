@@ -401,16 +401,14 @@ class QmedAnalysis(object):
                 urban_adj_factor = self.urban_adj_factor()
 
                 # Log intermediate results
-                self.results_log['urban_adj_factor'] = urban_adj_factor
                 self.results_log['qmed_descr_urban'] = self.results_log['qmed_descr_rural'] * urban_adj_factor
                 return qmed_rural * urban_adj_factor
         except (TypeError, KeyError):
             raise InsufficientDataError("Catchment `descriptors` attribute must be set first.")
 
-    @staticmethod
-    def urban_expansion(year=None):
+    def urban_expansion(self, year=None):
         """
-        Return urban expansion factor for a given year.
+        Return urban expansion factor (UEF) for a given year.
 
         Base year is 2000, i.e. the factor is 1 for the year 2000. If no year is provided, the current year is used.
 
@@ -423,12 +421,21 @@ class QmedAnalysis(object):
         """
 
         if year is None:
+            # Use current year if no year provided
             year = date.today().year
+
         # Number of decimal places increase to solve uef(2000)=1
-        return 0.7851 + 0.2124 * atan((year - 1967.5) / 20.331792998)
+        result = 0.7851 + 0.2124 * atan((year - 1967.5) / 20.331792998)
+
+        self.results_log['urban_expansion_year'] = year
+        self.results_log['urban_expansion'] = result
+        return result
 
     def urbext(self, year=None):
-        return self.catchment.descriptors.urbext2000 * self.urban_expansion(year)
+        result = self.catchment.descriptors.urbext2000 * self.urban_expansion(year)
+        self.results_log['urbext_year'] = self.results_log['urban_expansion_year']
+        self.results_log['urbext'] = year
+        return result
 
     def _pruaf(self):
         """
@@ -436,7 +443,7 @@ class QmedAnalysis(object):
 
         Methodology source: FEH, Vol. 3, p. 54
         """
-        return 1 + 0.615 * self.catchment.descriptors.urbext2000 * (70.0 / self.catchment.descriptors.sprhost - 1)
+        return 1 + 0.615 * self.urbext(2000) * (70.0 / self.catchment.descriptors.sprhost - 1)
 
     def urban_adj_factor(self):
         """
@@ -448,10 +455,13 @@ class QmedAnalysis(object):
         :rtype: float
         """
         try:
-            return self._pruaf() * (1 + self.catchment.descriptors.urbext2000) ** 0.83
+            result = self._pruaf() * (1 + self.urbext(2000)) ** 0.83
         except TypeError:
             # Sometimes urbext2000 is not set, so don't adjust at all (rather than throwing an error).
-            return 1
+            result = 1
+
+        self.results_log['urban_adj_factor'] = result
+        return result
 
     def _error_correlation(self, other_catchment):
         """
@@ -798,7 +808,8 @@ class GrowthCurveAnalysis(object):
         The results are stored in :attr:`.donor_catchments`. The (list of)
         :class:`floodestimation.entities.Catchment` will have an additional attribute :attr:`similarity_dist`.
 
-        :param include_subject_catchment: - `auto`: include subject catchment if suitable for pooling and if urbext2000 < 0.03
+        :param include_subject_catchment: - `auto`: include subject catchment if suitable for pooling and if urbext2000
+                                            < 0.03
                                           - `force`: always include subject catchment
                                           - `exclude`: do not include the subject catchment
         :type include_subject_catchment: str
