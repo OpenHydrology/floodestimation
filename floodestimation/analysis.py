@@ -48,7 +48,7 @@ class QmedAnalysis(object):
     >>> from floodestimation.entities import Catchment, Descriptors
     >>> from floodestimation.analysis import QmedAnalysis
     >>> catchment = Catchment("Aberdeen", "River Dee")
-    >>> catchment.descriptors = Descriptors(dtm_area=1, bfihost=0.50, sprhost=50, saar=1000, farl=1, urbext=0)
+    >>> catchment.descriptors = Descriptors(dtm_area=1, bfihost=0.50, sprhost=50, saar=1000, farl=1, urbext2000=0)
     >>> QmedAnalysis(catchment).qmed_all_methods()
     {'descriptors': 0.5908579150223052, 'pot_records': None, 'channel_width': None,
     'descriptors_1999': 0.2671386414098229, 'area': 1.172, 'amax_records': None}
@@ -412,7 +412,7 @@ class QmedAnalysis(object):
 
         Methodology source: FEH, Vol. 3, p. 54
         """
-        return 1 + 0.615 * self.catchment.descriptors.urbext * (70.0 / self.catchment.descriptors.sprhost - 1)
+        return 1 + 0.615 * self.catchment.descriptors.urbext2000 * (70.0 / self.catchment.descriptors.sprhost - 1)
 
     def urban_adj_factor(self):
         """
@@ -424,9 +424,9 @@ class QmedAnalysis(object):
         :rtype: float
         """
         try:
-            return self._pruaf() * (1 + self.catchment.descriptors.urbext) ** 0.83
+            return self._pruaf() * (1 + self.catchment.descriptors.urbext2000) ** 0.83
         except TypeError:
-            # Sometimes urbext is not set, so don't adjust at all (rather than throwing an error).
+            # Sometimes urbext2000 is not set, so don't adjust at all (rather than throwing an error).
             return 1
 
     def _error_correlation(self, other_catchment):
@@ -774,7 +774,7 @@ class GrowthCurveAnalysis(object):
         The results are stored in :attr:`.donor_catchments`. The (list of)
         :class:`floodestimation.entities.Catchment` will have an additional attribute :attr:`similarity_dist`.
 
-        :param include_subject_catchment: - `auto`: include subject catchment if suitable for pooling and if urbext < 0.03
+        :param include_subject_catchment: - `auto`: include subject catchment if suitable for pooling and if urbext2000 < 0.03
                                           - `force`: always include subject catchment
                                           - `exclude`: do not include the subject catchment
         :type include_subject_catchment: str

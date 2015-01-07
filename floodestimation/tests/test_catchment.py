@@ -47,13 +47,13 @@ class TestCatchmentObject(unittest.TestCase):
 
     def test_descriptor_urbext(self):
         catchment_1 = Catchment("Aberdeen", "River Dee")
-        catchment_1.descriptors.urbext = 0.2
+        catchment_1.descriptors.urbext2000 = 0.2
 
         catchment_2 = Catchment("Dundee", "River Tay")
-        catchment_2.descriptors.urbext = 0.5
+        catchment_2.descriptors.urbext2000 = 0.5
 
-        self.assertEqual(0.2, catchment_1.descriptors.urbext)
-        self.assertEqual(0.5, catchment_2.descriptors.urbext)
+        self.assertEqual(0.2, catchment_1.descriptors.urbext2000)
+        self.assertEqual(0.5, catchment_2.descriptors.urbext2000)
 
 
 class TestCatchmentPotRecords(unittest.TestCase):

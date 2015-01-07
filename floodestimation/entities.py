@@ -248,15 +248,6 @@ class Descriptors(db.Base):
     #: Urbanisation location within catchment index, 2000 data
     urbloc2000 = Column(Float)
 
-    def get_urbext(self):
-        return self.urbext2000
-
-    def set_urbext(self, value):
-        self.urbext2000 = value
-
-    #: Alias for :attr:`urbext2000`
-    urbext = property(get_urbext, set_urbext)
-
 
 class AmaxRecord(db.Base):
     """

@@ -29,7 +29,7 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
                                                 sprhost=100,
                                                 saar=2000,
                                                 farl=0.5,
-                                                urbext=0,
+                                                urbext2000=0,
                                                 fpext=0.2,
                                                 centroid_ngr=Point(276125, 688424))
 

@@ -62,7 +62,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             sprhost=50,
                                             saar=1000,
                                             farl=1,
-                                            urbext=0)
+                                            urbext2000=0)
         self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors_1999'), 0.2671, 4)
 
     def test_descriptors_1999_2(self):
@@ -72,7 +72,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             sprhost=100,
                                             saar=2000,
                                             farl=0.5,
-                                            urbext=0)
+                                            urbext2000=0)
         self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors_1999'), 0.3729, 4)
 
     def test_descriptors_1999_3(self):
@@ -82,7 +82,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             sprhost=50,
                                             saar=1000,
                                             farl=1,
-                                            urbext=0)
+                                            urbext2000=0)
         self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors_1999'), 18.5262, 4)
 
     def test_no_descriptors_1999(self):
@@ -99,7 +99,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             sprhost=50,
                                             saar=1000,
                                             farl=1,
-                                            urbext=0)
+                                            urbext2000=0)
         self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors_2008'), 0.5909, 4)
 
     def test_descriptors_2008_2(self):
@@ -109,7 +109,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             sprhost=100,
                                             saar=2000,
                                             farl=0.5,
-                                            urbext=0)
+                                            urbext2000=0)
         self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors_2008'), 0.6173, 4)
 
     def test_descriptors_2008_3(self):
@@ -119,7 +119,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             sprhost=50,
                                             saar=1000,
                                             farl=1,
-                                            urbext=0)
+                                            urbext2000=0)
         self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors_2008'), 29.7497, 4)
 
     def test_descriptors_2008_rural(self):
@@ -129,7 +129,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             sprhost=50,
                                             saar=1000,
                                             farl=1,
-                                            urbext=1)
+                                            urbext2000=1)
         self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors_2008', as_rural=True), 0.5909, 4)
 
     def test_descriptors_2008_urban_adjustment(self):
@@ -139,7 +139,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             sprhost=50,
                                             saar=1000,
                                             farl=1,
-                                            urbext=1)
+                                            urbext2000=1)
         self.assertAlmostEqual(QmedAnalysis(catchment).urban_adj_factor(), 2.215, 4)
 
     def test_descriptors_2008_urban(self):
@@ -149,7 +149,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             sprhost=50,
                                             saar=1000,
                                             farl=1,
-                                            urbext=1)
+                                            urbext2000=1)
         self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors_2008', as_rural=False), 1.3087, 4)
 
     def test_no_descriptors_2008(self):
@@ -166,7 +166,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             sprhost=50,
                                             saar=1000,
                                             farl=1,
-                                            urbext=1)
+                                            urbext2000=1)
         self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors', as_rural=True), 0.5909, 4)
 
     def test_amax_odd_records(self):
@@ -269,7 +269,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             sprhost=50,
                                             saar=1000,
                                             farl=1,
-                                            urbext=0)
+                                            urbext2000=0)
         qmeds = QmedAnalysis(catchment).qmed_all_methods()
         self.assertEqual(qmeds['amax_records'], 1)
         self.assertEqual(qmeds['channel_width'], 0.182)
@@ -298,7 +298,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             sprhost=50,
                                             saar=1000,
                                             farl=1,
-                                            urbext=0)
+                                            urbext2000=0)
         self.assertAlmostEqual(catchment.qmed(), 0.5909, 4)
 
     def test_best_method_amax(self):
@@ -363,7 +363,7 @@ class TestQmedDonor(unittest.TestCase):
                                         sprhost=100,
                                         saar=2000,
                                         farl=0.5,
-                                        urbext=0,
+                                        urbext2000=0,
                                         centroid_ngr=Point(276125, 688424))
     # QMED descr = 0.6173210932631318
 
@@ -374,7 +374,7 @@ class TestQmedDonor(unittest.TestCase):
                                               sprhost=50,
                                               saar=1000,
                                               farl=1,
-                                              urbext=0,
+                                              urbext2000=0,
                                               centroid_ngr=Point(276125, 688424))
     donor_catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 1.0, 0.5),
                                     AmaxRecord(date(2000, 12, 31), 1.0, 0.5)]
