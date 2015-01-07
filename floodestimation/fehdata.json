@@ -1,4 +1,5 @@
 {
-    "feh_data_url": "http://www.ceh.ac.uk/data/nrfa/peak_flow/WINFAP-FEH_v3.3.4.zip",
-    "feh_data_version": "3.3.4"
+    "nrfa_url": "http://www.ceh.ac.uk/data/nrfa/peak_flow/WINFAP-FEH_v3.3.4.zip",
+    "nrfa_version": "3.3.4",
+    "nrfa_published_on": 1406847600
 }

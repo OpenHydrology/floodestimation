@@ -16,6 +16,17 @@ setup(
     author_email='f.a.p.hollebrandse@protonmail.ch',
     description='Library for estimating flood flow rates',
     long_description=long_description,
+    install_requires=[
+        'numpy',
+        'scipy',
+        'lmoments3',
+        'appdirs',
+        'sqlalchemy'
+    ],
+    package_data={
+        'floodestimation': ['fehdata.json',
+                            'config.ini'],
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "Development Status :: 5 - Production/Stable",
@@ -30,14 +41,4 @@ setup(
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Software Development :: Libraries :: Python Modules"
     ],
-    install_requires=[
-        'numpy',
-        'scipy',
-        'lmoments3',
-        'appdirs',
-        'sqlalchemy'
-    ],
-    package_data={
-        'floodestimation': ['fehdata.json'],
-    },
 )

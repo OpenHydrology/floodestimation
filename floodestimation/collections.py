@@ -61,7 +61,7 @@ class CatchmentCollections(object):
         """
         Delete all catchment data from the database
         """
-        db.reset_db_tables()
+        db.empty_db_tables()
 
     def load_gauged_catchments(self):
         """
@@ -70,7 +70,7 @@ class CatchmentCollections(object):
         loaders.gauged_catchments_to_db(self.db_session)
 
     def _db_empty(self):
-        return bool(self.db_session.query(Catchment).count()==0)
+        return bool(self.db_session.query(Catchment).count() == 0)
 
     def catchment_by_number(self, number):
         """

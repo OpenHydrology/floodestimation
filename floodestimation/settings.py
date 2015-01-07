@@ -16,25 +16,95 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import configparser
+from datetime import datetime
 from appdirs import AppDirs
 
-# Some standard names
-APP_NAME = 'fehdata'
-APP_AUTHOR = 'Open Hydrology'
 
-# URL to retrieve json file with settings, e.g. FEH data download locations
-OPEN_HYDROLOGY_JSON_URL = \
-    'https://raw.githubusercontent.com/OpenHydrology/floodestimation/master/floodestimation/fehdata.json'
-# Default FEH data download location
-FEH_DATA_URL = 'http://www.ceh.ac.uk/data/nrfa/peak_flow/WINFAP-FEH_v3.3.4.zip'
+class Config(configparser.ConfigParser):
+    """
+    Configuration/settings object.
 
-# Folder to store data
-DATA_FOLDER = AppDirs(APP_NAME, APP_AUTHOR).user_data_dir
-os.makedirs(DATA_FOLDER, exist_ok=True)
+    Settings are read from a `config.ini` file within the python package (default values) or from the user's appdata
+    folder. Data is read immediately when object initiated. Data are only written to user file.
+    """
+    FILE_NAME = 'config.ini'
+    APP_NAME = 'fehdata'
+    APP_ORG = 'Open Hydrology'
 
-# Cache folder
-CACHE_FOLDER = AppDirs(APP_NAME, APP_AUTHOR).user_cache_dir
-os.makedirs(CACHE_FOLDER, exist_ok=True)
+    def __init__(self):
+        configparser.ConfigParser.__init__(self)
 
-# Sqlite database for FEH data
-DB_FILE_PATH = os.path.join(DATA_FOLDER, 'fehdata.sqlite')
+        here = os.path.abspath(os.path.dirname(__file__))
+        self._app_folders = AppDirs(self.APP_NAME, self.APP_ORG)
+        self._default_config_file = os.path.join(here, self.FILE_NAME)
+
+        os.makedirs(self._app_folders.user_config_dir, exist_ok=True)  # Create folder in advance if necessary
+        self._user_config_file = os.path.join(self._app_folders.user_config_dir, self.FILE_NAME)
+
+        self.read_defaults()
+        self.read()
+
+    def reset(self):
+        """
+        Restore the default configuration and remove the user's config file.
+        """
+
+        # Delete user config file
+        try:
+            os.remove(self._user_config_file)
+        except FileNotFoundError:
+            pass
+
+        # Empty and refill the config object
+        for section_name in self.sections():
+            self.remove_section(section_name)
+        self.read_defaults()
+
+    def read_defaults(self):
+        # Setup standard folders
+        data_folder = self._app_folders.user_data_dir
+        os.makedirs(data_folder, exist_ok=True)
+        cache_folder = self._app_folders.user_cache_dir
+        os.makedirs(cache_folder, exist_ok=True)
+
+        # Make them available in the defaults section
+        self['DEFAULT'] = {
+            'data_folder': data_folder,
+            'cache_folder': cache_folder
+        }
+
+        # Read any other default sections and options from the package's config file
+        self.read_file(open(self._default_config_file, encoding='utf-8'))
+
+    def read(self):
+        """
+        Read config data from user config file.
+        """
+        configparser.ConfigParser.read(self, self._user_config_file, encoding='utf-8')
+
+    def save(self):
+        """
+        Write data to user config file.
+        """
+        with open(self._user_config_file, 'w', encoding='utf-8') as f:
+            self.write(f)
+
+    def get_datetime(self, section, option, fallback):
+        """
+        Return UTC datetime from timestamp in config file.
+
+        :param section: Config section
+        :param option: Config option
+        :param fallback: Fallback/default value
+        :return: Datetime in UTC
+        :rtype: :class:`datetime.datetime`
+        """
+        try:
+            s = self[section][option]
+            return datetime.utcfromtimestamp(float(s))
+        except KeyError:
+            return fallback
+
+# Create config object immediately when module is imported
+config = Config()
