@@ -1,3 +1,8 @@
+- Urban expansion factor implemented
+- Urban adjustment methods based on Kjeldsen 2010
+- nrfa_metadata method to allow querying latest download etc
+- Use config file store settings incl. NRFA download URL
+
 version 0.1.3 (2014-12-17)
 --------------------------
 - Setup fixes to include json config file
