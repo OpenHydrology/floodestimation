@@ -443,7 +443,12 @@ class QmedAnalysis(object):
         :return: Adjusted `urbext2000` parameter
         :rtype: float
         """
-        result = self.catchment.descriptors.urbext2000 * self._urban_expansion(self.year)
+        try:
+            result = self.catchment.descriptors.urbext2000 * self._urban_expansion(self.year)
+        except TypeError:
+            # Sometimes urbext2000 is not set, so don't adjust at all (rather than throwing an error).
+            result = 0
+
         self.results_log['urbext_year'] = self.year
         self.results_log['urbext'] = result
         return result
@@ -452,25 +457,20 @@ class QmedAnalysis(object):
         """
         Return percentage runoff urban adjustment factor.
 
-        Methodology source: FEH, Vol. 3, p. 54
+        Methodology source: eqn. 6, Kjeldsen 2010
         """
-        return 1 + 0.615 * self.urbext() * (70.0 / self.catchment.descriptors.sprhost - 1)
+        return 1 + 0.47 * self.urbext() * self.catchment.descriptors.bfihost / (1 - self.catchment.descriptors.bfihost)
 
     def urban_adj_factor(self):
         """
         Return urban adjustment factor (UAF) used to adjust QMED and growth curves.
 
-        Methodology source: FEH, Vol. 3, p. 53
+        Methodology source: eqn 8., Kjeldsen 2010
 
         :return: urban adjustment factor
         :rtype: float
         """
-        try:
-            result = self._pruaf() * (1 + self.urbext()) ** 0.83
-        except TypeError:
-            # Sometimes urbext2000 is not set, so don't adjust at all (rather than throwing an error).
-            result = 1
-
+        result = self._pruaf() ** 2.16 * (1 + self.urbext()) ** 0.37
         self.results_log['urban_adj_factor'] = result
         return result
 
