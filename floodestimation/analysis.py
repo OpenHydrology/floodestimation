@@ -19,7 +19,8 @@
 """
 Module containing flood estimation analysis methods, including QMED, growth curves etc.
 """
-from math import log, exp, sqrt, floor
+from math import log, exp, sqrt, floor, atan
+from datetime import date
 import copy
 import lmoments3 as lm
 import lmoments3.distr as lm_distr
@@ -405,6 +406,29 @@ class QmedAnalysis(object):
                 return qmed_rural * urban_adj_factor
         except (TypeError, KeyError):
             raise InsufficientDataError("Catchment `descriptors` attribute must be set first.")
+
+    @staticmethod
+    def urban_expansion(year=None):
+        """
+        Return urban expansion factor for a given year.
+
+        Base year is 2000, i.e. the factor is 1 for the year 2000. If no year is provided, the current year is used.
+
+        Methodology source: report FD1919/TR, p. 23
+
+        :param year: Year to provide urban expansion for
+        :type year: float
+        :return: Urban expansion factor
+        :rtype: float
+        """
+
+        if year is None:
+            year = date.today().year
+        # Number of decimal places increase to solve uef(2000)=1
+        return 0.7851 + 0.2124 * atan((year - 1967.5) / 20.331792998)
+
+    def urbext(self, year=None):
+        return self.catchment.descriptors.urbext2000 * self.urban_expansion(year)
 
     def _pruaf(self):
         """
