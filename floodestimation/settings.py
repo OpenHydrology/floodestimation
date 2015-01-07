@@ -38,6 +38,8 @@ class Config(configparser.ConfigParser):
         here = os.path.abspath(os.path.dirname(__file__))
         self._app_folders = AppDirs(self.APP_NAME, self.APP_ORG)
         self._default_config_file = os.path.join(here, self.FILE_NAME)
+
+        os.makedirs(self._app_folders.user_config_dir, exist_ok=True)  # Create folder in advance if necessary
         self._user_config_file = os.path.join(self._app_folders.user_config_dir, self.FILE_NAME)
 
         self.read_defaults()
