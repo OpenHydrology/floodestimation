@@ -140,7 +140,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             saar=1000,
                                             farl=1,
                                             urbext2000=1)
-        self.assertAlmostEqual(QmedAnalysis(catchment).urban_adj_factor(), 2.215, 4)
+        self.assertAlmostEqual(QmedAnalysis(catchment, year=2000).urban_adj_factor(), 2.215, 4)
 
     def test_descriptors_2008_urban(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -150,7 +150,7 @@ class TestCatchmentQmed(unittest.TestCase):
                                             saar=1000,
                                             farl=1,
                                             urbext2000=1)
-        self.assertAlmostEqual(QmedAnalysis(catchment).qmed(method='descriptors_2008', as_rural=False), 1.3087, 4)
+        self.assertAlmostEqual(QmedAnalysis(catchment, year=2000).qmed(method='descriptors_2008', as_rural=False), 1.3087, 4)
 
     def test_no_descriptors_2008(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -172,34 +172,29 @@ class TestCatchmentQmed(unittest.TestCase):
     def test_urban_expansion_2000(self):
         catchment = Catchment("Aberdeen", "River Dee")
         analysis = QmedAnalysis(catchment)
-        self.assertAlmostEqual(analysis.urban_expansion(2000), 1)
+        self.assertAlmostEqual(analysis._urban_expansion(2000), 1)
 
     def test_urban_expansion_1970(self):
         catchment = Catchment("Aberdeen", "River Dee")
         analysis = QmedAnalysis(catchment)
-        self.assertAlmostEqual(analysis.urban_expansion(1970), 0.8110863)
+        self.assertAlmostEqual(analysis._urban_expansion(1970), 0.8110863)
 
     def test_urban_expansion_2015(self):
         catchment = Catchment("Aberdeen", "River Dee")
         analysis = QmedAnalysis(catchment)
-        self.assertAlmostEqual(analysis.urban_expansion(2015), 1.0328339)
-
-    def test_urban_expansion_today(self):
-        catchment = Catchment("Aberdeen", "River Dee")
-        analysis = QmedAnalysis(catchment)
-        self.assertGreaterEqual(analysis.urban_expansion(), 1.0328339)
+        self.assertAlmostEqual(analysis._urban_expansion(2015), 1.0328339)
 
     def test_urbext_2000(self):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.descriptors = Descriptors(urbext2000=1.2345)
-        analysis = QmedAnalysis(catchment)
-        self.assertGreaterEqual(analysis.urbext(2000), 1.2345)
+        analysis = QmedAnalysis(catchment, year=2000)
+        self.assertGreaterEqual(analysis.urbext(), 1.2345)
 
     def test_urbext_2015(self):
         catchment = Catchment("Aberdeen", "River Dee")
         catchment.descriptors = Descriptors(urbext2000=1.2345)
-        analysis = QmedAnalysis(catchment)
-        self.assertAlmostEqual(analysis.urbext(2015), 1.2750335)
+        analysis = QmedAnalysis(catchment, year=2015)
+        self.assertAlmostEqual(analysis.urbext(), 1.2750335)
 
     def test_urbext_today(self):
         catchment = Catchment("Aberdeen", "River Dee")
@@ -443,7 +438,7 @@ class TestQmedDonor(unittest.TestCase):
 
     def test_first_automatic_donor_qmed(self):
 
-        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session))
+        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session), year=2000)
 
         # Use the first donor only!
         donor = analysis.find_donor_catchments()[0]
@@ -457,7 +452,7 @@ class TestQmedDonor(unittest.TestCase):
         self.assertAlmostEqual(0.800071, analysis.qmed(donor_catchments=[donor]), places=4)
 
     def test_two_automatic_donor_qmed(self):
-        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session))
+        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session), year=2000)
 
         # Use the first 2 donors
         donors = analysis.find_donor_catchments()[0:2]
@@ -470,7 +465,7 @@ class TestQmedDonor(unittest.TestCase):
         self.assertAlmostEqual(0.80007, analysis.qmed(donor_catchments=donors), places=4)
 
     def test_two_automatic_donor_qmed_linear_idw(self):
-        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session))
+        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session), year=2000)
         analysis.idw_power = 1
 
         # Use the first 2 donors
@@ -480,7 +475,7 @@ class TestQmedDonor(unittest.TestCase):
         self.assertAlmostEqual(0.7952, analysis.qmed(donor_catchments=donors), places=4)
 
     def test_two_automatic_donor_qmed_equal_weight(self):
-        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session))
+        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session), year=2000)
         analysis.donor_weighting = 'equal'
 
         # Use the first 2 donors
@@ -494,7 +489,7 @@ class TestQmedDonor(unittest.TestCase):
         self.assertAlmostEqual(0.7088, analysis.qmed(donor_catchments=donors), places=4)
 
     def test_two_automatic_donor_qmed_first_weight(self):
-        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session))
+        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session), year=2000)
         analysis.donor_weighting = 'first'
 
         # Use the first 2 donors

@@ -58,7 +58,7 @@ class QmedAnalysis(object):
     # : Methods available to estimate QMED, in order of best/preferred method
     methods = ('amax_records', 'pot_records', 'descriptors', 'descriptors_1999', 'area', 'channel_width')
 
-    def __init__(self, catchment, gauged_catchments=None, results_log=None):
+    def __init__(self, catchment, gauged_catchments=None, year=None, results_log=None):
         """
         Creates a QMED analysis object.
 
@@ -66,6 +66,8 @@ class QmedAnalysis(object):
         :type catchment: :class:`.entities.Catchment`
         :param gauged_catchments: catchment collections objects for retrieval of gauged data for donor analyses
         :type gauged_catchments: :class:`.collections.CatchmentCollections`
+        :param year: year to base analysis on (relevant for urban extent only)
+        :type year: float
         :param results_log: dict to store intermediate results
         :type results_log: dict
         """
@@ -75,6 +77,9 @@ class QmedAnalysis(object):
         #: :class:`.collections.CatchmentCollections` object for retrieval of gauged data for donor based analyses
         #: (optional)
         self.gauged_catchments = gauged_catchments
+        #: Year to base analysis on (relevant for urban extent only). Default: current year.
+        self.year = year or date.today().year
+
         if results_log is not None:
             self.results_log = results_log
         else:
@@ -406,11 +411,11 @@ class QmedAnalysis(object):
         except (TypeError, KeyError):
             raise InsufficientDataError("Catchment `descriptors` attribute must be set first.")
 
-    def urban_expansion(self, year=None):
+    def _urban_expansion(self, year):
         """
         Return urban expansion factor (UEF) for a given year.
 
-        Base year is 2000, i.e. the factor is 1 for the year 2000. If no year is provided, the current year is used.
+        Base year is 2000, i.e. the factor is 1 for the year 2000.
 
         Methodology source: report FD1919/TR, p. 23
 
@@ -420,10 +425,6 @@ class QmedAnalysis(object):
         :rtype: float
         """
 
-        if year is None:
-            # Use current year if no year provided
-            year = date.today().year
-
         # Number of decimal places increase to solve uef(2000)=1
         result = 0.7851 + 0.2124 * atan((year - 1967.5) / 20.331792998)
 
@@ -431,10 +432,20 @@ class QmedAnalysis(object):
         self.results_log['urban_expansion'] = result
         return result
 
-    def urbext(self, year=None):
-        result = self.catchment.descriptors.urbext2000 * self.urban_expansion(year)
-        self.results_log['urbext_year'] = self.results_log['urban_expansion_year']
-        self.results_log['urbext'] = year
+    def urbext(self):
+        """
+        Return estimated `urbext2000` parameter for the analysis year.
+
+        The analysis year (:attr:`.year`) defaults to the current year.
+
+        Methodology source: report FD1919/TR, p. 23
+
+        :return: Adjusted `urbext2000` parameter
+        :rtype: float
+        """
+        result = self.catchment.descriptors.urbext2000 * self._urban_expansion(self.year)
+        self.results_log['urbext_year'] = self.year
+        self.results_log['urbext'] = result
         return result
 
     def _pruaf(self):
@@ -443,7 +454,7 @@ class QmedAnalysis(object):
 
         Methodology source: FEH, Vol. 3, p. 54
         """
-        return 1 + 0.615 * self.urbext(2000) * (70.0 / self.catchment.descriptors.sprhost - 1)
+        return 1 + 0.615 * self.urbext() * (70.0 / self.catchment.descriptors.sprhost - 1)
 
     def urban_adj_factor(self):
         """
@@ -455,7 +466,7 @@ class QmedAnalysis(object):
         :rtype: float
         """
         try:
-            result = self._pruaf() * (1 + self.urbext(2000)) ** 0.83
+            result = self._pruaf() * (1 + self.urbext()) ** 0.83
         except TypeError:
             # Sometimes urbext2000 is not set, so don't adjust at all (rather than throwing an error).
             result = 1
@@ -502,8 +513,9 @@ class QmedAnalysis(object):
         :return: Adjustment factor
         :rtype: float
         """
-        donor_qmed_amax = QmedAnalysis(donor_catchment).qmed(method='amax_records')
-        donor_qmed_descr = QmedAnalysis(donor_catchment).qmed(method='descriptors')
+        analysis = QmedAnalysis(donor_catchment, year=2000)  # Probably should set the year to the midpoint of amax rec.
+        donor_qmed_amax = analysis.qmed(method='amax_records')
+        donor_qmed_descr = analysis.qmed(method='descriptors')
         return (donor_qmed_amax / donor_qmed_descr) ** self._error_correlation(donor_catchment)
 
     def _donor_weights(self, donor_catchments):
