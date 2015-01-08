@@ -1,3 +1,4 @@
+- Catchment descriptor values of -999,999 are parsed as None values
 - Urban expansion factor implemented
 - Urban adjustment methods based on Kjeldsen 2010
 - nrfa_metadata method to allow querying latest download etc
