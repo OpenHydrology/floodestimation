@@ -100,15 +100,25 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         self.assertAlmostEqual(var, 0.2232, places=4)
         self.assertAlmostEqual(skew, -0.0908, places=4)
 
-    def test_l_cv_and_skew_one_donor(self):
+    def test_l_cv_and_skew_one_donor_rural(self):
         catchment = load_catchment('floodestimation/tests/data/37017.CD3')
 
-        analysis = GrowthCurveAnalysis(catchment)
+        analysis = GrowthCurveAnalysis(catchment, year=2000)
         analysis.donor_catchments = [catchment]
-        var, skew = analysis._var_and_skew(analysis.donor_catchments)
+        var, skew = analysis._var_and_skew(analysis.donor_catchments, as_rural=True)
 
         self.assertAlmostEqual(var, 0.2232, places=4)
         self.assertAlmostEqual(skew, -0.0908, places=4)
+
+    def test_l_cv_and_skew_one_donor_urban(self):
+        catchment = load_catchment('floodestimation/tests/data/37017.CD3')
+
+        analysis = GrowthCurveAnalysis(catchment, year=2000)
+        analysis.donor_catchments = [catchment]
+        var, skew = analysis._var_and_skew(analysis.donor_catchments)
+
+        self.assertAlmostEqual(var, 0.21987, places=4)
+        self.assertAlmostEqual(skew, -0.08746, places=4)
 
     def test_37017(self):
         subject = load_catchment('floodestimation/tests/data/37017.CD3')
