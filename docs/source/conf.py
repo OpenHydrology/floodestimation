@@ -112,6 +112,11 @@ pygments_style = 'sphinx'
 # If true, keep warnings as "system message" paragraphs in the built documents.
 #keep_warnings = False
 
+# Order members as they appear in the source code
+autodoc_member_order = 'bysource'
+
+# Add the init's method docstring to the class's docs
+autoclass_content = 'both'
 
 # -- Options for HTML output ----------------------------------------------
 

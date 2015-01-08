@@ -41,21 +41,21 @@ def valid_flows_array(catchment):
 
 
 class Analysis(object):
+    """
+    Generic analysis object
+    """
+
     def __init__(self, year=None, results_log=None):
         """
-        Generic analysis object
-
-        :param year: year to base analysis on
+        :param year: Year to base analysis on. Default: current year.
         :type year: float
-        :param results_log: dict to store intermediate results
+        :param results_log: Dict to store intermediate results
         :type results_log: dict
         """
 
-        #: Year to base analysis on (relevant for urban extent only). Default: current year.
         self.year = year or date.today().year
 
         if results_log is not None:
-            #: Dict for recording intermediate results (optional).
             self.results_log = results_log
         else:
             self.results_log = {}
@@ -81,8 +81,6 @@ class QmedAnalysis(Analysis):
 
     def __init__(self, catchment, gauged_catchments=None, year=None, results_log=None):
         """
-        Creates a QMED analysis object.
-
         :param catchment: subject catchment
         :type catchment: :class:`.entities.Catchment`
         :param gauged_catchments: catchment collections objects for retrieval of gauged data for donor analyses
@@ -90,10 +88,7 @@ class QmedAnalysis(Analysis):
         """
         Analysis.__init__(self, year, results_log)
 
-        #: Subject catchment
         self.catchment = catchment
-        #: :class:`.collections.CatchmentCollections` object for retrieval of gauged data for donor based analyses
-        #: (optional)
         self.gauged_catchments = gauged_catchments
 
         #: Method for weighting multiple QMED donors, options are:
@@ -549,19 +544,24 @@ class GrowthCurveAnalysis(Analysis):
     """
     Class to undertake a growth curve analysis.
     """
+
     #: Methods available to estimate the growth curve
     methods = ('enhanced_single_site', 'single_site', 'pooling_group')
     #: Available distribution functions for growth curves
     distributions = ('glo', 'gev')
 
     def __init__(self, catchment, gauged_catchments=None, year=None, results_log=None):
+        """
+        :param catchment: subject catchment
+        :type catchment: :class:`.entities.Catchment`
+        :param gauged_catchments: catchment collections objects for retrieval of gauged data for donor analyses
+        :type gauged_catchments: :class:`.collections.CatchmentCollections`
+        """
         Analysis.__init__(self, year, results_log)
 
-        #: Subject catchment
         self.catchment = catchment
-        #: :class:`.collections.CatchmentCollections` object for retrieval of gauged data for donor based analyses
-        #: (optional)
         self.gauged_cachments = gauged_catchments
+
         #: List of donor catchments. Either set manually or by calling
         #: :meth:`.GrowthCurveAnalysis.find_donor_catchments` or implicitly when calling :meth:`.growth_curve()`.
         self.donor_catchments = []
