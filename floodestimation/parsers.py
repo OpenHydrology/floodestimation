@@ -215,7 +215,7 @@ class Cd3Parser(FehFileParser):
         if name not in ['ihdtm_ngr', 'centroid_ngr']:
             value = float(row[1])
             # Filter out null-values
-            if value == -9.999:
+            if value == -9.999 or value == -999999:
                 value = None
             setattr(self.object.descriptors, name, value)
 
