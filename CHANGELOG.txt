@@ -1,3 +1,5 @@
+version 0.2.0 (2015-01-10)
+--------------------------
 - Catchment descriptor values of -999,999 are parsed as None values
 - Urban expansion factor implemented
 - Urban adjustment methods based on Kjeldsen 2010 (QMED and growth curve)
