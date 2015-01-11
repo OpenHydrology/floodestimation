@@ -19,7 +19,8 @@
 """
 Module containing flood estimation analysis methods, including QMED, growth curves etc.
 """
-from math import log, exp, sqrt, floor
+from math import log, exp, sqrt, floor, atan
+from datetime import date
 import copy
 import lmoments3 as lm
 import lmoments3.distr as lm_distr
@@ -39,7 +40,28 @@ def valid_flows_array(catchment):
     return np.array([record.flow for record in catchment.amax_records if record.flag == 0])
 
 
-class QmedAnalysis(object):
+class Analysis(object):
+    """
+    Generic analysis object
+    """
+
+    def __init__(self, year=None, results_log=None):
+        """
+        :param year: Year to base analysis on. Default: current year.
+        :type year: float
+        :param results_log: Dict to store intermediate results
+        :type results_log: dict
+        """
+
+        self.year = year or date.today().year
+
+        if results_log is not None:
+            self.results_log = results_log
+        else:
+            self.results_log = {}
+
+
+class QmedAnalysis(Analysis):
     """
     Class to undertake QMED analyses.
 
@@ -48,7 +70,7 @@ class QmedAnalysis(object):
     >>> from floodestimation.entities import Catchment, Descriptors
     >>> from floodestimation.analysis import QmedAnalysis
     >>> catchment = Catchment("Aberdeen", "River Dee")
-    >>> catchment.descriptors = Descriptors(dtm_area=1, bfihost=0.50, sprhost=50, saar=1000, farl=1, urbext=0)
+    >>> catchment.descriptors = Descriptors(dtm_area=1, bfihost=0.50, sprhost=50, saar=1000, farl=1, urbext2000=0)
     >>> QmedAnalysis(catchment).qmed_all_methods()
     {'descriptors': 0.5908579150223052, 'pot_records': None, 'channel_width': None,
     'descriptors_1999': 0.2671386414098229, 'area': 1.172, 'amax_records': None}
@@ -57,27 +79,17 @@ class QmedAnalysis(object):
     # : Methods available to estimate QMED, in order of best/preferred method
     methods = ('amax_records', 'pot_records', 'descriptors', 'descriptors_1999', 'area', 'channel_width')
 
-    def __init__(self, catchment, gauged_catchments=None, results_log=None):
+    def __init__(self, catchment, gauged_catchments=None, year=None, results_log=None):
         """
-        Creates a QMED analysis object.
-
         :param catchment: subject catchment
         :type catchment: :class:`.entities.Catchment`
         :param gauged_catchments: catchment collections objects for retrieval of gauged data for donor analyses
         :type gauged_catchments: :class:`.collections.CatchmentCollections`
-        :param results_log: dict to store intermediate results
-        :type results_log: dict
         """
+        Analysis.__init__(self, year, results_log)
 
-        #: Subject catchment
         self.catchment = catchment
-        #: :class:`.collections.CatchmentCollections` object for retrieval of gauged data for donor based analyses
-        #: (optional)
         self.gauged_catchments = gauged_catchments
-        if results_log is not None:
-            self.results_log = results_log
-        else:
-            self.results_log = {}
 
         #: Method for weighting multiple QMED donors, options are:
         #:
@@ -400,7 +412,6 @@ class QmedAnalysis(object):
                 urban_adj_factor = self.urban_adj_factor()
 
                 # Log intermediate results
-                self.results_log['urban_adj_factor'] = urban_adj_factor
                 self.results_log['qmed_descr_urban'] = self.results_log['qmed_descr_rural'] * urban_adj_factor
                 return qmed_rural * urban_adj_factor
         except (TypeError, KeyError):
@@ -410,24 +421,25 @@ class QmedAnalysis(object):
         """
         Return percentage runoff urban adjustment factor.
 
-        Methodology source: FEH, Vol. 3, p. 54
+        Methodology source: eqn. 6, Kjeldsen 2010
         """
-        return 1 + 0.615 * self.catchment.descriptors.urbext * (70.0 / self.catchment.descriptors.sprhost - 1)
+        return 1 + 0.47 * self.catchment.descriptors.urbext(self.year) * \
+                   self.catchment.descriptors.bfihost / (1 - self.catchment.descriptors.bfihost)
 
     def urban_adj_factor(self):
         """
         Return urban adjustment factor (UAF) used to adjust QMED and growth curves.
 
-        Methodology source: FEH, Vol. 3, p. 53
+        Methodology source: eqn. 8, Kjeldsen 2010
 
         :return: urban adjustment factor
         :rtype: float
         """
-        try:
-            return self._pruaf() * (1 + self.catchment.descriptors.urbext) ** 0.83
-        except TypeError:
-            # Sometimes urbext is not set, so don't adjust at all (rather than throwing an error).
-            return 1
+        urbext = self.catchment.descriptors.urbext(self.year)
+        result = self._pruaf() ** 2.16 * (1 + urbext) ** 0.37
+        self.results_log['urban_extent'] = urbext
+        self.results_log['urban_adj_factor'] = result
+        return result
 
     def _error_correlation(self, other_catchment):
         """
@@ -468,8 +480,9 @@ class QmedAnalysis(object):
         :return: Adjustment factor
         :rtype: float
         """
-        donor_qmed_amax = QmedAnalysis(donor_catchment).qmed(method='amax_records')
-        donor_qmed_descr = QmedAnalysis(donor_catchment).qmed(method='descriptors')
+        analysis = QmedAnalysis(donor_catchment, year=2000)  # Probably should set the year to the midpoint of amax rec.
+        donor_qmed_amax = analysis.qmed(method='amax_records')
+        donor_qmed_descr = analysis.qmed(method='descriptors')
         return (donor_qmed_amax / donor_qmed_descr) ** self._error_correlation(donor_catchment)
 
     def _donor_weights(self, donor_catchments):
@@ -527,28 +540,31 @@ class QmedAnalysis(object):
             return []
 
 
-class GrowthCurveAnalysis(object):
+class GrowthCurveAnalysis(Analysis):
     """
     Class to undertake a growth curve analysis.
     """
+
     #: Methods available to estimate the growth curve
     methods = ('enhanced_single_site', 'single_site', 'pooling_group')
     #: Available distribution functions for growth curves
     distributions = ('glo', 'gev')
 
-    def __init__(self, catchment, gauged_catchments=None, results_log=None):
-        #: Subject catchment
+    def __init__(self, catchment, gauged_catchments=None, year=None, results_log=None):
+        """
+        :param catchment: subject catchment
+        :type catchment: :class:`.entities.Catchment`
+        :param gauged_catchments: catchment collections objects for retrieval of gauged data for donor analyses
+        :type gauged_catchments: :class:`.collections.CatchmentCollections`
+        """
+        Analysis.__init__(self, year, results_log)
+
         self.catchment = catchment
-        #: :class:`.collections.CatchmentCollections` object for retrieval of gauged data for donor based analyses
-        #: (optional)
         self.gauged_cachments = gauged_catchments
+
         #: List of donor catchments. Either set manually or by calling
         #: :meth:`.GrowthCurveAnalysis.find_donor_catchments` or implicitly when calling :meth:`.growth_curve()`.
         self.donor_catchments = []
-        if results_log is not None:
-            self.results_log = results_log
-        else:
-            self.results_log = {}
 
     def growth_curve(self, method='best', **method_options):
         """
@@ -558,10 +574,11 @@ class GrowthCurveAnalysis(object):
         `method`               `method_options`       notes
         ====================== ====================== ==================================================================
         `enhanced_single_site` `distr='glo'`          Preferred method for gauged catchments (i.e. with
-                                                      `Catchment.amax_record`).
+                               `as_rural=False`       `Catchment.amax_record`).
         `single_site`          `distr='glo'`          Alternative method for gauged catchments. Uses AMAX data from
                                                       subject station only.
         `pooling_group`        `distr='glo'`          Only possible method for ungauged catchments.
+                               `as_rural=False`
         ====================== ====================== ==================================================================
 
         :param method: methodology to use to estimate the growth curve. Default: automatically choose best method.
@@ -598,7 +615,7 @@ class GrowthCurveAnalysis(object):
         flows = valid_flows_array(catchment)
         return flows / np.median(flows)
 
-    def _var_and_skew(self, catchments):
+    def _var_and_skew(self, catchments, as_rural=False):
         """
         Calculate L-CV and L-SKEW from a single catchment or a pooled group of catchments.
 
@@ -627,10 +644,19 @@ class GrowthCurveAnalysis(object):
             if self._similarity_distance(self.catchment, catchments[0]) == 0:
                 l_cv_weights *= self._l_cv_weight_factor()  # Reduce weights of all donor catchments
                 l_cv_weights[0] += 1 - sum(l_cv_weights)    # But increase the weight of the subject catchment
-            l_cv = sum(l_cv_weights * l_cvs)
-
+            l_cv_rural = sum(l_cv_weights * l_cvs)
             l_skew_weights /= sum(l_skew_weights)  # Weights sum to 1
-            l_skew = sum(l_skew_weights * l_skews)
+            l_skew_rural = sum(l_skew_weights * l_skews)
+            self.results_log['l_cv_rural'] = l_cv_rural
+            self.results_log['l_skew_rural'] = l_skew_rural
+
+            if as_rural:
+                l_cv = l_cv_rural
+                l_skew = l_skew_rural
+            else:
+                # Method source: eqns. 10 and 11, Kjeldsen 2010
+                l_cv = l_cv_rural * 0.5547 ** self.catchment.descriptors.urbext(self.year)
+                l_skew = (l_skew_rural + 1) * 1.1545 ** self.catchment.descriptors.urbext(self.year) - 1
 
             # Record intermediate results (donors)
             self.results_log['donors'] = catchments
@@ -710,12 +736,14 @@ class GrowthCurveAnalysis(object):
         else:
             raise InsufficientDataError("Catchment's `amax_records` must be set for a single site analysis.")
 
-    def _growth_curve_pooling_group(self, distr='glo'):
+    def _growth_curve_pooling_group(self, distr='glo', as_rural=False):
         """
         Return flood growth curve function based on `amax_records` from a pooling group.
 
         :return: Inverse cumulative distribution function with one parameter `aep` (annual exceedance probability)
         :type: :class:`.GrowthCurve`
+        :param as_rural: assume catchment is fully rural. Default: false.
+        :type as rural: bool
         """
         if not self.donor_catchments:
             self.find_donor_catchments()
@@ -726,12 +754,14 @@ class GrowthCurveAnalysis(object):
         self.results_log['distr_params'] = gc.params
         return gc
 
-    def _growth_curve_enhanced_single_site(self, distr='glo'):
+    def _growth_curve_enhanced_single_site(self, distr='glo', as_rural=False):
         """
         Return flood growth curve function based on `amax_records` from the subject catchment and a pooling group.
 
         :return: Inverse cumulative distribution function with one parameter `aep` (annual exceedance probability)
         :type: :class:`.GrowthCurve`
+        :param as_rural: assume catchment is fully rural. Default: false.
+        :type as rural: bool
         """
         if not self.donor_catchments:
             self.find_donor_catchments(include_subject_catchment='force')
@@ -774,7 +804,8 @@ class GrowthCurveAnalysis(object):
         The results are stored in :attr:`.donor_catchments`. The (list of)
         :class:`floodestimation.entities.Catchment` will have an additional attribute :attr:`similarity_dist`.
 
-        :param include_subject_catchment: - `auto`: include subject catchment if suitable for pooling and if urbext < 0.03
+        :param include_subject_catchment: - `auto`: include subject catchment if suitable for pooling and if urbext2000
+                                            < 0.03
                                           - `force`: always include subject catchment
                                           - `exclude`: do not include the subject catchment
         :type include_subject_catchment: str
