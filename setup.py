@@ -17,11 +17,11 @@ setup(
     description='Library for estimating flood flow rates',
     long_description=long_description,
     install_requires=[
-        'numpy',
-        'scipy',
-        'lmoments3',
-        'appdirs',
-        'sqlalchemy'
+        'appdirs>=1.4,<=1.5',
+        'sqlalchemy>=0.9,<=0.10',
+        'numpy>=1.9,<1.10',
+        'scipy>=0.14,<=0.15',
+        'lmoments3>=1.0.1,<=1.1'
     ],
     package_data={
         'floodestimation': ['fehdata.json',
