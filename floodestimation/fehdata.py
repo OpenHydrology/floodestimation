@@ -92,6 +92,7 @@ def _update_nrfa_metadata(remote_config):
     """
     Save NRFA metadata to local config file using retrieved config data
     """
+    config['nrfa']['oh_json_url'] = remote_config['nrfa_oh_json_url']
     config['nrfa']['version'] = remote_config['nrfa_version']
     config['nrfa']['url'] = remote_config['nrfa_url']
     config['nrfa']['published_on'] = str(remote_config['nrfa_published_on'])

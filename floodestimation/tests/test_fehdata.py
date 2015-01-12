@@ -39,7 +39,7 @@ class TestDatabase(unittest.TestCase):
 
     def test_f_metadata(self):
         metadata = fehdata.nrfa_metadata()
-        self.assertIsNotNone(metadata['url'])
+        self.assertIsNot(metadata['url'], "")
         self.assertIsNotNone(metadata['version'])
         self.assertIsNotNone(metadata['published_on'])
         self.assertLess((datetime.utcnow() - metadata['published_on']).total_seconds(), 2 * 365 * 24 * 3600)  # 2 yrs
