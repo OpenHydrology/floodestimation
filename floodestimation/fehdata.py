@@ -40,6 +40,7 @@ For parsing CD3 files and AMAX files see :mod:`floodestimation.parsers`.
 
 
 from urllib.request import urlopen, pathname2url
+from urllib.error import URLError
 from datetime import datetime
 import os
 import shutil
@@ -69,12 +70,10 @@ def _retrieve_download_url():
             remote_config['nrfa_url'] = 'file:' + pathname2url(os.path.abspath(remote_config['nrfa_url']))
 
         # Save retrieved config data
-        config['nrfa']['version'] = remote_config['nrfa_version']
-        config['nrfa']['url'] = remote_config['nrfa_url']
-        config.save()
+        _update_nrfa_metadata(remote_config)
 
         return remote_config['nrfa_url']
-    except:
+    except URLError:
         # If that fails (for whatever reason) use the fallback constant.
         return config['nrfa']['url']
 
@@ -88,6 +87,15 @@ def download_data():
         with open(os.path.join(CACHE_FOLDER, CACHE_ZIP), "wb") as local_file:
             local_file.write(f.read())
 
+
+def _update_nrfa_metadata(remote_config):
+    """
+    Save NRFA metadata to local config file using retrieved config data
+    """
+    config['nrfa']['oh_json_url'] = remote_config['nrfa_oh_json_url']
+    config['nrfa']['version'] = remote_config['nrfa_version']
+    config['nrfa']['url'] = remote_config['nrfa_url']
+    config['nrfa']['published_on'] = str(remote_config['nrfa_published_on'])
     config['nrfa']['downloaded_on'] = str(datetime.utcnow().timestamp())
     config.save()
 
