@@ -38,12 +38,12 @@ class CatchmentCollections(object):
     """
     def __init__(self, db_session, load_data='auto'):
         """
-
         :param db_session: SQLAlchemy database session
         :type db_session: :class:`sqlalchemy.orm.session.Session`
-        :type load_data: `auto`: automatically load gauged catchment data from NRFA website,
-                         `force`: delete all exsting data first,
-                         `manual`: manually retrieve data
+        :param load_data: - `auto`: automatically load gauged catchment data from NRFA website if required
+                          - `force`: delete all exsting data first
+                          - `manual`: manually retrieve data
+        :type load_data: str
         :return: a catchment collection object
         :rtype: :class:`.CatchmentCollections`
         """
@@ -61,7 +61,7 @@ class CatchmentCollections(object):
         """
         Delete all catchment data from the database
         """
-        db.reset_db_tables()
+        db.empty_db_tables()
 
     def load_gauged_catchments(self):
         """
@@ -70,7 +70,7 @@ class CatchmentCollections(object):
         loaders.gauged_catchments_to_db(self.db_session)
 
     def _db_empty(self):
-        return bool(self.db_session.query(Catchment).count()==0)
+        return bool(self.db_session.query(Catchment).count() == 0)
 
     def catchment_by_number(self, number):
         """

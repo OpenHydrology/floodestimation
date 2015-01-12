@@ -8,7 +8,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='floodestimation',
-    version='0.1.3',
+    version='0.2.0',
     packages=['floodestimation'],
     url='https://github.com/OpenHydrology/floodestimation',
     license='GPLv3',
@@ -16,6 +16,17 @@ setup(
     author_email='f.a.p.hollebrandse@protonmail.ch',
     description='Library for estimating flood flow rates',
     long_description=long_description,
+    install_requires=[
+        'appdirs>=1.4,<=1.5',
+        'sqlalchemy>=0.9,<=0.10',
+        'numpy>=1.9,<1.10',
+        'scipy>=0.14,<=0.15',
+        'lmoments3>=1.0.1,<=1.1'
+    ],
+    package_data={
+        'floodestimation': ['fehdata.json',
+                            'config.ini'],
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "Development Status :: 5 - Production/Stable",
@@ -30,14 +41,4 @@ setup(
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Software Development :: Libraries :: Python Modules"
     ],
-    install_requires=[
-        'numpy',
-        'scipy',
-        'lmoments3',
-        'appdirs',
-        'sqlalchemy'
-    ],
-    package_data={
-        'floodestimation': ['fehdata.json'],
-    },
 )

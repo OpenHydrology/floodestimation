@@ -45,15 +45,20 @@ class TestCatchmentObject(unittest.TestCase):
 
         self.assertEqual(catchment_1.distance_to(catchment_2), float('inf'))
 
-    def test_descriptor_urbext(self):
-        catchment_1 = Catchment("Aberdeen", "River Dee")
-        catchment_1.descriptors.urbext = 0.2
+    def test_urbext_2000(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.descriptors.urbext2000 = 1.2345
+        self.assertGreaterEqual(catchment.descriptors.urbext(2000), 1.2345)
 
-        catchment_2 = Catchment("Dundee", "River Tay")
-        catchment_2.descriptors.urbext = 0.5
+    def test_urbext_2015(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.descriptors.urbext2000 = 1.2345
+        self.assertAlmostEqual(catchment.descriptors.urbext(2015), 1.2750335)
 
-        self.assertEqual(0.2, catchment_1.descriptors.urbext)
-        self.assertEqual(0.5, catchment_2.descriptors.urbext)
+    def test_urbext_today(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.descriptors.urbext2000 = 1.2345
+        self.assertGreaterEqual(catchment.descriptors.urbext(date.today().year), 1.275033)
 
 
 class TestCatchmentPotRecords(unittest.TestCase):
@@ -86,7 +91,7 @@ class TestCatchmentPotRecords(unittest.TestCase):
 
         self.assertEqual(pot_dataset.continuous_periods(), [
             PotPeriod(date(2000, 12, 31), date(2000, 12, 31)),
-            PotPeriod(date(2001, 2, 1),   date(2001, 12, 30))
+            PotPeriod(date(2001, 2, 1), date(2001, 12, 30))
         ])
         self.assertAlmostEqual(sum(period.period_length() for period in pot_dataset.continuous_periods()), 0.9150685)
 

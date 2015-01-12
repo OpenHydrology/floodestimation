@@ -1,4 +1,6 @@
 {
-    "feh_data_url": "./floodestimation/tests/data/FEH_data_small.zip",
-    "feh_data_version": "3.3.4"
+    "nrfa_oh_json_url": "./floodestimation/fehdata_test.json",
+    "nrfa_url": "./floodestimation/tests/data/FEH_data_small.zip",
+    "nrfa_version": "3.3.4",
+    "nrfa_published_on": 1406851200
 }

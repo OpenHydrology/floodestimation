@@ -19,7 +19,8 @@ from floodestimation.loaders import load_catchment
 class TestGrowthCurveAnalysis(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        settings.OPEN_HYDROLOGY_JSON_URL = 'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
+        settings.config['nrfa']['oh_json_url'] = \
+            'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
         cls.db_session = db.Session()
 
         cls.catchment = Catchment("Dundee", "River Tay")
@@ -29,7 +30,7 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
                                                 sprhost=100,
                                                 saar=2000,
                                                 farl=0.5,
-                                                urbext=0,
+                                                urbext2000=0,
                                                 fpext=0.2,
                                                 centroid_ngr=Point(276125, 688424))
 
@@ -39,6 +40,7 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.db_session.close()
+        db.empty_db_tables()
 
     def test_find_donors_without_collection(self):
         analysis = GrowthCurveAnalysis(self.catchment)
@@ -98,15 +100,25 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         self.assertAlmostEqual(var, 0.2232, places=4)
         self.assertAlmostEqual(skew, -0.0908, places=4)
 
-    def test_l_cv_and_skew_one_donor(self):
+    def test_l_cv_and_skew_one_donor_rural(self):
         catchment = load_catchment('floodestimation/tests/data/37017.CD3')
 
-        analysis = GrowthCurveAnalysis(catchment)
+        analysis = GrowthCurveAnalysis(catchment, year=2000)
         analysis.donor_catchments = [catchment]
-        var, skew = analysis._var_and_skew(analysis.donor_catchments)
+        var, skew = analysis._var_and_skew(analysis.donor_catchments, as_rural=True)
 
         self.assertAlmostEqual(var, 0.2232, places=4)
         self.assertAlmostEqual(skew, -0.0908, places=4)
+
+    def test_l_cv_and_skew_one_donor_urban(self):
+        catchment = load_catchment('floodestimation/tests/data/37017.CD3')
+
+        analysis = GrowthCurveAnalysis(catchment, year=2000)
+        analysis.donor_catchments = [catchment]
+        var, skew = analysis._var_and_skew(analysis.donor_catchments)
+
+        self.assertAlmostEqual(var, 0.21987, places=4)
+        self.assertAlmostEqual(skew, -0.08746, places=4)
 
     def test_37017(self):
         subject = load_catchment('floodestimation/tests/data/37017.CD3')
