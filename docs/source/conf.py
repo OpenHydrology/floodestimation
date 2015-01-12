@@ -63,7 +63,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Flood estimation library'
-copyright = '2014Ã¢â‚¬â€™{}, Open Hydrology contributors'.format(date.today().year)
+copyright = '2014‒{}, Open Hydrology contributors'.format(date.today().year)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
