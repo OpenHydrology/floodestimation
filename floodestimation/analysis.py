@@ -156,12 +156,14 @@ class QmedAnalysis(Analysis):
             else:
                 use_method = None  # None of the gauged methods will work
             if use_method:
+                self.results_log['method'] = use_method
                 return getattr(self, '_qmed_from_' + use_method)()
 
             # Ungauged methods
             for method in self.methods[1:]:
                 try:
                     # Return the first method that works
+                    self.results_log['method'] = method
                     return getattr(self, '_qmed_from_' + method)(**method_options)
                 except (TypeError, InsufficientDataError):
                     pass
@@ -171,6 +173,7 @@ class QmedAnalysis(Analysis):
         else:
             # A specific method has been requested
             try:
+                self.results_log['method'] = method
                 return getattr(self, '_qmed_from_' + method)(**method_options)
             except AttributeError:
                 raise AttributeError("Method `{}` to estimate QMED does not exist.".format(method))
@@ -592,12 +595,15 @@ class GrowthCurveAnalysis(Analysis):
         if method == 'best':
             if self.catchment.amax_records:
                 # Gauged catchment, use enhanced single site
+                self.results_log['method'] = 'enhanced_single_site'
                 return self._growth_curve_enhanced_single_site()
             else:
                 # Ungauged catchment, standard pooling group
+                self.results_log['method'] = 'pooling_group'
                 return self._growth_curve_pooling_group()
         else:
             try:
+                self.results_log['method'] = 'method'
                 return getattr(self, '_growth_curve_' + method)(**method_options)
             except AttributeError:
                 raise AttributeError("Method `{}` to estimate the growth curve does not exist.".format(method))
@@ -765,7 +771,12 @@ class GrowthCurveAnalysis(Analysis):
         """
         if not self.donor_catchments:
             self.find_donor_catchments(include_subject_catchment='force')
-        return GrowthCurve(distr, *self._var_and_skew(self.donor_catchments))
+        gc =  GrowthCurve(distr, *self._var_and_skew(self.donor_catchments))
+
+        # Record intermediate results
+        self.results_log['distr_name'] = distr.upper()
+        self.results_log['distr_params'] = gc.params
+        return gc
 
     #: Dict of weighting factors and standard deviation for catchment descriptors to use in calculating the similarity
     #: distance measure between the subject catchment and each donor catchment. The dict is structured like this:

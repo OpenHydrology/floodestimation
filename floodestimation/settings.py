@@ -103,7 +103,7 @@ class Config(configparser.ConfigParser):
         try:
             s = self[section][option]
             return datetime.utcfromtimestamp(float(s))
-        except KeyError:
+        except (KeyError, ValueError):
             return fallback
 
 # Create config object immediately when module is imported
