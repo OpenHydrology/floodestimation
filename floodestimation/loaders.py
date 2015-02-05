@@ -29,7 +29,9 @@ from . import parsers
 
 def load_catchment(cd3_file_path):
     """
-    Load catchment object from a `.CD3` file. If there is also a corresponding `.AM` file (annual maximum flow data) or
+    Load catchment object from a `.CD3` file.
+
+    If there is also a corresponding `.AM` file (annual maximum flow data) or
     a `.PT` file (peaks over threshold data) in the same folder as the CD3 file, these datasets will also be loaded.
 
     :param cd3_file_path: File location of CD3 file
@@ -45,20 +47,14 @@ def load_catchment(cd3_file_path):
     # AMAX records
     try:
         catchment.amax_records = parsers.AmaxParser().parse(am_file_path)
-    except (OSError, IOError) as e:
-        if e.errno == ENOENT:  # FileNotFoundError in Python >= 3.3
-            catchment.amax_records = []
-        else:
-            raise
+    except FileNotFoundError:
+        catchment.amax_records = []
 
     # POT records
     try:
         catchment.pot_dataset = parsers.PotParser().parse(pot_file_path)
-    except (OSError, IOError) as e:
-        if e.errno == ENOENT:  # FileNotFoundError in Python >= 3.3
-            pass
-        else:
-            raise
+    except FileNotFoundError:
+        pass
 
     return catchment
 
@@ -69,7 +65,7 @@ def gauged_catchments_to_db(session):
     Flow Archive and saves it to a (sqlite) database.
 
     :param session: database session to use, typically `floodestimation.db.Session()`
-    :type session: `sqlalchemy.orm.session.Session`
+    :type session: :class:`sqlalchemy.orm.session.Session`
     """
     fehdata.clear_cache()
     fehdata.download_data()
@@ -78,3 +74,21 @@ def gauged_catchments_to_db(session):
     for cd3_file_path in fehdata.cd3_files():
         catchment = load_catchment(cd3_file_path)
         session.add(catchment)
+
+
+def update_catchment_in_db(catchment, session):
+    """
+    Load catchment object from a `.CD3` file and update the corresponding catchment in the database.
+
+    A catchment/station number (:attr:`catchment.id`) must be provided. If the catchment does not already exist in the
+    database, it will be added.
+
+    :param catchment: New catchment object to replace any existing catchment in the database
+    :type catchment: :class:`.entities.Catchment`
+    :param session: database session to use, typically `floodestimation.db.Session()`
+    :type session: :class:`sqlalchemy.orm.session.Session`
+    """
+
+    if not catchment.id:
+        raise ValueError("Catchment/station number (`catchment.id`) must be set.")
+    session.merge(catchment)
