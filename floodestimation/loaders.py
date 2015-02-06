@@ -90,7 +90,7 @@ def to_db(catchment, session, method='create', autocommit=False):
 
 def folder_to_db(path, session, method='create', autocommit=False):
     """
-    Import an entire folder into the database
+    Import an entire folder (incl. sub-folders) into the database
 
     :param path: Folder location
     :type path: str
