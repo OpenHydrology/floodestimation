@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014  Florenz A.P. Hollebrandse <f.a.p.hollebrandse@protonmail.ch>
+# Copyright (c) 2014-2015  Florenz A.P. Hollebrandse <f.a.p.hollebrandse@protonmail.ch>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,14 +20,13 @@ This module contains some convenience functions for quickly loading catchments (
 CD3-files and to download all gauged catchments and save into a sqlite database.
 """
 
-import os.path as path
-from errno import ENOENT
+import os.path
 # Current package imports
 from . import fehdata
 from . import parsers
 
 
-def load_catchment(cd3_file_path):
+def from_file(cd3_file_path):
     """
     Load catchment object from a `.CD3` file.
 
@@ -39,8 +38,8 @@ def load_catchment(cd3_file_path):
     :return: Catchment object with the `amax_records` and `pot_dataset` attributes set (if data available).
     :rtype: :class:`.entities.Catchment`
     """
-    am_file_path = path.splitext(cd3_file_path)[0] + '.AM'
-    pot_file_path = path.splitext(cd3_file_path)[0] + '.PT'
+    am_file_path = os.path.splitext(cd3_file_path)[0] + '.AM'
+    pot_file_path = os.path.splitext(cd3_file_path)[0] + '.PT'
 
     catchment = parsers.Cd3Parser().parse(cd3_file_path)
 
@@ -59,36 +58,74 @@ def load_catchment(cd3_file_path):
     return catchment
 
 
-def gauged_catchments_to_db(session):
+def to_db(catchment, session, method='create', autocommit=False):
+    """
+    Load catchment object into the database.
+
+    A catchment/station number (:attr:`catchment.id`) must be provided. If :param:`method` is set to `update`, any
+    existing catchment in the database with the same catchment number will be updated.
+
+    :param catchment: New catchment object to replace any existing catchment in the database
+    :type catchment: :class:`.entities.Catchment`
+    :param session: Database session to use, typically `floodestimation.db.Session()`
+    :type session: :class:`sqlalchemy.orm.session.Session`
+    :param method: - `create`: only new catchments will be loaded, it must not already exist in the database.
+                   - `update`: any existing catchment in the database will be updated. Otherwise it will be created.
+    :type method: str
+    :param autocommit: Whether to commit the database session immediately. Default: `False`.
+    :type autocommit: bool
+    """
+
+    if not catchment.id:
+        raise ValueError("Catchment/station number (`catchment.id`) must be set.")
+    if method == 'create':
+        session.add(catchment)
+    elif method == 'update':
+        session.merge(catchment)
+    else:
+        raise ValueError("Method `{}` invalid. Use either `create` or `update`.")
+    if autocommit:
+        session.commit()
+
+
+def folder_to_db(path, session, method='create', autocommit=False):
+    """
+    Import an entire folder into the database
+
+    :param path: Folder location
+    :type path: str
+    :param session: database session to use, typically `floodestimation.db.Session()`
+    :type session: :class:`sqlalchemy.orm.session.Session`
+    :param method: - `create`: only new catchments will be loaded, it must not already exist in the database.
+                   - `update`: any existing catchment in the database will be updated. Otherwise it will be created.
+    :type method: str
+    :param autocommit: Whether to commit the database session immediately. Default: `False`.
+    :type autocommit: bool
+    """
+    cd3_files = [os.path.join(dp, f) for dp, dn, filenames in os.walk(path)
+                 for f in filenames if os.path.splitext(f)[1].lower() == '.cd3']
+    for cd3_file_path in cd3_files:
+        catchment = from_file(cd3_file_path)
+        to_db(catchment, session, method)
+    if autocommit:
+        session.commit()
+
+
+def nrfa_to_db(session, method='create', autocommit=False):
     """
     Retrieves all gauged catchments (incl. catchment descriptors and annual maximum flow data) from the National River
     Flow Archive and saves it to a (sqlite) database.
 
     :param session: database session to use, typically `floodestimation.db.Session()`
     :type session: :class:`sqlalchemy.orm.session.Session`
+    :param method: - `create`: only new catchments will be loaded, it must not already exist in the database.
+                   - `update`: any existing catchment in the database will be updated. Otherwise it will be created.
+    :type method: str
+    :param autocommit: Whether to commit the database session immediately. Default: `False`.
+    :type autocommit: bool
     """
+
     fehdata.clear_cache()
     fehdata.download_data()
     fehdata.unzip_data()
-
-    for cd3_file_path in fehdata.cd3_files():
-        catchment = load_catchment(cd3_file_path)
-        session.add(catchment)
-
-
-def update_catchment_in_db(catchment, session):
-    """
-    Load catchment object from a `.CD3` file and update the corresponding catchment in the database.
-
-    A catchment/station number (:attr:`catchment.id`) must be provided. If the catchment does not already exist in the
-    database, it will be added.
-
-    :param catchment: New catchment object to replace any existing catchment in the database
-    :type catchment: :class:`.entities.Catchment`
-    :param session: database session to use, typically `floodestimation.db.Session()`
-    :type session: :class:`sqlalchemy.orm.session.Session`
-    """
-
-    if not catchment.id:
-        raise ValueError("Catchment/station number (`catchment.id`) must be set.")
-    session.merge(catchment)
+    folder_to_db(fehdata.CACHE_FOLDER, session, method=method, autocommit=autocommit)

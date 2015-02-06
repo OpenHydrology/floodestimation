@@ -51,23 +51,9 @@ class CatchmentCollections(object):
 
         # If the database does not contain any catchmetnts yet, retrieve them from NRFA website and save to db
         if load_data == 'force':
-            self.delete_gauged_catchments()
+            db.empty_db_tables()
         if self._db_empty() and load_data in ['auto', 'force']:
-            self.load_gauged_catchments()
-            self.db_session.commit()
-
-    @staticmethod
-    def delete_gauged_catchments():
-        """
-        Delete all catchment data from the database
-        """
-        db.empty_db_tables()
-
-    def load_gauged_catchments(self):
-        """
-        Load all catchment data into the database by downloading the data from the NRFA website
-        """
-        loaders.gauged_catchments_to_db(self.db_session)
+            loaders.nrfa_to_db(self.db_session, autocommit=True)
 
     def _db_empty(self):
         return bool(self.db_session.query(Catchment).count() == 0)

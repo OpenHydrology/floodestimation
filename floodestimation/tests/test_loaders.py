@@ -22,34 +22,34 @@ class TestLoaders(unittest.TestCase):
         cls.session.close()
 
     def test_load_catchment(self):
-        catchment = loaders.load_catchment('floodestimation/tests/data/17002.CD3')
+        catchment = loaders.from_file('floodestimation/tests/data/17002.CD3')
         self.assertEqual(17002, catchment.id)
         self.assertEqual(4, len(catchment.amax_records))
         self.assertEqual(146, len(catchment.pot_dataset.pot_records))
 
     def test_load_catchment_without_amax(self):
-        catchment = loaders.load_catchment('floodestimation/tests/data/170021.CD3')
+        catchment = loaders.from_file('floodestimation/tests/data/170021.CD3')
         self.assertEqual([], catchment.amax_records)
 
     def test_add_catchment_twice(self):
-        catchment = loaders.load_catchment('floodestimation/tests/data/17002.CD3')
-        self.session.add(catchment)
+        catchment = loaders.from_file('floodestimation/tests/data/17002.CD3')
+        loaders.to_db(catchment, self.session)
 
-        duplicate_catchment = loaders.load_catchment('floodestimation/tests/data/17002.CD3')
-        self.session.add(duplicate_catchment)
+        duplicate_catchment = loaders.from_file('floodestimation/tests/data/17002.CD3')
+        loaders.to_db(duplicate_catchment, self.session)
         self.assertRaises(IntegrityError, self.session.flush)
 
         self.session.rollback()
 
     def test_update_catchment(self):
-        catchment = loaders.load_catchment('floodestimation/tests/data/17002.CD3')
+        catchment = loaders.from_file('floodestimation/tests/data/17002.CD3')
         # Make a change
         catchment.location = "Dundee"
-        self.session.add(catchment)
+        loaders.to_db(catchment, self.session)
 
         # Reload catchment again
-        duplicate_catchment = loaders.load_catchment('floodestimation/tests/data/17002.CD3')
-        loaders.update_catchment_in_db(duplicate_catchment, self.session)
+        duplicate_catchment = loaders.from_file('floodestimation/tests/data/17002.CD3')
+        loaders.to_db(duplicate_catchment, self.session, method='update')
         self.session.flush()
 
         # Should have original data
@@ -58,7 +58,7 @@ class TestLoaders(unittest.TestCase):
         self.session.rollback()
 
     def test_save_catchments_to_db(self):
-        loaders.gauged_catchments_to_db(self.session)
+        loaders.nrfa_to_db(self.session)
         expected = ['Ardlethen', "Curry's Bridge", 'Dudgeon Bridge', 'Headswood', 'Inverugie', 'Leven']
         result = [catchment.location for catchment in self.session.query(Catchment).order_by(Catchment.location).all()]
         self.assertEqual(expected, result)
