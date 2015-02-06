@@ -62,7 +62,7 @@ def to_db(catchment, session, method='create', autocommit=False):
     """
     Load catchment object into the database.
 
-    A catchment/station number (:attr:`catchment.id`) must be provided. If :param:`method` is set to `update`, any
+    A catchment/station number (:attr:`catchment.id`) must be provided. If :attr:`method` is set to `update`, any
     existing catchment in the database with the same catchment number will be updated.
 
     :param catchment: New catchment object to replace any existing catchment in the database
