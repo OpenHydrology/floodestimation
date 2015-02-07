@@ -1,4 +1,4 @@
-- Catchment import folder
+- Catchment import folder for updating
 
 version 0.2.2 (2015-01-29)
 --------------------------
