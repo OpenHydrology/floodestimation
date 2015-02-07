@@ -13,9 +13,11 @@ from sqlalchemy.exc import IntegrityError
 class TestLoaders(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        cls.session = db.Session()
+
+    def setUp(self):
         settings.config['nrfa']['oh_json_url'] = \
             'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
-        cls.session = db.Session()
 
     @classmethod
     def tearDownClass(cls):
@@ -62,4 +64,13 @@ class TestLoaders(unittest.TestCase):
         expected = ['Ardlethen', "Curry's Bridge", 'Dudgeon Bridge', 'Headswood', 'Inverugie', 'Leven']
         result = [catchment.location for catchment in self.session.query(Catchment).order_by(Catchment.location).all()]
         self.assertEqual(expected, result)
+        self.session.rollback()
+
+    def test_userdata_to_db(self):
+        loaders.nrfa_to_db(self.session)
+
+        settings.config['import']['folder'] = 'floodestimation/tests/data'
+        loaders.userdata_to_db(self.session)
+        self.assertEqual(self.session.query(Catchment).count(), 9)
+
         self.session.rollback()
