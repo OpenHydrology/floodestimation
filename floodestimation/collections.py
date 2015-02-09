@@ -36,6 +36,7 @@ class CatchmentCollections(object):
     The collections objects must be passed a session to a database containing the data. This is typically
     :meth:`floodestimation.db.Session()`
     """
+
     def __init__(self, db_session, load_data='auto'):
         """
         :param db_session: SQLAlchemy database session
@@ -86,17 +87,17 @@ class CatchmentCollections(object):
         """
 
         dist_sq = Catchment.distance_to(subject_catchment).label('dist_sq')  # Distance squared, calculated using SQL
-        query = self.db_session.query(Catchment, dist_sq).\
-            join(Catchment.amax_records).\
-            join(Catchment.descriptors).\
-            filter(Catchment.id != subject_catchment.id,            # Exclude subject catchment itself
-                   Catchment.is_suitable_for_qmed,                  # Only catchments suitable for QMED estimation
+        query = self.db_session.query(Catchment, dist_sq). \
+            join(Catchment.amax_records). \
+            join(Catchment.descriptors). \
+            filter(Catchment.id != subject_catchment.id,  # Exclude subject catchment itself
+                   Catchment.is_suitable_for_qmed,  # Only catchments suitable for QMED estimation
                    Catchment.country == subject_catchment.country,  # SQL dist method does not cover cross-boundary dist
                    # Within the distance limit
-                   dist_sq <= dist_limit ** 2).\
-            group_by(Catchment).\
-            order_by(dist_sq).\
-            having(func.count(AmaxRecord.catchment_id) >= 10)       # At least 10 AMAX records
+                   dist_sq <= dist_limit ** 2). \
+            group_by(Catchment). \
+            order_by(dist_sq). \
+            having(func.count(AmaxRecord.catchment_id) >= 10)  # At least 10 AMAX records
 
         if limit:
             rows = query[0:limit]  # Each row is tuple of (catchment, distance squared)
@@ -122,29 +123,34 @@ class CatchmentCollections(object):
         :param similarity_dist_function: a method returning a similarity distance measure with 2 arguments, both
                                          :class:`floodestimation.entities.Catchment` objects
         :param include_subject_catchment: - `auto`: include subject catchment if suitable for pooling and if urbext < 0.03
-                                          - `force`: always include subject catchment
+                                          - `force`: always include subject catchment having at least 10 years of data
                                           - `exclude`: do not include the subject catchment
         :type include_subject_catchment: str
         :return: list of catchments sorted by similarity
         :type: list of :class:`floodestimation.entities.Catchment`
         """
-        query = self.db_session.query(Catchment).\
+        if include_subject_catchment not in ['auto', 'force', 'exclude']:
+            raise ValueError("Parameter `include_subject_catchment={}` invalid.".format(include_subject_catchment) +
+                             "Must be one of `auto`, `force` or `exclude`.")
+
+        query = self.db_session.query(Catchment). \
             join(Catchment.descriptors). \
-            join(Catchment.amax_records).\
-            filter(Catchment.is_suitable_for_pooling,
-                   or_(Descriptors.urbext2000 < 0.03, Descriptors.urbext2000 == None)).\
-            group_by(Catchment).\
+            join(Catchment.amax_records). \
+            filter(Catchment.id != subject_catchment.id,
+                   Catchment.is_suitable_for_pooling,
+                   or_(Descriptors.urbext2000 < 0.03, Descriptors.urbext2000 == None)). \
+            group_by(Catchment). \
             having(func.count(AmaxRecord.catchment_id) >= 10)  # At least 10 AMAX records
-        if include_subject_catchment == 'exclude':
-            # Remove subject catchment from donor list (if already in)
-            query = query.filter(Catchment.id != subject_catchment.id)
-        elif include_subject_catchment == 'force':
-            # Add the subject catchment regardless of urbext of pooling suitability
-            sc_query = self.db_session.query(Catchment).filter(Catchment.id == subject_catchment.id)
-            query = query.union(sc_query)
-        #else:
-        #    catchments = query.all()
         catchments = query.all()
+
+        # Add subject catchment if required (may not exist in database, so add after querying db
+        if include_subject_catchment == 'force':
+            if len(subject_catchment.amax_records) >= 10:  # Never include short-record catchments
+                catchments.append(subject_catchment)
+        elif include_subject_catchment == 'auto':
+            if len(subject_catchment.amax_records) >= 10 and subject_catchment.is_suitable_for_pooling and (
+                            subject_catchment.descriptors.urbext2000 < 0.03 or subject_catchment.descriptors.urbext2000 is None):
+                catchments.append(subject_catchment)
 
         # Store the similarity distance as an additional attribute for each catchment
         for catchment in catchments:
