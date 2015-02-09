@@ -29,14 +29,14 @@ from .settings import config
 
 def from_file(cd3_file_path):
     """
-    Load catchment object from a `.CD3` file.
+    Load catchment object from a ``.CD3`` file.
 
-    If there is also a corresponding `.AM` file (annual maximum flow data) or
-    a `.PT` file (peaks over threshold data) in the same folder as the CD3 file, these datasets will also be loaded.
+    If there is also a corresponding ``.AM`` file (annual maximum flow data) or
+    a ``.PT`` file (peaks over threshold data) in the same folder as the CD3 file, these datasets will also be loaded.
 
     :param cd3_file_path: File location of CD3 file
     :type cd3_file_path: str
-    :return: Catchment object with the `amax_records` and `pot_dataset` attributes set (if data available).
+    :return: Catchment object with the :attr:`amax_records` and :attr:`pot_dataset` attributes set (if data available).
     :rtype: :class:`.entities.Catchment`
     """
     am_file_path = os.path.splitext(cd3_file_path)[0] + '.AM'
@@ -70,10 +70,10 @@ def to_db(catchment, session, method='create', autocommit=False):
     :type catchment: :class:`.entities.Catchment`
     :param session: Database session to use, typically `floodestimation.db.Session()`
     :type session: :class:`sqlalchemy.orm.session.Session`
-    :param method: - `create`: only new catchments will be loaded, it must not already exist in the database.
-                   - `update`: any existing catchment in the database will be updated. Otherwise it will be created.
+    :param method: - ``create``: only new catchments will be loaded, it must not already exist in the database.
+                   - ``update``: any existing catchment in the database will be updated. Otherwise it will be created.
     :type method: str
-    :param autocommit: Whether to commit the database session immediately. Default: `False`.
+    :param autocommit: Whether to commit the database session immediately. Default: ``False``.
     :type autocommit: bool
     """
 
@@ -97,10 +97,10 @@ def folder_to_db(path, session, method='create', autocommit=False):
     :type path: str
     :param session: database session to use, typically `floodestimation.db.Session()`
     :type session: :class:`sqlalchemy.orm.session.Session`
-    :param method: - `create`: only new catchments will be loaded, it must not already exist in the database.
-                   - `update`: any existing catchment in the database will be updated. Otherwise it will be created.
+    :param method: - ``create``: only new catchments will be loaded, it must not already exist in the database.
+                   - ``update``: any existing catchment in the database will be updated. Otherwise it will be created.
     :type method: str
-    :param autocommit: Whether to commit the database session immediately. Default: `False`.
+    :param autocommit: Whether to commit the database session immediately. Default: ``False``.
     :type autocommit: bool
     """
     if not os.path.isdir(path):
@@ -124,10 +124,10 @@ def nrfa_to_db(session, method='create', autocommit=False):
 
     :param session: database session to use, typically `floodestimation.db.Session()`
     :type session: :class:`sqlalchemy.orm.session.Session`
-    :param method: - `create`: only new catchments will be loaded, it must not already exist in the database.
-                   - `update`: any existing catchment in the database will be updated. Otherwise it will be created.
+    :param method: - ``create``: only new catchments will be loaded, it must not already exist in the database.
+                   - ``update``: any existing catchment in the database will be updated. Otherwise it will be created.
     :type method: str
-    :param autocommit: Whether to commit the database session immediately. Default: `False`.
+    :param autocommit: Whether to commit the database session immediately. Default: ``False``.
     :type autocommit: bool
     """
 
@@ -141,12 +141,19 @@ def userdata_to_db(session, method='update', autocommit=False):
     """
     Add catchments from a user folder to the database.
 
+    The user folder is specified in the ``config.ini`` file like this::
+
+        [import]
+        folder = path/to/import/folder
+
+    If this configuration key does not exist this will be silently ignored.
+
     :param session: database session to use, typically `floodestimation.db.Session()`
     :type session: :class:`sqlalchemy.orm.session.Session`
-    :param method: - `create`: only new catchments will be loaded, it must not already exist in the database.
-                   - `update`: any existing catchment in the database will be updated. Otherwise it will be created.
+    :param method: - ``create``: only new catchments will be loaded, it must not already exist in the database.
+                   - ``update``: any existing catchment in the database will be updated. Otherwise it will be created.
     :type method: str
-    :param autocommit: Whether to commit the database session immediately. Default: `False`.
+    :param autocommit: Whether to commit the database session immediately. Default: ``False``.
     :type autocommit: bool
     """
 
