@@ -104,9 +104,9 @@ class Catchment(db.Base):
     point = composite(Point, point_x, point_y)
 
     #: Whether this catchment can be used to estimate QMED at other similar catchments
-    is_suitable_for_qmed = Column(Boolean, index=True)
+    is_suitable_for_qmed = Column(Boolean, index=True, default=False, nullable=False)
     #: Whether this catchment's annual maximum flow data can be used in pooling group analyses
-    is_suitable_for_pooling = Column(Boolean, index=True)
+    is_suitable_for_pooling = Column(Boolean, index=True, default=False, nullable=False)
     #: List of annual maximum flow records as :class:`.AmaxRecord` objects
     amax_records = relationship("AmaxRecord", order_by="AmaxRecord.water_year", cascade="all, delete-orphan",
                                 backref="catchment")
