@@ -27,7 +27,7 @@ from . import parsers
 from .settings import config
 
 
-def from_file(cd3_file_path):
+def from_file(cd3_file_path, incl_pot=True):
     """
     Load catchment object from a ``.CD3`` file.
 
@@ -38,6 +38,8 @@ def from_file(cd3_file_path):
     :type cd3_file_path: str
     :return: Catchment object with the :attr:`amax_records` and :attr:`pot_dataset` attributes set (if data available).
     :rtype: :class:`.entities.Catchment`
+    :param incl_pot: Whether to load the POT (peaks-over-threshold) data. Default: ``True``.
+    :type incl_pot: bool
     """
     am_file_path = os.path.splitext(cd3_file_path)[0] + '.AM'
     pot_file_path = os.path.splitext(cd3_file_path)[0] + '.PT'
@@ -51,10 +53,11 @@ def from_file(cd3_file_path):
         catchment.amax_records = []
 
     # POT records
-    try:
-        catchment.pot_dataset = parsers.PotParser().parse(pot_file_path)
-    except FileNotFoundError:
-        pass
+    if incl_pot:
+        try:
+            catchment.pot_dataset = parsers.PotParser().parse(pot_file_path)
+        except FileNotFoundError:
+            pass
 
     return catchment
 
@@ -89,7 +92,7 @@ def to_db(catchment, session, method='create', autocommit=False):
         session.commit()
 
 
-def folder_to_db(path, session, method='create', autocommit=False):
+def folder_to_db(path, session, method='create', autocommit=False, incl_pot=True):
     """
     Import an entire folder (incl. sub-folders) into the database
 
@@ -102,6 +105,8 @@ def folder_to_db(path, session, method='create', autocommit=False):
     :type method: str
     :param autocommit: Whether to commit the database session immediately. Default: ``False``.
     :type autocommit: bool
+    :param incl_pot: Whether to load the POT (peaks-over-threshold) data. Default: ``True``.
+    :type incl_pot: bool
     """
     if not os.path.isdir(path):
         raise ValueError("Folder `{}` does not exist or is not accesible.".format(path))
@@ -109,7 +114,7 @@ def folder_to_db(path, session, method='create', autocommit=False):
     cd3_files = [os.path.join(dp, f) for dp, dn, filenames in os.walk(path)
                  for f in filenames if os.path.splitext(f)[1].lower() == '.cd3']
     for cd3_file_path in cd3_files:
-        catchment = from_file(cd3_file_path)
+        catchment = from_file(cd3_file_path, incl_pot)
         to_db(catchment, session, method)
     if autocommit:
         session.commit()
@@ -117,7 +122,7 @@ def folder_to_db(path, session, method='create', autocommit=False):
 
 # Some specific import methods below:
 
-def nrfa_to_db(session, method='create', autocommit=False):
+def nrfa_to_db(session, method='create', autocommit=False, incl_pot=True):
     """
     Retrieves all gauged catchments (incl. catchment descriptors and annual maximum flow data) from the National River
     Flow Archive and saves it to a (sqlite) database.
@@ -129,12 +134,14 @@ def nrfa_to_db(session, method='create', autocommit=False):
     :type method: str
     :param autocommit: Whether to commit the database session immediately. Default: ``False``.
     :type autocommit: bool
+    :param incl_pot: Whether to load the POT (peaks-over-threshold) data. Default: ``True``.
+    :type incl_pot: bool
     """
 
     fehdata.clear_cache()
     fehdata.download_data()
     fehdata.unzip_data()
-    folder_to_db(fehdata.CACHE_FOLDER, session, method=method, autocommit=autocommit)
+    folder_to_db(fehdata.CACHE_FOLDER, session, method=method, autocommit=autocommit, incl_pot=incl_pot)
 
 
 def userdata_to_db(session, method='update', autocommit=False):
