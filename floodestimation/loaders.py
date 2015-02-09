@@ -168,4 +168,5 @@ def userdata_to_db(session, method='update', autocommit=False):
         folder = config['import']['folder']
     except KeyError:
         return
-    folder_to_db(folder, session, method=method, autocommit=autocommit)
+    if folder:
+        folder_to_db(folder, session, method=method, autocommit=autocommit)
