@@ -8,7 +8,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='floodestimation',
-    version='0.2.2',
+    version='0.3.0',
     packages=['floodestimation'],
     url='https://github.com/OpenHydrology/floodestimation',
     license='GPLv3',
@@ -20,7 +20,7 @@ setup(
         'appdirs>=1.4,<1.5',
         'sqlalchemy>=0.9,<0.10',
         'numpy>=1.9,<1.10',
-        'scipy>=0.14,<0.15',
+        'scipy>=0.14',
         'lmoments3>=1.0.1,<1.1'
     ],
     package_data={

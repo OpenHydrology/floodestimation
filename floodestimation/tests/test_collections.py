@@ -26,7 +26,7 @@ class TestCatchmentCollection(unittest.TestCase):
         db.empty_db_tables()
 
     def test_catchment_by_number(self):
-        expected = loaders.load_catchment('floodestimation/tests/data/17002.CD3')
+        expected = loaders.from_file('floodestimation/tests/data/17002.CD3')
         self.db_session.add(expected)
 
         result = CatchmentCollections(self.db_session).catchment_by_number(17002)
@@ -37,18 +37,49 @@ class TestCatchmentCollection(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_nearest_catchments(self):
-        subject_catchment = loaders.load_catchment('floodestimation/tests/data/17002.CD3')
+        subject_catchment = loaders.from_file('floodestimation/tests/data/17002.CD3')
         catchments = CatchmentCollections(self.db_session).nearest_qmed_catchments(subject_catchment)
         result = [catchment.id for catchment in catchments]
         expected = [17001, 10001, 10002]
         self.assertEqual(expected, result)
 
     def test_most_similar_catchments(self):
-        subject_catchment = loaders.load_catchment('floodestimation/tests/data/17002.CD3')
+        subject_catchment = loaders.from_file('floodestimation/tests/data/17002.CD3')
         # Dummy similarity distance function
-        function = lambda c1, c2: c2.descriptors.altbar - c1.descriptors.altbar
+        function = lambda c1, c2: abs(c2.descriptors.altbar - c1.descriptors.altbar)
         catchments = CatchmentCollections(self.db_session).most_similar_catchments(subject_catchment, function)
         result = [c.id for c in catchments]
-        expected = [10002, 10001]
+        expected = [10001, 10002]
         self.assertEqual(expected, result)
 
+    def test_incl_subject_catchment(self):
+        # Subject catchment not in db
+        subject_catchment = loaders.from_file('floodestimation/tests/data/37017.CD3')
+        # Dummy similarity distance function
+        function = lambda c1, c2: abs(c2.descriptors.altbar - c1.descriptors.altbar)
+        catchments = CatchmentCollections(self.db_session).most_similar_catchments(subject_catchment, function,
+                                                                                   include_subject_catchment='force')
+        result = [c.id for c in catchments]
+        expected = [37017, 10002, 10001]
+        self.assertEqual(expected, result)
+        self.assertEqual(catchments[0].similarity_dist, 0)
+
+    def test_incl_subject_catchment_updated(self):
+        # Subject catchment in db
+        subject_catchment = loaders.from_file('floodestimation/tests/data/201002.CD3')
+        subject_catchment.location = "Updated location name"
+        # Dummy similarity distance function
+        function = lambda c1, c2: abs(c2.descriptors.altbar - c1.descriptors.altbar)
+        catchments = CatchmentCollections(self.db_session).most_similar_catchments(subject_catchment, function,
+                                                                                   include_subject_catchment='force')
+        result = [c.id for c in catchments]
+        expected = [201002, 10001, 10002]
+        self.assertEqual(expected, result)
+        self.assertEqual(catchments[0].location, "Updated location name")
+
+    def test_invalid_subj_catchment_option(self):
+        subject_catchment = loaders.from_file('floodestimation/tests/data/17002.CD3')
+        # Dummy similarity distance function
+        function = lambda c1, c2: abs(c2.descriptors.altbar - c1.descriptors.altbar)
+        self.assertRaises(ValueError, CatchmentCollections(self.db_session).most_similar_catchments,
+                          subject_catchment, function, include_subject_catchment='invalid')

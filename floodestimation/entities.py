@@ -104,17 +104,18 @@ class Catchment(db.Base):
     point = composite(Point, point_x, point_y)
 
     #: Whether this catchment can be used to estimate QMED at other similar catchments
-    is_suitable_for_qmed = Column(Boolean, index=True)
+    is_suitable_for_qmed = Column(Boolean, index=True, default=False, nullable=False)
     #: Whether this catchment's annual maximum flow data can be used in pooling group analyses
-    is_suitable_for_pooling = Column(Boolean, index=True)
+    is_suitable_for_pooling = Column(Boolean, index=True, default=False, nullable=False)
     #: List of annual maximum flow records as :class:`.AmaxRecord` objects
-    amax_records = relationship("AmaxRecord", order_by="AmaxRecord.water_year", backref="catchment")
+    amax_records = relationship("AmaxRecord", order_by="AmaxRecord.water_year", cascade="all, delete-orphan",
+                                backref="catchment")
     #: Peaks-over-threshold dataset (one-to-one relationship)
-    pot_dataset = relationship("PotDataset", uselist=False, backref="catchment")
+    pot_dataset = relationship("PotDataset", uselist=False, cascade="all, delete-orphan", backref="catchment")
     #: List of comments
-    comments = relationship("Comment", order_by="Comment.title", backref="catchment")
+    comments = relationship("Comment", order_by="Comment.title", cascade="all, delete-orphan", backref="catchment")
     #: FEH catchment descriptors (one-to-one relationship)
-    descriptors = relationship("Descriptors", uselist=False, backref="catchment")
+    descriptors = relationship("Descriptors", uselist=False, cascade="all, delete-orphan", backref="catchment")
 
     def __init__(self, location=None, watercourse=None):
         self.location = location
@@ -354,9 +355,11 @@ class PotDataset(db.Base):
     #: Flow threshold in m³/s
     threshold = Column(Float)
     #: List of peaks-over-threshold records as :class:`.PotRecord` objects
-    pot_records = relationship('PotRecord', order_by='PotRecord.date', backref='catchment')
+    pot_records = relationship('PotRecord', order_by='PotRecord.date', cascade="all, delete-orphan",
+                               backref='catchment')
     #: List of peaks-over-threshold records as :class:`.PotDataGap` objects
-    pot_data_gaps = relationship('PotDataGap', order_by='PotDataGap.start_date', backref='catchment')
+    pot_data_gaps = relationship('PotDataGap', order_by='PotDataGap.start_date', cascade="all, delete-orphan",
+                                 backref='catchment')
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
