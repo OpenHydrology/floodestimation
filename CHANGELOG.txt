@@ -1,3 +1,6 @@
+- Enhanced single site does not rely on catchment being in db
+- Import folder for updating db
+
 version 0.2.2 (2015-01-29)
 --------------------------
 - Intermediate results for gauged catchments

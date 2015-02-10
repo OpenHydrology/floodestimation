@@ -1,0 +1,10 @@
+data	zip     qmed    pooling
+		10001   no      yes
+		10002   no      yes
+		17001   yes     no
+17002	17002   no      no
+170021
+201002	201002  yes     no
+		203021  no      no
+37017           yes     no
+37020           yes     yes

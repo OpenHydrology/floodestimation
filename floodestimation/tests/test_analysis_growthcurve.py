@@ -13,7 +13,7 @@ from floodestimation.analysis import GrowthCurveAnalysis
 from floodestimation import db
 from floodestimation import settings
 from floodestimation.collections import CatchmentCollections
-from floodestimation.loaders import load_catchment
+from floodestimation.loaders import from_file
 
 
 class TestGrowthCurveAnalysis(unittest.TestCase):
@@ -78,21 +78,21 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
 
     def test_single_site_glo(self):
         gauged_catchments = CatchmentCollections(self.db_session)
-        catchment = load_catchment('floodestimation/tests/data/37017.CD3')
+        catchment = from_file('floodestimation/tests/data/37017.CD3')
         analysis = GrowthCurveAnalysis(catchment, gauged_catchments)
         dist_func = analysis.growth_curve(method='single_site', distr='glo')
         self.assertAlmostEqual(dist_func(0.5), 1)
 
     def test_single_site_gev(self):
         gauged_catchments = CatchmentCollections(self.db_session)
-        catchment = load_catchment('floodestimation/tests/data/37017.CD3')
+        catchment = from_file('floodestimation/tests/data/37017.CD3')
         analysis = GrowthCurveAnalysis(catchment, gauged_catchments)
         dist_func = analysis.growth_curve(method='single_site', distr='gev')
         self.assertAlmostEqual(dist_func(0.5), 1)
 
     def test_l_cv_and_skew(self):
         gauged_catchments = CatchmentCollections(self.db_session)
-        catchment = load_catchment('floodestimation/tests/data/37017.CD3')
+        catchment = from_file('floodestimation/tests/data/37017.CD3')
 
         analysis = GrowthCurveAnalysis(catchment, gauged_catchments)
         var, skew = analysis._var_and_skew(catchment)
@@ -101,7 +101,7 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         self.assertAlmostEqual(skew, -0.0908, places=4)
 
     def test_l_cv_and_skew_one_donor_rural(self):
-        catchment = load_catchment('floodestimation/tests/data/37017.CD3')
+        catchment = from_file('floodestimation/tests/data/37017.CD3')
 
         analysis = GrowthCurveAnalysis(catchment, year=2000)
         analysis.donor_catchments = [catchment]
@@ -111,7 +111,7 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         self.assertAlmostEqual(skew, -0.0908, places=4)
 
     def test_l_cv_and_skew_one_donor_urban(self):
-        catchment = load_catchment('floodestimation/tests/data/37017.CD3')
+        catchment = from_file('floodestimation/tests/data/37017.CD3')
 
         analysis = GrowthCurveAnalysis(catchment, year=2000)
         analysis.donor_catchments = [catchment]
@@ -121,7 +121,7 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         self.assertAlmostEqual(skew, -0.08746, places=4)
 
     def test_37017(self):
-        subject = load_catchment('floodestimation/tests/data/37017.CD3')
+        subject = from_file('floodestimation/tests/data/37017.CD3')
         analysis = GrowthCurveAnalysis(subject)
         self.assertEqual(len(subject.amax_records), 34)
         var, skew = analysis._var_and_skew(subject)
@@ -129,7 +129,7 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         self.assertAlmostEqual(skew, -0.0908, places=4)
 
     def test_dist_params(self):
-        catchment = load_catchment('floodestimation/tests/data/37017.CD3')
+        catchment = from_file('floodestimation/tests/data/37017.CD3')
 
         analysis = GrowthCurveAnalysis(catchment)
         growth_curve = analysis.growth_curve(method='single_site')
@@ -143,7 +143,7 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         self.assertAlmostEqual(growth_curve.distr_kurtosis, 0.1735, places=4)
 
     def test_dist_param_location(self):
-        catchment = load_catchment('floodestimation/tests/data/37017.CD3')
+        catchment = from_file('floodestimation/tests/data/37017.CD3')
 
         analysis = GrowthCurveAnalysis(catchment)
         growth_curve = analysis.growth_curve(method='single_site')
@@ -159,14 +159,14 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         assert_almost_equal(result, expected)
 
     def test_l_cv_weight_same_catchment(self):
-        subject = load_catchment('floodestimation/tests/data/37017.CD3')
+        subject = from_file('floodestimation/tests/data/37017.CD3')
         analysis = GrowthCurveAnalysis(subject)
         result = analysis._l_cv_weight(subject)
         expected = 515.30  # Science Report SC050050, table 6.6, row 1
         self.assertAlmostEqual(result, expected, places=1)
 
     def test_l_cv_weight(self):
-        subject = load_catchment('floodestimation/tests/data/37017.CD3')
+        subject = from_file('floodestimation/tests/data/37017.CD3')
         analysis = GrowthCurveAnalysis(subject)
         donor = copy(subject)
         donor.similarity_dist = 0.2010
@@ -175,14 +175,14 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         self.assertAlmostEqual(result, expected, places=1)
 
     def test_l_skew_weight_same_catchment(self):
-        subject = load_catchment('floodestimation/tests/data/37017.CD3')
+        subject = from_file('floodestimation/tests/data/37017.CD3')
         analysis = GrowthCurveAnalysis(subject)
         result = analysis._l_skew_weight(subject)
         expected = 116.66  # Science Report SC050050, table 6.6, row 1
         self.assertAlmostEqual(result, expected, places=1)
 
     def test_l_skew_weight(self):
-        subject = load_catchment('floodestimation/tests/data/37017.CD3')
+        subject = from_file('floodestimation/tests/data/37017.CD3')
         analysis = GrowthCurveAnalysis(subject)
         donor = copy(subject)
         donor.similarity_dist = 0.2010
@@ -191,8 +191,8 @@ class TestGrowthCurveAnalysis(unittest.TestCase):
         self.assertAlmostEqual(result, expected, places=1)
 
     def test_similarity_dist(self):
-        subject = load_catchment('floodestimation/tests/data/37017.CD3')
-        donor = load_catchment('floodestimation/tests/data/37020.CD3')
+        subject = from_file('floodestimation/tests/data/37017.CD3')
+        donor = from_file('floodestimation/tests/data/37020.CD3')
         analysis = GrowthCurveAnalysis(subject)
         result = analysis._similarity_distance(subject, donor)
         expected = 0.1159  # Science Report SC050050, table 6.6, row 2
