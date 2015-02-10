@@ -1,3 +1,5 @@
+version 0.3.0 (2015-02-10)
+--------------------------
 - Enhanced single site does not rely on catchment being in db
 - Import folder for updating db
 
