@@ -4,27 +4,22 @@ Tutorial and introduction to :mod:`floodestimation`
 Installation and requirements
 -----------------------------
 
-The :mod:`floodestimation` package is available for download on the Python Package Index (PyPI) website. Installation
-is straightforward and is typically done like this from a command prompt:
+The :mod:`floodestimation` package can be installed on Windows, Mac OS and Linux operating systems from binstar.org
+using the `Conda package manager <http://conda.pydata.org/miniconda.html>`_:
 
-.. code-block:: bash
+   .. image:: https://binstar.org/openhydrology/floodestimation/badges/version.svg
+      :target: https://binstar.org/openhydrology/floodestimation
 
-    pip install floodestimation
+.. code-block:: shell
 
-On Windows `pip` is typically installed under `C:\\Program Files\\Python33\\Scripts\\pip.exe` or somewhere similar.
+   conda install -c https://conda.binstar.org/openhydrology floodestimation
 
-In case of downloading the package manually, the following other packages are required and must be availabe:
+Or alternatively directly from the source code:
 
-- `numpy`
-- `scipy`
-- `appdirs`
-- `sqlalchemy`
-- `lmoments3`
+   .. image:: https://img.shields.io/github/tag/openhydrology/floodestimation.svg?style=flat-square
+      :target: https://github.com/OpenHydrology/floodestimation/releases
 
-Installation packages for `numpy` and `scipy` for Windows are available on the `Unoffical Windows Binaries for Python
-Extension Packages website <http://www.lfd.uci.edu/~gholke/pythonlibs/>`_.
-
-The :mod:`floodestimation` package has been tested with Python 3.3 to 3.4.
+The :mod:`floodestimation` package has been tested with Python 3.3 and 3.4.
 
 Typical workflow
 ----------------
