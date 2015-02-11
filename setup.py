@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='floodestimation',
-    version='0.3.0',
+    version='0.3.1',
     packages=['floodestimation'],
     install_requires=[
         'appdirs>=1.4,<1.5',
