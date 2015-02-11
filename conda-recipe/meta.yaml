@@ -1,0 +1,36 @@
+package:
+  name: floodestimation
+  version: {{ environ.get('GIT_DESCRIBE_TAG', '0.0.0')[1:] }}
+
+build:
+  number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
+  
+source:
+  git_url: ..
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - appdirs 1.4*
+    - sqlalchemy 0.9*
+    - lmoments3 >=1.0.2
+
+  run:
+    - python
+    - appdirs 1.4*
+    - sqlalchemy 0.9*
+    - numpy 1.9*
+    - scipy >=0.14
+    - lmoments3 >=1.0.2
+
+test:
+  # Python imports
+  imports:
+    - floodestimation
+
+about:
+  home: http://github.com/OpenHydrology/floodestimation
+  license: GPLv3
+  summary: Python library for flood frequency-magnitude analyses for UK catchments
+

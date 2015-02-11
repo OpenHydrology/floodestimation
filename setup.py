@@ -21,7 +21,7 @@ setup(
         'sqlalchemy>=0.9,<0.10',
         'numpy>=1.9,<1.10',
         'scipy>=0.14',
-        'lmoments3>=1.0.1,<1.1'
+        'lmoments3>=1.0.2,<1.1'
     ],
     package_data={
         'floodestimation': ['fehdata.json',

@@ -14,7 +14,7 @@ before_install:
 - sudo ln -s /run/shm /dev/shm
 
 install:
-- conda install --yes python=$TRAVIS_PYTHON_VERSION pip nose numpy=1.9.* scipy >=0.14 sqlalchemy=0.9.*
+- conda install --yes python=$TRAVIS_PYTHON_VERSION pip nose numpy=1.9.* scipy >=0.14 sqlalchemy=0.9.* lmoments3 >=1.0.2
 - python setup.py install
 
 script:
