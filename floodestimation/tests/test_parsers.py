@@ -28,6 +28,10 @@ class TestAmax(unittest.TestCase):
         self.assertEqual(self.parser.rejected_years, [1971, 2002, 2003])
         self.assertEqual(self.amax_records[3].flag, 2)
 
+    def test_amax_without_stage(self):
+        amax_records = self.parser.parse('floodestimation/tests/data/17002-nostage.AM')
+        self.assertIsNone(amax_records[0].stage)
+
 
 class TestPot(unittest.TestCase):
     parser = parsers.PotParser()
