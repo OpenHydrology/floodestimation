@@ -1,4 +1,3 @@
-setuptools
 appdirs>=1.4,<1.5
 sqlalchemy>=0.9,<0.10
 numpy>=1.9,<1.10
