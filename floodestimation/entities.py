@@ -299,7 +299,7 @@ class AmaxRecord(db.Base):
     #: Data quality flag. 0 (default): valid value, 1: invalid value, 2: rejected record.
     flag = Column(SmallInteger, index=True, nullable=False, default=0)
 
-    WATER_YEAR_FIRST_MONTH = 10  # Should provide flexibility to use different first months
+    WATER_YEAR_FIRST_MONTH = 10
 
     def __init__(self, date, flow, stage=None, flag=0):
         self.date = date
