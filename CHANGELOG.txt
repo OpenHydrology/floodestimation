@@ -1,3 +1,7 @@
+version 0.3.2 (2015-02-16)
+--------------------------
+- Stage/water level in amax record is now optional (defaults to `None`)
+
 version 0.3.1 (2015-02-11)
 --------------------------
 - Conda package fix
