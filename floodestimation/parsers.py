@@ -121,18 +121,24 @@ class AmaxParser(FehFileParser):
         row = [s.strip() for s in line.split(',')]
         # Date in first column
         date = self.parse_feh_date_format(row[0])
+
         # Flow rate in second column
         flow = float(row[1])
         flag = 0
         if flow < 0:
             flow = None
             flag = 1  # Invalid value
-        # Stage in last column
-        stage = float(row[2])
-        if stage < 0:
-            stage = None
-        # Create :class:`AmaxRecord`
-        record = entities.AmaxRecord(date, flow, stage)
+
+        # Create instance of :class:`AmaxRecord`
+        record = entities.AmaxRecord(date, flow)
+
+        # Stage in third column (may not exist)
+        if len(row) >= 3:
+            stage = float(row[2])
+            if stage < 0:
+                stage = None
+            record.stage = stage
+
         # Set flag if the water year is included in the list of rejected years
         if record.water_year in self.rejected_years:
             flag = 2  # Rejected

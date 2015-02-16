@@ -291,17 +291,17 @@ class AmaxRecord(db.Base):
     #: Water year or hydrological year (starts 1 October)
     water_year = Column(Integer, primary_key=True, nullable=False)
     #: Date at which maximum flow occured
-    date = Column(Date)
+    date = Column(Date, nullable=False)
     #: Observed flow in  m³/s
-    flow = Column(Float)
+    flow = Column(Float, nullable=False)
     #: Observed water level in m above local datum
-    stage = Column(Float)
+    stage = Column(Float, nullable=True)
     #: Data quality flag. 0 (default): valid value, 1: invalid value, 2: rejected record.
-    flag = Column(SmallInteger, index=True, default=0)
+    flag = Column(SmallInteger, index=True, nullable=False, default=0)
 
     WATER_YEAR_FIRST_MONTH = 10  # Should provide flexibility to use different first months
 
-    def __init__(self, date, flow, stage, flag=0):
+    def __init__(self, date, flow, stage=None, flag=0):
         self.date = date
         self.water_year = self.water_year_from_date(date)
         self.flow = flow
