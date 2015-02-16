@@ -1,3 +1,7 @@
+version 0.3.3 (2015-02-16)
+--------------------------
+- Setup fix
+
 version 0.3.2 (2015-02-16)
 --------------------------
 - Stage/water level in amax record is now optional (defaults to `None`)
