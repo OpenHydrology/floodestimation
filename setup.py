@@ -11,7 +11,7 @@ version = open(path.join(here, 'VERSION')).read().split('-')[0]
 
 setup(
     name='floodestimation',
-    version='0.3.1',
+    version=version,
     packages=['floodestimation'],
     install_requires=[
         'appdirs>=1.4,<1.5',
