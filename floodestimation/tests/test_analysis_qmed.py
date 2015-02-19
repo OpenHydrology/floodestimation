@@ -414,7 +414,7 @@ class TestQmedDonor(unittest.TestCase):
         # donor: qmed_am = 90.532, qmed_cd = 51.73814611333827
         self.assertEqual(17001, donor.id)
         self.assertEqual(5, donor.distance_to(self.catchment))
-        self.assertAlmostEqual(0.4654, analysis._error_correlation(donor), places=4)
+        self.assertAlmostEqual(0.4654, analysis._error_corr(donor), places=4)
         assert_almost_equal([1.2974563], analysis._donor_adj_factors([donor]), decimal=7)
         assert_almost_equal([1], analysis._donor_weights([donor]))
         # 0.6173210932631318 * 1.2974563 = 0.8009471415771379

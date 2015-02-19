@@ -444,7 +444,25 @@ class QmedAnalysis(Analysis):
         self.results_log['urban_adj_factor'] = result
         return result
 
-    def _error_correlation(self, other_catchment):
+    @staticmethod
+    def _dist_corr(dist, phi1, phi2, phi3):
+        """
+        Generic distance-decaying correlation function
+
+        :param dist: Distance between catchment centrolds in km
+        :type dist: float
+        :param phi1: Decay function parameters 1
+        :type phi1: float
+        :param phi2: Decay function parameters 2
+        :type phi2: float
+        :param phi3: Decay function parameters 3
+        :type phi3: float
+        :return: Correlation coefficient, r
+        :rtype: float
+        """
+        return phi1 * exp(-phi2 * dist) + (1 - phi1) * exp(-phi3 * dist)
+
+    def _error_corr(self, other_catchment):
         """
         Return model error correlation between subject catchment and other catchment.
 
@@ -455,8 +473,36 @@ class QmedAnalysis(Analysis):
         :return: correlation coefficient, r
         :rtype: float
         """
-        distance = self.catchment.distance_to(other_catchment)
-        return 0.4598 * exp(-0.0200 * distance) + (1 - 0.4598) * exp(-0.4785 * distance)
+        dist = self.catchment.distance_to(other_catchment)
+        return self._dist_corr(dist, 0.4598, 0.0200, 0.4785)
+
+    def _model_error_corr(self, other_catchment):
+        """
+        Return model error correlation between subject catchment and other catchment.
+
+        Methodology source: Kjeldsen & Jones, 2009, table 3
+
+        :param other_catchment: catchment to calculate error correlation with
+        :type other_catchment: :class:`Catchment`
+        :return: correlation coefficient, r
+        :rtype: float
+        """
+        dist = self.catchment.distance_to(other_catchment)
+        return self._dist_corr(dist, 0.3998, 0.0283, 0.9494)
+
+    def _logmedian__corr(self, other_catchment):
+        """
+        Return model error correlation between subject catchment and other catchment.
+
+        Methodology source: Kjeldsen & Jones, 2009, fig 3
+
+        :param other_catchment: catchment to calculate error correlation with
+        :type other_catchment: :class:`Catchment`
+        :return: correlation coefficient, r
+        :rtype: float
+        """
+        dist = self.catchment.distance_to(other_catchment)
+        return self._dist_corr(dist, 0.2791, 0.0039, 0.0632)
 
     def _donor_adj_factors(self, donor_catchments):
         """
@@ -486,7 +532,7 @@ class QmedAnalysis(Analysis):
         analysis = QmedAnalysis(donor_catchment, year=2000)  # Probably should set the year to the midpoint of amax rec.
         donor_qmed_amax = analysis.qmed(method='amax_records')
         donor_qmed_descr = analysis.qmed(method='descriptors')
-        return (donor_qmed_amax / donor_qmed_descr) ** self._error_correlation(donor_catchment)
+        return (donor_qmed_amax / donor_qmed_descr) ** self._error_corr(donor_catchment)
 
     def _donor_weights(self, donor_catchments):
         """
