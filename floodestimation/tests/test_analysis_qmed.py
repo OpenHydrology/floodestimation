@@ -1,6 +1,6 @@
 import unittest
 import os
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_almost_equal, assert_array_almost_equal_nulp
 from urllib.request import pathname2url
 from datetime import date
 from floodestimation.entities import Catchment, AmaxRecord, Descriptors, Point, PotDataset, PotRecord, PotDataGap
@@ -224,7 +224,7 @@ class TestCatchmentQmed(unittest.TestCase):
         analysis = QmedAnalysis(catchment)
         records_by_month = analysis._pot_month_counts(catchment.pot_dataset)
         expected = [2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2]
-        result =[len(month) for month in records_by_month]
+        result = [len(month) for month in records_by_month]
         self.assertEqual(result, expected)
 
     def test_pot_complete_years(self):
@@ -360,7 +360,7 @@ class TestQmedDonor(unittest.TestCase):
     catchment = Catchment("Dundee", "River Tay")
     catchment.country = 'gb'
     catchment.descriptors = Descriptors(dtm_area=2.345,
-                                        bfihost=0.0,
+                                        bfihost=1e-4,
                                         sprhost=100,
                                         saar=2000,
                                         farl=0.5,
@@ -406,7 +406,6 @@ class TestQmedDonor(unittest.TestCase):
             1.0448, places=4)
 
     def test_first_automatic_donor_qmed(self):
-
         analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session), year=2000)
 
         # Use the first donor only!
@@ -470,3 +469,34 @@ class TestQmedDonor(unittest.TestCase):
         assert_almost_equal([1, 0], analysis._donor_weights(donors), decimal=4)
 
         self.assertAlmostEqual(0.800947, analysis.qmed(donor_catchments=donors), places=4)
+
+    def test_vector_b(self):
+        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session), year=2000)
+        donors = analysis.find_donor_catchments()[0:2]  # 17001, 10001
+        result = analysis._vec_b(donors)
+        assert_almost_equal([0.35225681, 0.00219892], result)  # TODO check results
+
+    def test_beta(self):
+        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session), year=2000)
+        result = analysis._beta(self.catchment)
+        self.assertAlmostEqual(result, 0.003174322)
+
+    def test_matrix_sigma_eta(self):
+        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session), year=2000)
+        donors = analysis.find_donor_catchments()[0:2]  # 17001, 10001
+        result = analysis._matrix_sigma_eta(donors)
+        assert_almost_equal([0.1175, 0.0002243], result[0])
+        assert_almost_equal([0.0002243, 0.1175], result[1])  # TODO check results
+
+    def test_matrix_sigma_epsilon(self):
+        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session), year=2000)
+        donors = analysis.find_donor_catchments()[0:2]  # 17001, 10001
+        result = analysis._matrix_sigma_eps(donors)
+        assert_almost_equal([4.23700375e-06, 2.45988872e-07], result[0])
+        assert_almost_equal([2.45988872e-07, 5.31698817e-06], result[1])  # TODO check results
+
+    def test_vector_alpha(self):
+        analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session), year=2000)
+        donors = analysis.find_donor_catchments()[0:2]  # 17001, 10001
+        result = analysis._vec_alpha(donors)
+        assert_almost_equal([2.9977974, 0.0129847], result)  # TODOO check results

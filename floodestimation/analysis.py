@@ -25,6 +25,7 @@ import copy
 import lmoments3 as lm
 import lmoments3.distr as lm_distr
 import numpy as np
+from numpy import linalg
 from scipy import optimize
 
 
@@ -476,33 +477,117 @@ class QmedAnalysis(Analysis):
         dist = self.catchment.distance_to(other_catchment)
         return self._dist_corr(dist, 0.4598, 0.0200, 0.4785)
 
-    def _model_error_corr(self, other_catchment):
+    def _model_error_corr(self, catchment1, catchment2):
         """
         Return model error correlation between subject catchment and other catchment.
 
         Methodology source: Kjeldsen & Jones, 2009, table 3
 
-        :param other_catchment: catchment to calculate error correlation with
-        :type other_catchment: :class:`Catchment`
+        :param catchment1: catchment to calculate error correlation with
+        :type catchment1: :class:`Catchment`
+        :param catchment2: catchment to calculate error correlation with
+        :type catchment2: :class:`Catchment`
         :return: correlation coefficient, r
         :rtype: float
         """
-        dist = self.catchment.distance_to(other_catchment)
+        dist = catchment1.distance_to(catchment2)
         return self._dist_corr(dist, 0.3998, 0.0283, 0.9494)
 
-    def _logmedian__corr(self, other_catchment):
+    def _logmedian__corr(self, catchment1, catchment2):
         """
         Return model error correlation between subject catchment and other catchment.
 
         Methodology source: Kjeldsen & Jones, 2009, fig 3
 
-        :param other_catchment: catchment to calculate error correlation with
-        :type other_catchment: :class:`Catchment`
+        :param catchment1: catchment to calculate correlation with
+        :type catchment1: :class:`Catchment`
+        :param catchment2: catchment to calculate correlation with
+        :type catchment2: :class:`Catchment`
         :return: correlation coefficient, r
         :rtype: float
         """
-        dist = self.catchment.distance_to(other_catchment)
+        dist = catchment1.distance_to(catchment2)
         return self._dist_corr(dist, 0.2791, 0.0039, 0.0632)
+
+    def _vec_b(self, donor_catchments):
+        """
+        Return vector ``b`` of model error correlations to estimate weights
+
+        Methodology source: Kjeldsen, Jones and Morris, 2009, eqs 3 and 10
+
+        :param donor_catchments: Catchments to use as donors
+        :type donor_catchments: list of :class:`Catchment`
+        :return: Array of model error correlations
+        :rtype: :class:`numpy.ndarray`
+        """
+        p = len(donor_catchments)
+        b = np.ones(p)
+        for i in range(p):
+            b[i] = self._model_error_corr(self.catchment, donor_catchments[i])
+        return b
+
+    def _beta(self, catchment):
+        """
+        Return beta, the GLO scale parameter divided by loc parameter estimated using simple regression model
+
+        Methodology source: Kjeldsen & Jones, 2009, table 2
+
+        :param catchment: Catchment to estimate beta for
+        :type catchment: :class:`Catchment`
+        :return: beta
+        :rtype: float
+        """
+        lnbeta = -1.221 + \
+            -0.0816 * log(catchment.descriptors.dtm_area) + \
+            -0.4580 * log(catchment.descriptors.saar) + \
+            0.1065 * log(catchment.descriptors.bfihost)
+        return exp(lnbeta)
+
+    def _matrix_sigma_eta(self, donor_catchments):
+        """
+        Return model error coveriance matrix Sigma eta
+
+        :param donor_catchments: Catchments to use as donors
+        :type donor_catchments: list of :class:`Catchment`
+        :return: 2-Dimensional, symmetric covariance matrix
+        :rtype: :class:`numpy.ndarray`
+        """
+        p = len(donor_catchments)
+        sigma = 0.1175 * np.ones((p, p))
+        for i in range(p):
+            for j in range(p):
+                if i != j:
+                    sigma[i, j] *= self._model_error_corr(donor_catchments[i], donor_catchments[j])
+        return sigma
+
+    def _matrix_sigma_eps(self, donor_catchments):
+        """
+        Return sampling error coveriance matrix Sigma eta
+
+        :param donor_catchments: Catchments to use as donors
+        :type donor_catchments: list of :class:`Catchment`
+        :return: 2-Dimensional, symmetric covariance matrix
+        :rtype: :class:`numpy.ndarray`
+        """
+        p = len(donor_catchments)
+        sigma = np.empty((p, p))
+        for i in range(p):
+            beta_i = self._beta(donor_catchments[i])
+            n_i = donor_catchments[i].amax_records_end() - donor_catchments[i].amax_records_start() + 1
+            for j in range(p):
+                beta_j = self._beta(donor_catchments[j])
+                n_j = donor_catchments[j].amax_records_end() - donor_catchments[j].amax_records_start() + 1
+                rho_ij = self._logmedian__corr(donor_catchments[i], donor_catchments[j])
+                n_ij = min(donor_catchments[i].amax_records_end(), donor_catchments[j].amax_records_end()) - \
+                       max(donor_catchments[i].amax_records_start(), donor_catchments[j].amax_records_start()) + 1
+                sigma[i, j] = 4 * beta_i * beta_j * n_ij / n_i / n_j * rho_ij
+        return sigma
+
+    def _matrix_omega(self, donor_catchments):
+        return self._matrix_sigma_eta(donor_catchments) + self._matrix_sigma_eps(donor_catchments)
+
+    def _vec_alpha(self, donor_catchments):
+        return np.dot(linalg.inv(self._matrix_omega(donor_catchments)), self._vec_b(donor_catchments))
 
     def _donor_adj_factors(self, donor_catchments):
         """
