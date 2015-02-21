@@ -384,12 +384,12 @@ class QmedAnalysis(Analysis):
         """
         try:
             # Basis rural QMED from descriptors
-            lnmedian_rural = 2.1170 \
+            lnqmed_rural = 2.1170 \
                              + 0.8510 * log(self.catchment.descriptors.dtm_area) \
                              - 1.8734 * 1000 / self.catchment.descriptors.saar \
                              + 3.4451 * log(self.catchment.descriptors.farl) \
                              - 3.0800 * self.catchment.descriptors.bfihost ** 2.0
-            qmed_rural = exp(lnmedian_rural)
+            qmed_rural = exp(lnqmed_rural)
 
             # Log intermediate results
             self.results_log['qmed_descr_rural'] = qmed_rural
@@ -399,17 +399,20 @@ class QmedAnalysis(Analysis):
                 donor_catchments = self.find_donor_catchments()
             if donor_catchments:
                 # If found multiply rural estimate with weighted adjustment factors from all donors
-                weights = self._donor_weights(donor_catchments)
-                factors = self._donor_adj_factors(donor_catchments)
-                donor_adj_factor = np.sum(weights * factors)
-                qmed_rural *= donor_adj_factor
+
+                weights = self._vec_alpha(donor_catchments)
+                errors = self._vec_lnqmed_model_errors(donor_catchments)
+                correction = np.dot(weights, errors)
+
+                lnqmed_rural += correction
+                qmed_rural = exp(lnqmed_rural)
 
                 # Log intermediate results
                 self.results_log['donors'] = donor_catchments
                 for i, donor in enumerate(self.results_log['donors']):
                     donor.weight = weights[i]
-                    donor.factor = factors[i]
-                self.results_log['donor_adj_factor'] = donor_adj_factor
+                    donor.factor = exp(errors[i])
+                self.results_log['donor_adj_factor'] = exp(correction)
                 self.results_log['qmed_adj_rural'] = qmed_rural
 
             if as_rural:
@@ -496,7 +499,7 @@ class QmedAnalysis(Analysis):
         dist = catchment1.distance_to(catchment2)
         return self._dist_corr(dist, 0.3998, 0.0283, 0.9494)
 
-    def _logmedian__corr(self, catchment1, catchment2):
+    def _lnqmed_corr(self, catchment1, catchment2):
         """
         Return model error correlation between subject catchment and other catchment.
 
@@ -540,10 +543,10 @@ class QmedAnalysis(Analysis):
         :return: beta
         :rtype: float
         """
-        lnbeta = -1.221 + \
-            -0.0816 * log(catchment.descriptors.dtm_area) + \
-            -0.4580 * log(catchment.descriptors.saar/1000) + \
-            0.1065 * log(catchment.descriptors.bfihost)
+        lnbeta = -1.221 \
+                 - 0.0816 * log(catchment.descriptors.dtm_area) \
+                 - 0.4580 * log(catchment.descriptors.saar / 1000) \
+                 + 0.1065 * log(catchment.descriptors.bfihost)
         return exp(lnbeta)
 
     def _matrix_sigma_eta(self, donor_catchments):
@@ -561,6 +564,8 @@ class QmedAnalysis(Analysis):
             for j in range(p):
                 if i != j:
                     sigma[i, j] *= self._model_error_corr(donor_catchments[i], donor_catchments[j])
+                else:
+                    sigma[i, j] = 1  # TODO: this is wrong
         return sigma
 
     def _matrix_sigma_eps(self, donor_catchments):
@@ -580,7 +585,7 @@ class QmedAnalysis(Analysis):
             for j in range(p):
                 beta_j = self._beta(donor_catchments[j])
                 n_j = donor_catchments[j].amax_records_end() - donor_catchments[j].amax_records_start() + 1
-                rho_ij = self._logmedian__corr(donor_catchments[i], donor_catchments[j])
+                rho_ij = self._lnqmed_corr(donor_catchments[i], donor_catchments[j])
                 n_ij = min(donor_catchments[i].amax_records_end(), donor_catchments[j].amax_records_end()) - \
                        max(donor_catchments[i].amax_records_start(), donor_catchments[j].amax_records_start()) + 1
                 sigma[i, j] = 4 * beta_i * beta_j * n_ij / n_i / n_j * rho_ij
@@ -622,6 +627,27 @@ class QmedAnalysis(Analysis):
         donor_qmed_descr = analysis.qmed(method='descriptors')
         return (donor_qmed_amax / donor_qmed_descr) ** self._error_corr(donor_catchment)
 
+    @staticmethod
+    def _lnqmed_model_error(catchment):
+        """
+        Return ln(QMED) model error at a gauged catchment
+
+        :param catchment: Catchment to use as a donor
+        :type catchment: :class:`Catchment`
+        :return: Model error
+        :rtype: float
+        """
+        analysis = QmedAnalysis(catchment, year=2000)  # Probably should set the year to the midpoint of amax rec.
+        logmedian_amax = log(analysis.qmed(method='amax_records'))
+        logmedian_descr = log(analysis.qmed(method='descriptors'))
+        return logmedian_amax - logmedian_descr
+
+    def _vec_lnqmed_model_errors(self, catchments):
+        result = np.empty(len(catchments))
+        for index, donor in enumerate(catchments):
+            result[index] = self._lnqmed_model_error(donor)
+        return result
+
     def _donor_weights(self, donor_catchments):
         """
         Return numpy array of donor weights using inverse distance weighting method
@@ -658,7 +684,7 @@ class QmedAnalysis(Analysis):
         weights /= np.sum(weights)
         return weights
 
-    def find_donor_catchments(self, limit=20, dist_limit=500):
+    def find_donor_catchments(self, limit=6, dist_limit=500):
         """
         Return a suitable donor catchment to improve a QMED estimate based on catchment descriptors alone.
 

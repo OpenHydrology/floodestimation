@@ -399,6 +399,10 @@ class TestQmedDonor(unittest.TestCase):
         # 1.0/ 0.5907
         self.assertAlmostEqual(QmedAnalysis(self.catchment)._donor_adj_factor(self.donor_catchment), 1.6928, 4)
 
+    def test_lnqmed_model_error(self):
+        # ln(1.0 / 0.5907)
+        self.assertAlmostEqual(QmedAnalysis(self.catchment)._lnqmed_model_error(self.donor_catchment), 0.5264, 4)
+
     def test_donor_corrected_qmed(self):
         # 0.6173 * 1.6928
         self.assertAlmostEqual(
@@ -485,8 +489,8 @@ class TestQmedDonor(unittest.TestCase):
         analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session), year=2000)
         donors = analysis.find_donor_catchments()[0:2]  # 17001, 10001
         result = analysis._matrix_sigma_eta(donors)
-        assert_almost_equal([0.1175, 0.0002243], result[0])
-        assert_almost_equal([0.0002243, 0.1175], result[1])  # TODO check results
+        assert_almost_equal([1, 0.0002243], result[0])
+        assert_almost_equal([0.0002243, 1], result[1])  # TODO check results
 
     def test_matrix_sigma_epsilon(self):
         analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session), year=2000)
@@ -499,4 +503,4 @@ class TestQmedDonor(unittest.TestCase):
         analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session), year=2000)
         donors = analysis.find_donor_catchments()[0:2]  # 17001, 10001
         result = analysis._vec_alpha(donors)
-        assert_almost_equal([2.9385869, 0.0094223], result)  # TODOO check results
+        assert_almost_equal([0.3514226, 0.0020656], result)  # TODOO check results
