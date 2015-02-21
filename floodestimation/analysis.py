@@ -384,10 +384,13 @@ class QmedAnalysis(Analysis):
         """
         try:
             # Basis rural QMED from descriptors
-            qmed_rural = 8.3062 * self.catchment.descriptors.dtm_area ** 0.8510 \
-                         * 0.1536 ** (1000 / self.catchment.descriptors.saar) \
-                         * self.catchment.descriptors.farl ** 3.4451 \
-                         * 0.0460 ** (self.catchment.descriptors.bfihost ** 2.0)
+            lnmedian_rural = 2.1170 \
+                             + 0.8510 * log(self.catchment.descriptors.dtm_area) \
+                             - 1.8734 * 1000 / self.catchment.descriptors.saar \
+                             + 3.4451 * log(self.catchment.descriptors.farl) \
+                             - 3.0800 * self.catchment.descriptors.bfihost ** 2.0
+            qmed_rural = exp(lnmedian_rural)
+
             # Log intermediate results
             self.results_log['qmed_descr_rural'] = qmed_rural
 
@@ -539,7 +542,7 @@ class QmedAnalysis(Analysis):
         """
         lnbeta = -1.221 + \
             -0.0816 * log(catchment.descriptors.dtm_area) + \
-            -0.4580 * log(catchment.descriptors.saar) + \
+            -0.4580 * log(catchment.descriptors.saar/1000) + \
             0.1065 * log(catchment.descriptors.bfihost)
         return exp(lnbeta)
 
