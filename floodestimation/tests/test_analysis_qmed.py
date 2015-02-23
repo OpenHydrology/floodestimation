@@ -449,8 +449,8 @@ class TestQmedDonor(unittest.TestCase):
         analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session), year=2000)
         donors = analysis.find_donor_catchments()[0:2]  # 17001, 10001
         result = analysis._matrix_sigma_eta(donors)
-        assert_almost_equal([1, 0.0002243], result[0])
-        assert_almost_equal([0.0002243, 1], result[1])  # TODO check results
+        assert_almost_equal([0.1175, 0.0002243], result[0])
+        assert_almost_equal([0.0002243, 0.1175], result[1])  # TODO check results
 
     def test_matrix_sigma_epsilon(self):
         analysis = QmedAnalysis(self.catchment, CatchmentCollections(self.db_session), year=2000)

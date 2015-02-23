@@ -491,19 +491,19 @@ class QmedAnalysis(Analysis):
 
     def _vec_b(self, donor_catchments):
         """
-        Return vector ``b`` of model error correlations to estimate weights
+        Return vector ``b`` of model error covariances to estimate weights
 
         Methodology source: Kjeldsen, Jones and Morris, 2009, eqs 3 and 10
 
         :param donor_catchments: Catchments to use as donors
         :type donor_catchments: list of :class:`Catchment`
-        :return: Array of model error correlations
+        :return: Model error covariance vector
         :rtype: :class:`numpy.ndarray`
         """
         p = len(donor_catchments)
-        b = np.ones(p)
+        b = 0.1175 * np.ones(p)
         for i in range(p):
-            b[i] = self._model_error_corr(self.catchment, donor_catchments[i])
+            b[i] *= self._model_error_corr(self.catchment, donor_catchments[i])
         return b
 
     @staticmethod
@@ -541,8 +541,6 @@ class QmedAnalysis(Analysis):
             for j in range(p):
                 if i != j:
                     sigma[i, j] *= self._model_error_corr(donor_catchments[i], donor_catchments[j])
-                else:
-                    sigma[i, j] = 1  # TODO: according to Kjelsen, Jones & Morris 2014 this should be sigma_eta=.1175
         return sigma
 
     def _matrix_sigma_eps(self, donor_catchments):
