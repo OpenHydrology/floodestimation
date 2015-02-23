@@ -1,0 +1,2 @@
+# Use this only for readthedocs.org
+appdirs
