@@ -17,4 +17,5 @@ setup(
         'floodestimation': ['fehdata.json',
                             'config.ini'],
     },
+    zip_safe=False
 )
