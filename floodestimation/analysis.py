@@ -25,6 +25,7 @@ import copy
 import lmoments3 as lm
 import lmoments3.distr as lm_distr
 import numpy as np
+from numpy import linalg
 from scipy import optimize
 
 
@@ -90,18 +91,6 @@ class QmedAnalysis(Analysis):
 
         self.catchment = catchment
         self.gauged_catchments = gauged_catchments
-
-        #: Method for weighting multiple QMED donors, options are:
-        #:
-        #: - `idw` (default): Use an Inverse Distance Weighting (IDW) method. Donor catchments nearby have higher
-        #:   weighting than catchments further away.
-        #: - `equal`: All donors have equal weights.
-        #: - `first`: Use only the first (nearest) donor catchment.
-        self.donor_weighting = 'idw'
-        #: Power parameter to use in IDW weighting method. Default: `3` (cubic). Higher powers results in higher
-        #: weights for **nearby** donor catchments. A power of `1` indicates an inverse linear relationship between
-        #: distance and weight.
-        self.idw_power = 3
 
     def qmed(self, method='best', **method_options):
         """
@@ -383,10 +372,13 @@ class QmedAnalysis(Analysis):
         """
         try:
             # Basis rural QMED from descriptors
-            qmed_rural = 8.3062 * self.catchment.descriptors.dtm_area ** 0.8510 \
-                         * 0.1536 ** (1000 / self.catchment.descriptors.saar) \
-                         * self.catchment.descriptors.farl ** 3.4451 \
-                         * 0.0460 ** (self.catchment.descriptors.bfihost ** 2.0)
+            lnqmed_rural = 2.1170 \
+                           + 0.8510 * log(self.catchment.descriptors.dtm_area) \
+                           - 1.8734 * 1000 / self.catchment.descriptors.saar \
+                           + 3.4451 * log(self.catchment.descriptors.farl) \
+                           - 3.0800 * self.catchment.descriptors.bfihost ** 2.0
+            qmed_rural = exp(lnqmed_rural)
+
             # Log intermediate results
             self.results_log['qmed_descr_rural'] = qmed_rural
 
@@ -395,17 +387,20 @@ class QmedAnalysis(Analysis):
                 donor_catchments = self.find_donor_catchments()
             if donor_catchments:
                 # If found multiply rural estimate with weighted adjustment factors from all donors
-                weights = self._donor_weights(donor_catchments)
-                factors = self._donor_adj_factors(donor_catchments)
-                donor_adj_factor = np.sum(weights * factors)
-                qmed_rural *= donor_adj_factor
+
+                weights = self._vec_alpha(donor_catchments)
+                errors = self._vec_lnqmed_residuals(donor_catchments)
+                correction = np.dot(weights, errors)
+
+                lnqmed_rural += correction
+                qmed_rural = exp(lnqmed_rural)
 
                 # Log intermediate results
                 self.results_log['donors'] = donor_catchments
                 for i, donor in enumerate(self.results_log['donors']):
                     donor.weight = weights[i]
-                    donor.factor = factors[i]
-                self.results_log['donor_adj_factor'] = donor_adj_factor
+                    donor.factor = exp(errors[i])
+                self.results_log['donor_adj_factor'] = exp(correction)
                 self.results_log['qmed_adj_rural'] = qmed_rural
 
             if as_rural:
@@ -426,8 +421,8 @@ class QmedAnalysis(Analysis):
 
         Methodology source: eqn. 6, Kjeldsen 2010
         """
-        return 1 + 0.47 * self.catchment.descriptors.urbext(self.year) * \
-                   self.catchment.descriptors.bfihost / (1 - self.catchment.descriptors.bfihost)
+        return 1 + 0.47 * self.catchment.descriptors.urbext(self.year) \
+                   * self.catchment.descriptors.bfihost / (1 - self.catchment.descriptors.bfihost)
 
     def urban_adj_factor(self):
         """
@@ -444,91 +439,185 @@ class QmedAnalysis(Analysis):
         self.results_log['urban_adj_factor'] = result
         return result
 
-    def _error_correlation(self, other_catchment):
+    @staticmethod
+    def _dist_corr(dist, phi1, phi2, phi3):
+        """
+        Generic distance-decaying correlation function
+
+        :param dist: Distance between catchment centrolds in km
+        :type dist: float
+        :param phi1: Decay function parameters 1
+        :type phi1: float
+        :param phi2: Decay function parameters 2
+        :type phi2: float
+        :param phi3: Decay function parameters 3
+        :type phi3: float
+        :return: Correlation coefficient, r
+        :rtype: float
+        """
+        return phi1 * exp(-phi2 * dist) + (1 - phi1) * exp(-phi3 * dist)
+
+    def _model_error_corr(self, catchment1, catchment2):
         """
         Return model error correlation between subject catchment and other catchment.
 
-        Methodology source: Science Report SC050050, p. 36
+        Methodology source: Kjeldsen & Jones, 2009, table 3
 
-        :param other_catchment: catchment to calculate error correlation with
-        :type other_catchment: :class:`Catchment`
+        :param catchment1: catchment to calculate error correlation with
+        :type catchment1: :class:`Catchment`
+        :param catchment2: catchment to calculate error correlation with
+        :type catchment2: :class:`Catchment`
         :return: correlation coefficient, r
         :rtype: float
         """
-        distance = self.catchment.distance_to(other_catchment)
-        return 0.4598 * exp(-0.0200 * distance) + (1 - 0.4598) * exp(-0.4785 * distance)
+        dist = catchment1.distance_to(catchment2)
+        return self._dist_corr(dist, 0.3998, 0.0283, 0.9494)
 
-    def _donor_adj_factors(self, donor_catchments):
+    def _lnqmed_corr(self, catchment1, catchment2):
         """
-        Return QMED adjustment factors for a list of donor catchments.
+        Return model error correlation between subject catchment and other catchment.
 
-        :param donor_catchments: Catchments to use as donors
-        :type donor_catchments: list of :class:`Catchment`
-        :return: Array of adjustment factors
-        :rtype: :class:`numpy.ndarray`
-        """
-        adj_factors = np.ones(len(donor_catchments))
-        for index, donor in enumerate(donor_catchments):
-            adj_factors[index] = self._donor_adj_factor(donor)
-        return adj_factors
+        Methodology source: Kjeldsen & Jones, 2009, fig 3
 
-    def _donor_adj_factor(self, donor_catchment):
-        """
-        Return QMED adjustment factor using a donor catchment
-
-        Methodology source: Science Report SC050050, p. 42
-
-        :param donor_catchment: Catchment to use as a donor
-        :type donor_catchment: :class:`Catchment`
-        :return: Adjustment factor
+        :param catchment1: catchment to calculate correlation with
+        :type catchment1: :class:`Catchment`
+        :param catchment2: catchment to calculate correlation with
+        :type catchment2: :class:`Catchment`
+        :return: correlation coefficient, r
         :rtype: float
         """
-        analysis = QmedAnalysis(donor_catchment, year=2000)  # Probably should set the year to the midpoint of amax rec.
-        donor_qmed_amax = analysis.qmed(method='amax_records')
-        donor_qmed_descr = analysis.qmed(method='descriptors')
-        return (donor_qmed_amax / donor_qmed_descr) ** self._error_correlation(donor_catchment)
+        dist = catchment1.distance_to(catchment2)
+        return self._dist_corr(dist, 0.2791, 0.0039, 0.0632)
 
-    def _donor_weights(self, donor_catchments):
+    def _vec_b(self, donor_catchments):
         """
-        Return numpy array of donor weights using inverse distance weighting method
+        Return vector ``b`` of model error covariances to estimate weights
+
+        Methodology source: Kjeldsen, Jones and Morris, 2009, eqs 3 and 10
 
         :param donor_catchments: Catchments to use as donors
         :type donor_catchments: list of :class:`Catchment`
-        :return: Array of weights which sum to 1
+        :return: Model error covariance vector
         :rtype: :class:`numpy.ndarray`
         """
-        weights = np.zeros(len(donor_catchments))
-        for index, donor in enumerate(donor_catchments):
-            if self.donor_weighting == 'idw':
-                if not hasattr(donor, 'dist'):
-                    # Donors provided by `collections` module already have a `dist` attribute.
-                    donor.dist = donor.distance_to(self.catchment)
-                try:
-                    weights[index] = 1 / donor.dist ** self.idw_power
-                except ZeroDivisionError:
-                    # If one of the donor catchments has a zero distance, simply set weight to very large number. Can't
-                    # use `float('inf')` because we need to devide by sum of weights later.
-                    weights[index] = 1e99
+        p = len(donor_catchments)
+        b = 0.1175 * np.ones(p)
+        for i in range(p):
+            b[i] *= self._model_error_corr(self.catchment, donor_catchments[i])
+        return b
 
-            elif self.donor_weighting == 'equal':
-                weights = np.ones(len(donor_catchments))
+    @staticmethod
+    def _beta(catchment):
+        """
+        Return beta, the GLO scale parameter divided by loc parameter estimated using simple regression model
 
-            elif self.donor_weighting == 'first':
-                weights[0] = 1
+        Methodology source: Kjeldsen & Jones, 2009, table 2
 
-            else:
-                raise Exception(
-                    "Invalid value for attribute `donor_weighting`. Must be one of `idw`, `equal` or `first`")
+        :param catchment: Catchment to estimate beta for
+        :type catchment: :class:`Catchment`
+        :return: beta
+        :rtype: float
+        """
+        lnbeta = -1.1221 \
+                 - 0.0816 * log(catchment.descriptors.dtm_area) \
+                 - 0.4580 * log(catchment.descriptors.saar / 1000) \
+                 + 0.1065 * log(catchment.descriptors.bfihost)
+        return exp(lnbeta)
 
-        # Assure sum of weights==1
-        weights /= np.sum(weights)
-        return weights
+    def _matrix_sigma_eta(self, donor_catchments):
+        """
+        Return model error coveriance matrix Sigma eta
 
-    def find_donor_catchments(self, limit=20, dist_limit=500):
+        Methodology source: Kjelsen, Jones & Morris 2014, eqs 2 and 3
+
+        :param donor_catchments: Catchments to use as donors
+        :type donor_catchments: list of :class:`Catchment`
+        :return: 2-Dimensional, symmetric covariance matrix
+        :rtype: :class:`numpy.ndarray`
+        """
+        p = len(donor_catchments)
+        sigma = 0.1175 * np.ones((p, p))
+        for i in range(p):
+            for j in range(p):
+                if i != j:
+                    sigma[i, j] *= self._model_error_corr(donor_catchments[i], donor_catchments[j])
+        return sigma
+
+    def _matrix_sigma_eps(self, donor_catchments):
+        """
+        Return sampling error coveriance matrix Sigma eta
+
+        Methodology source: Kjeldsen & Jones 2009, eq 9
+
+        :param donor_catchments: Catchments to use as donors
+        :type donor_catchments: list of :class:`Catchment`
+        :return: 2-Dimensional, symmetric covariance matrix
+        :rtype: :class:`numpy.ndarray`
+        """
+        p = len(donor_catchments)
+        sigma = np.empty((p, p))
+        for i in range(p):
+            beta_i = self._beta(donor_catchments[i])
+            n_i = donor_catchments[i].amax_records_end() - donor_catchments[i].amax_records_start() + 1
+            for j in range(p):
+                beta_j = self._beta(donor_catchments[j])
+                n_j = donor_catchments[j].amax_records_end() - donor_catchments[j].amax_records_start() + 1
+                rho_ij = self._lnqmed_corr(donor_catchments[i], donor_catchments[j])
+                n_ij = min(donor_catchments[i].amax_records_end(), donor_catchments[j].amax_records_end()) - \
+                       max(donor_catchments[i].amax_records_start(), donor_catchments[j].amax_records_start()) + 1
+                sigma[i, j] = 4 * beta_i * beta_j * n_ij / n_i / n_j * rho_ij
+        return sigma
+
+    def _matrix_omega(self, donor_catchments):
+        return self._matrix_sigma_eta(donor_catchments) + self._matrix_sigma_eps(donor_catchments)
+
+    def _vec_alpha(self, donor_catchments):
+        """
+        Return vector alpha which is the weights for donor model errors
+
+        Methodology source: Kjeldsen, Jones & Morris 2014, eq 10
+
+        :param donor_catchments: Catchments to use as donors
+        :type donor_catchments: list of :class:`Catchment`
+        :return: Vector of donor weights
+        :rtype: :class:`numpy.ndarray`
+        """
+        return np.dot(linalg.inv(self._matrix_omega(donor_catchments)), self._vec_b(donor_catchments))
+
+    @staticmethod
+    def _lnqmed_residual(catchment):
+        """
+        Return ln(QMED) model error at a gauged catchment
+
+        :param catchment: Gauged catchment
+        :type catchment: :class:`Catchment`
+        :return: Model error
+        :rtype: float
+        """
+        analysis = QmedAnalysis(catchment, year=2000)  # Probably should set the year to the midpoint of amax rec.
+        logmedian_amax = log(analysis.qmed(method='amax_records'))
+        logmedian_descr = log(analysis.qmed(method='descriptors'))
+        return logmedian_amax - logmedian_descr
+
+    def _vec_lnqmed_residuals(self, catchments):
+        """
+        Return ln(QMED) model errors for a list of catchments
+
+        :param catchments: List of gauged catchments
+        :type catchments: list of :class:`Catchment`
+        :return: Model errors
+        :rtype: list of float
+        """
+        result = np.empty(len(catchments))
+        for index, donor in enumerate(catchments):
+            result[index] = self._lnqmed_residual(donor)
+        return result
+
+    def find_donor_catchments(self, limit=6, dist_limit=500):
         """
         Return a suitable donor catchment to improve a QMED estimate based on catchment descriptors alone.
 
-        :param limit: maximum number of catchments to return. Default: 20. Set to `None` to return all available
+        :param limit: maximum number of catchments to return. Default: 6. Set to `None` to return all available
                       catchments.
         :type limit: int
         :param dist_limit: maximum distance in km. between subject and donor catchment. Default: 500 km. Increasing the

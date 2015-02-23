@@ -60,6 +60,14 @@ class TestCatchmentObject(unittest.TestCase):
         catchment.descriptors.urbext2000 = 1.2345
         self.assertGreaterEqual(catchment.descriptors.urbext(date.today().year), 1.275033)
 
+    def test_record_start_end(self):
+        catchment = Catchment("Aberdeen", "River Dee")
+        catchment.amax_records = [AmaxRecord(date(1999, 12, 31), 3.0, 0.5),
+                                  AmaxRecord(date(2000, 12, 31), 2.0, 0.5),
+                                  AmaxRecord(date(2001, 12, 31), 1.0, 0.5)]
+        self.assertEqual(catchment.amax_records_start(), 1999)
+        self.assertEqual(catchment.amax_records_end(), 2001)
+
 
 class TestCatchmentPotRecords(unittest.TestCase):
     def test_pot_record(self):
