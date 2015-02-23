@@ -389,7 +389,7 @@ class QmedAnalysis(Analysis):
                 # If found multiply rural estimate with weighted adjustment factors from all donors
 
                 weights = self._vec_alpha(donor_catchments)
-                errors = self._vec_lnqmed_model_errors(donor_catchments)
+                errors = self._vec_lnqmed_residuals(donor_catchments)
                 correction = np.dot(weights, errors)
 
                 lnqmed_rural += correction
@@ -518,7 +518,7 @@ class QmedAnalysis(Analysis):
         :return: beta
         :rtype: float
         """
-        lnbeta = -1.221 \
+        lnbeta = -1.1221 \
                  - 0.0816 * log(catchment.descriptors.dtm_area) \
                  - 0.4580 * log(catchment.descriptors.saar / 1000) \
                  + 0.1065 * log(catchment.descriptors.bfihost)
@@ -585,7 +585,7 @@ class QmedAnalysis(Analysis):
         return np.dot(linalg.inv(self._matrix_omega(donor_catchments)), self._vec_b(donor_catchments))
 
     @staticmethod
-    def _lnqmed_model_error(catchment):
+    def _lnqmed_residual(catchment):
         """
         Return ln(QMED) model error at a gauged catchment
 
@@ -599,7 +599,7 @@ class QmedAnalysis(Analysis):
         logmedian_descr = log(analysis.qmed(method='descriptors'))
         return logmedian_amax - logmedian_descr
 
-    def _vec_lnqmed_model_errors(self, catchments):
+    def _vec_lnqmed_residuals(self, catchments):
         """
         Return ln(QMED) model errors for a list of catchments
 
@@ -610,7 +610,7 @@ class QmedAnalysis(Analysis):
         """
         result = np.empty(len(catchments))
         for index, donor in enumerate(catchments):
-            result[index] = self._lnqmed_model_error(donor)
+            result[index] = self._lnqmed_residual(donor)
         return result
 
     def find_donor_catchments(self, limit=6, dist_limit=500):
