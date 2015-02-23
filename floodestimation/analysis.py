@@ -617,7 +617,7 @@ class QmedAnalysis(Analysis):
         """
         Return a suitable donor catchment to improve a QMED estimate based on catchment descriptors alone.
 
-        :param limit: maximum number of catchments to return. Default: 20. Set to `None` to return all available
+        :param limit: maximum number of catchments to return. Default: 6. Set to `None` to return all available
                       catchments.
         :type limit: int
         :param dist_limit: maximum distance in km. between subject and donor catchment. Default: 500 km. Increasing the
