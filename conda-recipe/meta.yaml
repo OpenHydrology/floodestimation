@@ -35,4 +35,5 @@ about:
   home: http://github.com/OpenHydrology/floodestimation
   license: GPLv3
   summary: Python library for flood frequency-magnitude analyses for UK catchments
+  readme: README.md
 

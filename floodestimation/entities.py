@@ -166,6 +166,18 @@ class Catchment(db.Base):
                     (Descriptors.centroid_ngr_y - other_catchment.descriptors.centroid_ngr_y)),
             Float())
 
+    def amax_records_start(self):
+        """
+        Return first water year in amax records
+        """
+        return min([record.water_year for record in self.amax_records])
+
+    def amax_records_end(self):
+        """
+        Return last year in amax records
+        """
+        return max([record.water_year for record in self.amax_records])
+
     def __repr__(self):
         return "{} at {} ({})".format(self.watercourse, self.location, self.id)
 
