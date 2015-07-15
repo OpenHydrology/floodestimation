@@ -1,6 +1,6 @@
 {
     "nrfa_oh_json_url": "https://raw.githubusercontent.com/OpenHydrology/floodestimation/master/floodestimation/fehdata.json",
-    "nrfa_url": "http://www.ceh.ac.uk/data/nrfa/peak_flow/WINFAP-FEH_v3.3.4.zip",
+    "nrfa_url": "http://nrfaapps.ceh.ac.uk/peak_flow/WINFAP-FEH_v3.3.4.zip",
     "nrfa_version": "3.3.4",
     "nrfa_published_on": 1406851200
 }
