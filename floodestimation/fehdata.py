@@ -96,7 +96,7 @@ def _update_nrfa_metadata(remote_config):
     config['nrfa']['version'] = remote_config['nrfa_version']
     config['nrfa']['url'] = remote_config['nrfa_url']
     config['nrfa']['published_on'] = str(remote_config['nrfa_published_on'])
-    config['nrfa']['downloaded_on'] = str(datetime.utcnow().timestamp())
+    config['nrfa']['downloaded_on'] = str(datetime.now().timestamp())
     config.save()
 
 
