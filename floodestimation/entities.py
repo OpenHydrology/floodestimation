@@ -178,6 +178,13 @@ class Catchment(db.Base):
         """
         return max([record.water_year for record in self.amax_records])
 
+    @property
+    def record_length(self):
+        """
+        Total number of valid AMAX records
+        """
+        return len([amax_record for amax_record in self.amax_records if amax_record.flag == 0])
+
     def __repr__(self):
         return "{} at {} ({})".format(self.watercourse, self.location, self.id)
 

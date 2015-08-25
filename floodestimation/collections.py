@@ -164,7 +164,7 @@ class CatchmentCollections(object):
         catchments_limited = []
         for catchment in catchments:
             catchments_limited.append(catchment)
-            amax_records_count += len([amax_record for amax_record in catchment.amax_records if amax_record.flag == 0] )
+            amax_records_count += catchment.record_length
             if amax_records_count >= records_limit:
                 break
 
