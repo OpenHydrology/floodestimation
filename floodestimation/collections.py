@@ -133,14 +133,15 @@ class CatchmentCollections(object):
             raise ValueError("Parameter `include_subject_catchment={}` invalid.".format(include_subject_catchment) +
                              "Must be one of `auto`, `force` or `exclude`.")
 
-        query = self.db_session.query(Catchment). \
-            join(Catchment.descriptors). \
-            join(Catchment.amax_records). \
-            filter(Catchment.id != subject_catchment.id,
-                   Catchment.is_suitable_for_pooling,
-                   or_(Descriptors.urbext2000 < 0.03, Descriptors.urbext2000 == None)). \
-            group_by(Catchment). \
-            having(func.count(AmaxRecord.catchment_id) >= 10)  # At least 10 AMAX records
+        query = (self.db_session.query(Catchment).
+                 join(Catchment.descriptors).
+                 join(Catchment.amax_records).
+                 filter(Catchment.id != subject_catchment.id,
+                        Catchment.is_suitable_for_pooling,
+                        or_(Descriptors.urbext2000 < 0.03, Descriptors.urbext2000 == None),
+                        AmaxRecord.flag == 0).
+                 group_by(Catchment).
+                 having(func.count(AmaxRecord.catchment_id) >= 10))  # At least 10 AMAX records
         catchments = query.all()
 
         # Add subject catchment if required (may not exist in database, so add after querying db
@@ -148,8 +149,8 @@ class CatchmentCollections(object):
             if len(subject_catchment.amax_records) >= 10:  # Never include short-record catchments
                 catchments.append(subject_catchment)
         elif include_subject_catchment == 'auto':
-            if len(subject_catchment.amax_records) >= 10 and subject_catchment.is_suitable_for_pooling and (
-                            subject_catchment.descriptors.urbext2000 < 0.03 or subject_catchment.descriptors.urbext2000 is None):
+            if len(subject_catchment.amax_records) >= 10 and subject_catchment.is_suitable_for_pooling and \
+               (subject_catchment.descriptors.urbext2000 < 0.03 or subject_catchment.descriptors.urbext2000 is None):
                 catchments.append(subject_catchment)
 
         # Store the similarity distance as an additional attribute for each catchment
@@ -163,7 +164,7 @@ class CatchmentCollections(object):
         catchments_limited = []
         for catchment in catchments:
             catchments_limited.append(catchment)
-            amax_records_count += len(catchment.amax_records)
+            amax_records_count += len([amax_record for amax_record in catchment.amax_records if amax_record.flag == 0] )
             if amax_records_count >= records_limit:
                 break
 
