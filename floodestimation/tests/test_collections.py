@@ -52,6 +52,16 @@ class TestCatchmentCollection(unittest.TestCase):
         expected = [10001, 10002]
         self.assertEqual(expected, result)
 
+    def test_most_similar_catchments_excl_rejected_amax(self):
+        subject_catchment = loaders.from_file('floodestimation/tests/data/17002.CD3')
+        # Dummy similarity distance function
+        function = lambda c1, c2: abs(c2.descriptors.bfihost - c1.descriptors.bfihost)
+        catchments = CatchmentCollections(self.db_session).most_similar_catchments(subject_catchment, function,
+                                                                                   records_limit=36)
+        result = [c.id for c in catchments]
+        expected = [10002, 10001]
+        self.assertEqual(expected, result)
+
     def test_incl_subject_catchment(self):
         # Subject catchment not in db
         subject_catchment = loaders.from_file('floodestimation/tests/data/37017.CD3')

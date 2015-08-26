@@ -4,15 +4,15 @@ Tutorial and introduction to :mod:`floodestimation`
 Installation and requirements
 -----------------------------
 
-The :mod:`floodestimation` package can be installed on Windows, Mac OS and Linux operating systems from binstar.org
+The :mod:`floodestimation` package can be installed on Windows, Mac OS and Linux operating systems from anaconda.org
 using the `Conda package manager <http://conda.pydata.org/miniconda.html>`_:
 
-   .. image:: https://binstar.org/openhydrology/floodestimation/badges/version.svg
-      :target: https://binstar.org/openhydrology/floodestimation
+   .. image:: https://anaconda.org/openhydrology/floodestimation/badges/version.svg
+      :target: https://anaconda.org/openhydrology/floodestimation
 
 .. code-block:: shell
 
-   conda install -c https://conda.binstar.org/openhydrology floodestimation
+   conda install -c https://conda.anaconda.org/openhydrology floodestimation
 
 Or alternatively directly from the source code:
 

@@ -760,7 +760,6 @@ class GrowthCurveAnalysis(Analysis):
                 donor.l_cv_weight = l_cv_weights[index]
                 donor.l_skew = l_skews[index]
                 donor.l_skew_weight = l_skew_weights[index]
-                donor.record_length = len(donor.amax_records)
                 total_record_length += donor.record_length
             self.results_log['donors_record_length'] = total_record_length
 
