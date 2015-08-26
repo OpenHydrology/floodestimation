@@ -385,6 +385,7 @@ class PotDataset(db.Base):
         self.pot_records = []
         self.pot_data_gaps = []
 
+    @property
     def record_length(self):
         """
         Return record length in years, including data gaps.

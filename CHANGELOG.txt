@@ -1,3 +1,7 @@
+version 0.4.2 (2015-08-26)
+--------------------------
+- Correction on filtering rejected AMAX records
+
 version 0.4.1 (2015-08-25)
 --------------------------
 - Pooling group filter out rejected AMAX records
