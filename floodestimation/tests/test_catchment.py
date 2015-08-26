@@ -84,13 +84,13 @@ class TestCatchmentPotRecords(unittest.TestCase):
 
     def test_pot_dataset_record_length(self):
         pot_dataset = PotDataset(start_date=date(2000, 12, 31), end_date=date(2001, 12, 30))
-        self.assertAlmostEqual(pot_dataset.record_length(), 1)
+        self.assertAlmostEqual(pot_dataset.record_length, 1)
 
     def test_pot_dataset_record_length_with_gap(self):
         pot_dataset = PotDataset(start_date=date(2000, 12, 31), end_date=date(2001, 12, 30))
         pot_data_gap = PotDataGap(start_date=date(2001, 1, 1), end_date=date(2001, 1, 31))
         pot_dataset.pot_data_gaps.append(pot_data_gap)
-        self.assertAlmostEqual(pot_dataset.record_length(), 0.9150685)
+        self.assertAlmostEqual(pot_dataset.record_length, 0.9150685)
 
     def test_pot_periods(self):
         pot_dataset = PotDataset(start_date=date(2000, 12, 31), end_date=date(2001, 12, 30))

@@ -129,17 +129,17 @@ class QmedAnalysis(Analysis):
             # Rules for gauged catchments
             if self.catchment.pot_dataset:
                 if self.catchment.amax_records:
-                    if len(self.catchment.amax_records) <= self.catchment.pot_dataset.record_length() < 14:
+                    if self.catchment.record_length <= self.catchment.pot_dataset.record_length < 14:
                         use_method = 'pot_records'
-                    elif len(self.catchment.amax_records) >= 2:
+                    elif self.catchment.record_length >= 2:
                         use_method = 'amax_records'
                     else:
                         use_method = None
-                elif self.catchment.pot_dataset.record_length() >= 1:
+                elif self.catchment.pot_dataset.record_length >= 1:
                     use_method = 'pot_records'
                 else:
                     use_method = None
-            elif len(self.catchment.amax_records) >= 2:
+            elif self.catchment.record_length >= 2:
                 use_method = 'amax_records'
             else:
                 use_method = None  # None of the gauged methods will work
@@ -276,7 +276,8 @@ class QmedAnalysis(Analysis):
         years_to_use = [sorted(month)[-n:] for month in month_counts]
         return (
             [record for record in pot_dataset.pot_records if record.date.year in years_to_use[record.date.month - 1]],
-            n)
+            n
+        )
 
     def _area_exponent(self):
         """
@@ -789,7 +790,7 @@ class GrowthCurveAnalysis(Analysis):
         except AttributeError:
             dist = self._similarity_distance(self.catchment, donor_catchment)
         b = 0.0047 * sqrt(dist) + 0.0023 / 2
-        c = 0.02609 / (len(donor_catchment.amax_records) - 1)
+        c = 0.02609 / (donor_catchment.record_length - 1)
         return 1 / (b + c)
 
     def _l_cv_weight_factor(self):
@@ -799,7 +800,7 @@ class GrowthCurveAnalysis(Analysis):
         Methodology source: Science Report SC050050, eqn. 6.15a and 6.15b
         """
         b = 0.0047 * sqrt(0) + 0.0023 / 2
-        c = 0.02609 / (len(self.catchment.amax_records) - 1)
+        c = 0.02609 / (self.catchment.record_length - 1)
         return c / (b + c)
 
     def _l_skew_weight(self, donor_catchment):
@@ -813,7 +814,7 @@ class GrowthCurveAnalysis(Analysis):
         except AttributeError:
             dist = self._similarity_distance(self.catchment, donor_catchment)
         b = 0.0219 * (1 - exp(-dist / 0.2360))
-        c = 0.2743 / (len(donor_catchment.amax_records) - 2)
+        c = 0.2743 / (donor_catchment.record_length - 2)
         return 1 / (b + c)
 
     def _growth_curve_single_site(self, distr='glo'):
