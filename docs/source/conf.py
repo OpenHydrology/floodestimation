@@ -3,7 +3,10 @@
 import os
 import sys
 from datetime import date
+import version
 
+# Update version from GIT tags if possible and create version file
+version.update()
 
 autodoc_mock_imports = [
     'numpy', 'numpy.linalg',
