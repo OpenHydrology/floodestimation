@@ -26,7 +26,7 @@ Typical workflow
 
 A typical workflow for using the :mod:`floodestimation` package is as follows:
 
-1. Start with an *ungauged* catchment with catchment details in a `CD3`-file, e.g. `River Dee.CD3`
+1. Start with an *ungauged* catchment with catchment details in a `.CD3` or `.xml`-file, e.g. `River Dee.CD3`
 2. Load the catchment
 3. Estimate the median annual flood (QMED)
 4. Estimate the flood growth curve
@@ -40,14 +40,13 @@ Steps 1 to 3 could be coded as follows:
 
 .. code-block:: python
 
-    from floodestimation.loaders import load_catchment
-    from floodestimation import db
+    from floodestimation import db, loaders
     from floodestimation.collections import CatchmentCollections
     from floodestimation.analysis import QmedAnalysis
 
     db_session = db.Session()
 
-    dee_catchment = load_catchment('River Dee.CD3')
+    dee_catchment = loaders.from_file('River Dee.CD3')
     gauged_catchments = CatchmentCollections(db_session)
 
     qmed_analysis = QmedAnalysis(dee_catchment, gauged_catchments)
@@ -67,7 +66,7 @@ throughout the program.
 
 .. code-block:: python
 
-    dee_catchment = load_catchment('River Dee.CD3')
+    dee_catchment = loaders.from_file('River Dee.CD3')
 
 This loads the catchment from the `.CD3` file as an :class:`.entities.Catchment` object. See the
 `reference manual <entities.html>`_ for a detailed description of all object attributes.
