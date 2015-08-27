@@ -42,6 +42,8 @@ Example:
 
 import time
 import datetime
+import xml.etree.ElementTree as ET
+import math
 # Current package imports
 from . import entities
 
@@ -244,3 +246,42 @@ class Cd3Parser(FehFileParser):
         row = [s.strip() for s in line.split(',', 1)]
         # E.g. object.comments = [Comment("station", "Velocity-area station on a straight reach ...")]
         self.object.comments.append(entities.Comment(row[0].lower(), row[1]))
+
+
+class XmlCatchmentParser(object):
+    """
+    Parser for XML catchment files as exported from FEH CD-ROM (v3).
+
+    An xml schema is not available.
+    """
+
+    def parse(self, file_name):
+        tree = ET.parse(file_name)
+        root = tree.getroot()
+        descr_node = root.find('CatchmentDescriptors')
+
+        catchment = entities.Catchment()
+        catchment.id = None
+        country = descr_node.get('grid').lower()
+        catchment.country = country if country in ['gb', 'ni'] else None
+        catchment.area = float(descr_node.find('area').text)
+        catchment.point = entities.Point(float(descr_node.get('x')), float(descr_node.get('y')))
+
+        descr = catchment.descriptors
+        descr.dtm_area = catchment.area
+        descr.ihdtm_ngr = catchment.point
+        centr_node = descr_node.find('CatchmentCentroid')
+        descr.centroid_ngr = entities.Point(float(centr_node.get('x')), float(centr_node.get('y')))
+        descr_keys = ['altbar', 'aspbar', 'aspvar', 'bfihost', 'dplbar', 'dpsbar', 'farl', 'fpext', 'ldp', 'propwet',
+                      'rmed_1h', 'rmed_1d', 'rmed_2d', 'saar', 'saar4170', 'sprhost', 'urbconc1990', 'urbext1990',
+                      'urbloc1990', 'urbconc2000', 'urbext2000', 'urbloc2000']
+        for key in descr_keys:
+            try:
+                num_value = float(descr_node.find(key).text)
+                if math.isnan(num_value):
+                    num_value = None
+                setattr(descr, key, num_value)
+            except ValueError:
+                pass # skip anything that can't be converted to float
+
+        return catchment
