@@ -17,6 +17,12 @@
    :inherited-members:
    :members:
 
+:class:`XmlCatchmentParser` --- Parsing catchments saved as xml files
+---------------------------------------------------------------------
+
+.. autoclass:: floodestimation.parsers.XmlCatchmentParser
+   :members:
+
 :class:`AmaxParser` --- Parsing annual maximum flow records
 -----------------------------------------------------------
 

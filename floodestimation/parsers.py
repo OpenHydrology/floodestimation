@@ -18,7 +18,7 @@
 """
 Parsers for FEH-style data files.
 
-Module contains base parser class and subclassses for parsing CD3 files and AMAX files.
+Module contains base parser class and subclassses for parsing CD3 files, AMAX files, etc.
 
 Example:
 
@@ -256,6 +256,14 @@ class XmlCatchmentParser(object):
     """
 
     def parse(self, file_name):
+        """
+        Parse entire file and return a :class:`Catchment` object.
+
+        :param file_name: File path
+        :type file_name: str
+        :return: Parsed object
+        :rtype: :class:`Catchment`
+        """
         tree = ET.parse(file_name)
         root = tree.getroot()
         descr_node = root.find('CatchmentDescriptors')
