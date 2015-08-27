@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from subprocess import check_output, CalledProcessError
+from os import path
 
 TAG_PREFIX = 'v'
 
@@ -24,7 +25,8 @@ def update():
             number = full_version[1].strip()
             version_str = '-'.join([version, number])
 
-        with open('VERSION', mode='w', encoding='utf-8') as version_file:
+        here = path.abspath(path.dirname(__file__))
+        with open(path.join(here, 'VERSION'), mode='w', encoding='utf-8') as version_file:
             version_file.write(version_str)
 
     except CalledProcessError:

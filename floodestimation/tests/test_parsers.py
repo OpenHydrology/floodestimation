@@ -145,3 +145,51 @@ class TestCd3Ireland(unittest.TestCase):
     def test_descriptors(self):
         self.assertEqual(self.catchment.descriptors.ihdtm_ngr, Point(240500, 375700))
         self.assertEqual(self.catchment.descriptors.centroid_ngr, Point(232140, 375415))
+
+
+class TestXmlCatchment(unittest.TestCase):
+    parser = parsers.XmlCatchmentParser()
+    file = 'floodestimation/tests/data/NN 04000 48400.xml'
+    catchment = parser.parse(file)
+
+    def test_object_type(self):
+        self.assertTrue(isinstance(self.catchment, Catchment))
+
+    def test_station_number(self):
+        self.assertEqual(self.catchment.id, None)
+
+    def test_country(self):
+        self.assertEqual(self.catchment.country, 'gb')
+
+    def test_area(self):
+        self.assertEqual(self.catchment.area, 30.09)
+
+    def test_coordinate(self):
+        self.assertEqual(self.catchment.point, Point(204000, 748400))
+
+    def test_descriptors(self):
+        self.assertEqual(self.catchment.descriptors.ihdtm_ngr, Point(204000, 748400))
+        self.assertEqual(self.catchment.descriptors.centroid_ngr, Point(207378, 751487))
+        self.assertEqual(self.catchment.descriptors.dtm_area, 30.09)
+        self.assertEqual(self.catchment.descriptors.altbar, 367)
+        self.assertEqual(self.catchment.descriptors.aspbar, 247)
+        self.assertEqual(self.catchment.descriptors.aspvar, 0.17)
+        self.assertEqual(self.catchment.descriptors.bfihost, 0.394)
+        self.assertEqual(self.catchment.descriptors.dplbar, 6.56)
+        self.assertEqual(self.catchment.descriptors.dpsbar, 356.3)
+        self.assertEqual(self.catchment.descriptors.farl, 0.986)
+        self.assertEqual(self.catchment.descriptors.fpext, 0.0369)
+        self.assertEqual(self.catchment.descriptors.ldp, 11.5)
+        self.assertEqual(self.catchment.descriptors.propwet, 0.79)
+        self.assertEqual(self.catchment.descriptors.rmed_1h,  13.9)
+        self.assertEqual(self.catchment.descriptors.rmed_1d, 72.0)
+        self.assertEqual(self.catchment.descriptors.rmed_2d, 112.4)
+        self.assertEqual(self.catchment.descriptors.saar, 2810)
+        self.assertEqual(self.catchment.descriptors.saar4170, 2969)
+        self.assertEqual(self.catchment.descriptors.sprhost, 53.35)
+        self.assertEqual(self.catchment.descriptors.urbconc1990, None)
+        self.assertEqual(self.catchment.descriptors.urbext1990, 0.0)
+        self.assertEqual(self.catchment.descriptors.urbloc1990, None)
+        self.assertEqual(self.catchment.descriptors.urbconc2000, None)
+        self.assertEqual(self.catchment.descriptors.urbext2000, 0.0)
+        self.assertEqual(self.catchment.descriptors.urbloc2000, None)

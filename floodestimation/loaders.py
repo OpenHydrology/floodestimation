@@ -27,24 +27,28 @@ from . import parsers
 from .settings import config
 
 
-def from_file(cd3_file_path, incl_pot=True):
+def from_file(file_path, incl_pot=True):
     """
-    Load catchment object from a ``.CD3`` file.
+    Load catchment object from a ``.CD3`` or ``.xml`` file.
 
     If there is also a corresponding ``.AM`` file (annual maximum flow data) or
     a ``.PT`` file (peaks over threshold data) in the same folder as the CD3 file, these datasets will also be loaded.
 
-    :param cd3_file_path: File location of CD3 file
-    :type cd3_file_path: str
+    :param file_path: Location of CD3 or xml file
+    :type file_path: str
     :return: Catchment object with the :attr:`amax_records` and :attr:`pot_dataset` attributes set (if data available).
     :rtype: :class:`.entities.Catchment`
     :param incl_pot: Whether to load the POT (peaks-over-threshold) data. Default: ``True``.
     :type incl_pot: bool
     """
-    am_file_path = os.path.splitext(cd3_file_path)[0] + '.AM'
-    pot_file_path = os.path.splitext(cd3_file_path)[0] + '.PT'
-
-    catchment = parsers.Cd3Parser().parse(cd3_file_path)
+    filename, ext = os.path.splitext(file_path)
+    am_file_path = filename + '.AM'
+    pot_file_path = filename + '.PT'
+    parser_by_ext = {
+        '.cd3': parsers.Cd3Parser,
+        '.xml': parsers.XmlCatchmentParser
+    }
+    catchment = parser_by_ext[ext.lower()]().parse(file_path)
 
     # AMAX records
     try:

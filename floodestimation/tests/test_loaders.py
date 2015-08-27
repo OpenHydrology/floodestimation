@@ -33,6 +33,11 @@ class TestLoaders(unittest.TestCase):
         catchment = loaders.from_file('floodestimation/tests/data/170021.CD3')
         self.assertEqual([], catchment.amax_records)
 
+    def test_load_catchment_from_xml(self):
+        catchment = loaders.from_file('floodestimation/tests/data/NN 04000 48400.xml')
+        self.assertEqual(catchment.area, 30.09)
+        self.assertEqual([], catchment.amax_records)
+
     def test_add_catchment_twice(self):
         catchment = loaders.from_file('floodestimation/tests/data/17002.CD3')
         loaders.to_db(catchment, self.session)
