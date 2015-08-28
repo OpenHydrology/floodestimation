@@ -1,3 +1,7 @@
+version 0.5.1 (2015-08-28)
+--------------------------
+- Coordinates in xml file should be parsed as integers
+
 version 0.5.0 (2015-08-27)
 --------------------------
 - Support for xml catchment files
