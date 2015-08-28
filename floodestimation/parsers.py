@@ -273,13 +273,13 @@ class XmlCatchmentParser(object):
         country = descr_node.get('grid').lower()
         catchment.country = country if country in ['gb', 'ni'] else None
         catchment.area = float(descr_node.find('area').text)
-        catchment.point = entities.Point(float(descr_node.get('x')), float(descr_node.get('y')))
+        catchment.point = entities.Point(int(descr_node.get('x')), int(descr_node.get('y')))
 
         descr = catchment.descriptors
         descr.dtm_area = catchment.area
         descr.ihdtm_ngr = catchment.point
         centr_node = descr_node.find('CatchmentCentroid')
-        descr.centroid_ngr = entities.Point(float(centr_node.get('x')), float(centr_node.get('y')))
+        descr.centroid_ngr = entities.Point(int(centr_node.get('x')), int(centr_node.get('y')))
         descr_keys = ['altbar', 'aspbar', 'aspvar', 'bfihost', 'dplbar', 'dpsbar', 'farl', 'fpext', 'ldp', 'propwet',
                       'rmed_1h', 'rmed_1d', 'rmed_2d', 'saar', 'saar4170', 'sprhost', 'urbconc1990', 'urbext1990',
                       'urbloc1990', 'urbconc2000', 'urbext2000', 'urbloc2000']
