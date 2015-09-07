@@ -86,11 +86,12 @@ def update_available():
     :return: `True` if update available, `False` if not, `None` if remote location cannot be reached.
     :rtype: bool or None
     """
-    current_version = config.get('nrfa', 'version', fallback=0)
+    current_version = LooseVersion(config.get('nrfa', 'version', fallback='0') or '0')
+    never_downloaded = not bool(config.get('nrfa', 'downloaded_on', fallback=None) or None)
     try:
         with urlopen(config['nrfa']['oh_json_url'], timeout=10) as f:
-            remote_version = json.loads(f.read().decode('utf-8'))['nrfa_version']
-        return LooseVersion(remote_version) > LooseVersion(current_version)
+            remote_version = LooseVersion(json.loads(f.read().decode('utf-8'))['nrfa_version'])
+        return remote_version > current_version or never_downloaded
     except URLError:
         return None
 

@@ -48,20 +48,36 @@ class TestDatabase(unittest.TestCase):
 
     def test_update_available_same_version(self):
         config['nrfa']['version'] = '3.3.4'
+        config['nrfa']['downloaded_on'] = '1400000000'
         result = fehdata.update_available()
         self.assertFalse(result)
 
+    def test_update_available_same_version_never_downloaded(self):
+        config['nrfa']['version'] = '3.3.4'
+        config['nrfa']['downloaded_on'] = ''
+        result = fehdata.update_available()
+        self.assertTrue(result)
+
     def test_update_available_newer(self):
         config['nrfa']['version'] = '3.3.3'
+        config['nrfa']['downloaded_on'] = '1400000000'
         result = fehdata.update_available()
         self.assertTrue(result)
 
     def test_update_available_older(self):
         config['nrfa']['version'] = '100.0.0'
+        config['nrfa']['downloaded_on'] = '1400000000'
         result = fehdata.update_available()
         self.assertFalse(result)
 
     def test_update_available_none(self):
+        del config['nrfa']['version']
+        config['nrfa']['downloaded_on'] = '1400000000'
+        result = fehdata.update_available()
+        self.assertTrue(result)
+
+    def test_update_available_invalidurl(self):
         config['nrfa']['oh_json_url'] = 'http://invalidurl'
+        config['nrfa']['downloaded_on'] = '1400000000'
         result = fehdata.update_available()
         self.assertIsNone(result)
