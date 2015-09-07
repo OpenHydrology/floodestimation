@@ -3,10 +3,8 @@
 import os
 import sys
 from datetime import date
-import version
+import floodestimation
 
-# Update version from GIT tags if possible and create version file
-version.update()
 
 autodoc_mock_imports = [
     'numpy', 'numpy.linalg',
@@ -30,9 +28,8 @@ master_doc = 'index'
 
 project = 'Flood estimation library'
 copyright = '2014‒{}, Open Hydrology contributors'.format(date.today().year)
-full_version = open('../../VERSION').read().split('-')[0]  # Ignore build number
-version = '.'.join(full_version.split('.')[0:2])
-release = full_version
+release = floodestimation.__version__
+version = '.'.join(release.split('.')[:2])
 pygments_style = 'sphinx'
 autodoc_member_order = 'bysource'
 autoclass_content = 'both'
@@ -42,6 +39,7 @@ autoclass_content = 'both'
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if not on_rtd:  # only import and set the theme if we're building docs locally
     import sphinx_rtd_theme
+
     html_theme = 'sphinx_rtd_theme'
     html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
