@@ -1,4 +1,3 @@
 include README.md
-include VERSION
 include versioneer.py
 include floodestimation/_version.py
