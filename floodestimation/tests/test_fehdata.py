@@ -45,3 +45,23 @@ class TestDatabase(unittest.TestCase):
         self.assertLess((datetime.utcnow() - metadata['published_on']).total_seconds(), 2 * 365 * 24 * 3600)  # 2 yrs
         self.assertIsNotNone(metadata['downloaded_on'])
         self.assertLess((datetime.utcnow() - metadata['downloaded_on']).total_seconds(), 120)  # Less than 120 s. ago
+
+    def test_update_available_same_version(self):
+        config['nrfa']['version'] = '3.3.4'
+        result = fehdata.update_available()
+        self.assertFalse(result)
+
+    def test_update_available_newer(self):
+        config['nrfa']['version'] = '3.3.3'
+        result = fehdata.update_available()
+        self.assertTrue(result)
+
+    def test_update_available_older(self):
+        config['nrfa']['version'] = '100.0.0'
+        result = fehdata.update_available()
+        self.assertFalse(result)
+
+    def test_update_available_none(self):
+        config['nrfa']['oh_json_url'] = 'http://invalidurl'
+        result = fehdata.update_available()
+        self.assertIsNone(result)

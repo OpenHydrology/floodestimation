@@ -46,6 +46,7 @@ import os
 import shutil
 import json
 from zipfile import ZipFile
+from distutils.version import LooseVersion
 # Current package imports
 from .settings import config
 
@@ -76,6 +77,22 @@ def _retrieve_download_url():
     except URLError:
         # If that fails (for whatever reason) use the fallback constant.
         return config['nrfa']['url']
+
+
+def update_available():
+    """
+    Check whether updated NRFA data is available.
+
+    :return: `True` if update available, `False` if not, `None` if remote location cannot be reached.
+    :rtype: bool or None
+    """
+    current_version = config.get('nrfa', 'version', fallback=0)
+    try:
+        with urlopen(config['nrfa']['oh_json_url'], timeout=10) as f:
+            remote_version = json.loads(f.read().decode('utf-8'))['nrfa_version']
+        return LooseVersion(remote_version) > LooseVersion(current_version)
+    except URLError:
+        return None
 
 
 def download_data():
