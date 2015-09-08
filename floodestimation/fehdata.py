@@ -127,7 +127,7 @@ def _update_nrfa_metadata(remote_config):
     config['nrfa']['version'] = remote_config['nrfa_version']
     config['nrfa']['url'] = remote_config['nrfa_url']
     config.set_datetime('nrfa', 'published_on', datetime.utcfromtimestamp(remote_config['nrfa_published_on']))
-    config.set_datetime('nrfa', 'downloaded_on', datetime.now())
+    config.set_datetime('nrfa', 'downloaded_on', datetime.utcnow())
     config.save()
 
 

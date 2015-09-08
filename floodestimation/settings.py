@@ -31,6 +31,7 @@ class Config(configparser.ConfigParser):
     FILE_NAME = 'config.ini'
     APP_NAME = 'fehdata'
     APP_ORG = 'Open Hydrology'
+    DATETIME_FMT = '%Y-%m-%dT%H:%M:%SZ'
 
     def __init__(self):
         configparser.ConfigParser.__init__(self)
@@ -102,7 +103,12 @@ class Config(configparser.ConfigParser):
         """
         try:
             s = self[section][option]
-            return datetime.utcfromtimestamp(float(s))
+            try:
+                # If stored as timestamp
+                return datetime.utcfromtimestamp(int(s))
+            except ValueError:
+                # Otherwise parse ISO format
+                return datetime.strptime(s, self.DATETIME_FMT)
         except (KeyError, ValueError):
             return fallback
 
@@ -115,7 +121,7 @@ class Config(configparser.ConfigParser):
         :param value: Datetime value to set
         :type value: :class:`datetime.datetime`
         """
-        self[section][option] = str(value.timestamp())
+        self[section][option] = value.strftime(self.DATETIME_FMT)
 
 # Create config object immediately when module is imported
 config = Config()
