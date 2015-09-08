@@ -106,5 +106,16 @@ class Config(configparser.ConfigParser):
         except (KeyError, ValueError):
             return fallback
 
+    def set_datetime(self, section, option, value):
+        """
+        Return UTC datetime from timestamp in config file.
+
+        :param section: Config section
+        :param option: Config option
+        :param value: Datetime value to set
+        :type value: :class:`datetime.datetime`
+        """
+        self[section][option] = str(value.timestamp())
+
 # Create config object immediately when module is imported
 config = Config()

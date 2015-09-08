@@ -7,12 +7,19 @@ from floodestimation import fehdata
 
 
 class TestDatabase(unittest.TestCase):
-    # Tests in this test case must be run in order to test the full sequence of clearing the cache, downloading the
-    # data, unzipping the data and counting the number of am and cd3 files.
+    """
+    Tests in this test case must be run in order to test the full sequence of clearing the cache, downloading the
+    data, unzipping the data and counting the number of am and cd3 files.
+
+    Also bear in mind that ``config`` is persistent between tests and may be affected by the tests themselves.
+
+    Conclusion: not quite properly setup unit tests!
+    """
 
     def setUp(self):
         config['nrfa']['oh_json_url'] = \
             'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
+        config['nrfa']['update_checked_on'] = ''
 
     def test_0_download_url_retrieval(self):
         self.assertTrue(fehdata._retrieve_download_url().endswith(r'/floodestimation/tests/data/FEH_data_small.zip'))
@@ -63,6 +70,13 @@ class TestDatabase(unittest.TestCase):
         config['nrfa']['downloaded_on'] = '1400000000'
         result = fehdata.update_available()
         self.assertTrue(result)
+
+    def test_update_available_newer_recently_checked(self):
+        config['nrfa']['version'] = '3.3.3'
+        config['nrfa']['downloaded_on'] = '1400000000'
+        config['nrfa']['update_checked_on'] = str(datetime.utcnow().timestamp())
+        result = fehdata.update_available()
+        self.assertFalse(result)
 
     def test_update_available_older(self):
         config['nrfa']['version'] = '100.0.0'
