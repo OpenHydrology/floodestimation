@@ -19,7 +19,6 @@ class TestDatabase(unittest.TestCase):
     def setUp(self):
         config['nrfa']['oh_json_url'] = \
             'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
-        config['nrfa']['update_checked_on'] = ''
 
     def test_0_download_url_retrieval(self):
         self.assertTrue(fehdata._retrieve_download_url().endswith(r'/floodestimation/tests/data/FEH_data_small.zip'))
@@ -53,9 +52,16 @@ class TestDatabase(unittest.TestCase):
         self.assertIsNotNone(metadata['downloaded_on'])
         self.assertLess((datetime.utcnow() - metadata['downloaded_on']).total_seconds(), 120)  # Less than 120 s. ago
 
+
+class TestCheckUpdates(unittest.TestCase):
+    def setUp(self):
+        config['nrfa']['oh_json_url'] = \
+            'file:' + pathname2url(os.path.abspath('./floodestimation/fehdata_test.json'))
+        config['nrfa']['update_checked_on'] = ''
+        config.set_datetime('nrfa', 'downloaded_on', datetime.utcfromtimestamp(0))
+
     def test_update_available_same_version(self):
         config['nrfa']['version'] = '3.3.4'
-        config['nrfa']['downloaded_on'] = '1400000000'
         result = fehdata.update_available()
         self.assertFalse(result)
 
@@ -67,31 +73,26 @@ class TestDatabase(unittest.TestCase):
 
     def test_update_available_newer(self):
         config['nrfa']['version'] = '3.3.3'
-        config['nrfa']['downloaded_on'] = '1400000000'
         result = fehdata.update_available()
         self.assertTrue(result)
 
     def test_update_available_newer_recently_checked(self):
         config['nrfa']['version'] = '3.3.3'
-        config['nrfa']['downloaded_on'] = '1400000000'
-        config['nrfa']['update_checked_on'] = str(datetime.utcnow().timestamp())
+        config.set_datetime('nrfa', 'update_checked_on', datetime.utcnow())
         result = fehdata.update_available()
         self.assertFalse(result)
 
     def test_update_available_older(self):
         config['nrfa']['version'] = '100.0.0'
-        config['nrfa']['downloaded_on'] = '1400000000'
         result = fehdata.update_available()
         self.assertFalse(result)
 
     def test_update_available_none(self):
         del config['nrfa']['version']
-        config['nrfa']['downloaded_on'] = '1400000000'
         result = fehdata.update_available()
         self.assertTrue(result)
 
     def test_update_available_invalidurl(self):
         config['nrfa']['oh_json_url'] = 'http://invalidurl'
-        config['nrfa']['downloaded_on'] = '1400000000'
         result = fehdata.update_available()
         self.assertIsNone(result)
