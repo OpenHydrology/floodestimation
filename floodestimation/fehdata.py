@@ -120,12 +120,14 @@ def download_data():
 def _update_nrfa_metadata(remote_config):
     """
     Save NRFA metadata to local config file using retrieved config data
+
+    :param remote_config: Downloaded JSON data, not a ConfigParser object!
     """
     config['nrfa']['oh_json_url'] = remote_config['nrfa_oh_json_url']
     config['nrfa']['version'] = remote_config['nrfa_version']
     config['nrfa']['url'] = remote_config['nrfa_url']
-    config['nrfa']['published_on'] = str(remote_config['nrfa_published_on'])
-    config['nrfa']['downloaded_on'] = str(datetime.now().timestamp())
+    config.set_datetime('nrfa', 'published_on', datetime.utcfromtimestamp(remote_config['nrfa_published_on']))
+    config.set_datetime('nrfa', 'downloaded_on', datetime.now())
     config.save()
 
 
