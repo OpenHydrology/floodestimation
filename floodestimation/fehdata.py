@@ -41,11 +41,12 @@ For parsing CD3 files and AMAX files see :mod:`floodestimation.parsers`.
 
 from urllib.request import urlopen, pathname2url
 from urllib.error import URLError
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import shutil
 import json
 from zipfile import ZipFile
+from distutils.version import LooseVersion
 # Current package imports
 from .settings import config
 
@@ -78,6 +79,34 @@ def _retrieve_download_url():
         return config['nrfa']['url']
 
 
+def update_available(after_days=1):
+    """
+    Check whether updated NRFA data is available.
+
+    :param after_days: Only check if not checked previously since a certain number of days ago
+    :type after_days: float
+    :return: `True` if update available, `False` if not, `None` if remote location cannot be reached.
+    :rtype: bool or None
+    """
+    never_downloaded = not bool(config.get('nrfa', 'downloaded_on', fallback=None) or None)
+    if never_downloaded:
+        config.set_datetime('nrfa', 'update_checked_on', datetime.utcnow())
+        return True
+
+    last_checked_on = config.get_datetime('nrfa', 'update_checked_on', fallback=None) or datetime.fromtimestamp(0)
+    if datetime.utcnow() < last_checked_on + timedelta(days=after_days):
+        return False
+
+    current_version = LooseVersion(config.get('nrfa', 'version', fallback='0') or '0')
+    try:
+        with urlopen(config['nrfa']['oh_json_url'], timeout=10) as f:
+            remote_version = LooseVersion(json.loads(f.read().decode('utf-8'))['nrfa_version'])
+        config.set_datetime('nrfa', 'update_checked_on', datetime.utcnow())
+        return remote_version > current_version
+    except URLError:
+        return None
+
+
 def download_data():
     """
     Downloads complete station dataset including catchment descriptors and amax records. And saves it into a cache
@@ -91,12 +120,14 @@ def download_data():
 def _update_nrfa_metadata(remote_config):
     """
     Save NRFA metadata to local config file using retrieved config data
+
+    :param remote_config: Downloaded JSON data, not a ConfigParser object!
     """
     config['nrfa']['oh_json_url'] = remote_config['nrfa_oh_json_url']
     config['nrfa']['version'] = remote_config['nrfa_version']
     config['nrfa']['url'] = remote_config['nrfa_url']
-    config['nrfa']['published_on'] = str(remote_config['nrfa_published_on'])
-    config['nrfa']['downloaded_on'] = str(datetime.now().timestamp())
+    config.set_datetime('nrfa', 'published_on', datetime.utcfromtimestamp(remote_config['nrfa_published_on']))
+    config.set_datetime('nrfa', 'downloaded_on', datetime.utcnow())
     config.save()
 
 
