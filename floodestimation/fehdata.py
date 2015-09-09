@@ -91,6 +91,7 @@ def update_available(after_days=1):
     never_downloaded = not bool(config.get('nrfa', 'downloaded_on', fallback=None) or None)
     if never_downloaded:
         config.set_datetime('nrfa', 'update_checked_on', datetime.utcnow())
+        config.save()
         return True
 
     last_checked_on = config.get_datetime('nrfa', 'update_checked_on', fallback=None) or datetime.fromtimestamp(0)
@@ -102,6 +103,7 @@ def update_available(after_days=1):
         with urlopen(config['nrfa']['oh_json_url'], timeout=10) as f:
             remote_version = LooseVersion(json.loads(f.read().decode('utf-8'))['nrfa_version'])
         config.set_datetime('nrfa', 'update_checked_on', datetime.utcnow())
+        config.save()
         return remote_version > current_version
     except URLError:
         return None
