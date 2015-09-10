@@ -1,6 +1,8 @@
 Flood estimation library documentation
 ======================================
 
+Version |release|
+
 Contents:
 
 .. toctree::
