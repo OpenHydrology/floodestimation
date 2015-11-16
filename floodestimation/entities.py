@@ -163,7 +163,7 @@ class Catchment(db.Base):
             1e-6 * (cast(Descriptors.centroid_ngr_x - other_catchment.descriptors.centroid_ngr_x, Float) *
                     cast(Descriptors.centroid_ngr_x - other_catchment.descriptors.centroid_ngr_x, Float) +
                     cast(Descriptors.centroid_ngr_y - other_catchment.descriptors.centroid_ngr_y, Float) *
-                    cast(Descriptors.centroid_ngr_y - other_catchment.descriptors.centroid_ngr_y, Float)),
+                    cast(Descriptors.centroid_ngr_y - other_catchment.descriptors.centroid_ngr_y, Float))
             )
 
     def amax_records_start(self):
