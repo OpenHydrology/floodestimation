@@ -27,7 +27,7 @@ saving to a (sqlite) database. All class attributes therefore are :class:`sqlalc
 
 from math import hypot, atan
 from datetime import timedelta
-from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey, SmallInteger, type_coerce
+from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey, SmallInteger, type_coerce, cast
 from sqlalchemy.orm import relationship, composite
 from sqlalchemy.ext.mutable import MutableComposite
 from sqlalchemy.ext.hybrid import hybrid_method
@@ -159,12 +159,12 @@ class Catchment(db.Base):
 
     @distance_to.expression
     def distance_to(cls, other_catchment):
-        return type_coerce(
-            1e-6 * ((Descriptors.centroid_ngr_x - other_catchment.descriptors.centroid_ngr_x) *
-                    (Descriptors.centroid_ngr_x - other_catchment.descriptors.centroid_ngr_x) +
-                    (Descriptors.centroid_ngr_y - other_catchment.descriptors.centroid_ngr_y) *
-                    (Descriptors.centroid_ngr_y - other_catchment.descriptors.centroid_ngr_y)),
-            Float())
+        return (
+            1e-6 * (cast(Descriptors.centroid_ngr_x - other_catchment.descriptors.centroid_ngr_x, Float) *
+                    cast(Descriptors.centroid_ngr_x - other_catchment.descriptors.centroid_ngr_x, Float) +
+                    cast(Descriptors.centroid_ngr_y - other_catchment.descriptors.centroid_ngr_y, Float) *
+                    cast(Descriptors.centroid_ngr_y - other_catchment.descriptors.centroid_ngr_y, Float))
+            )
 
     def amax_records_start(self):
         """
