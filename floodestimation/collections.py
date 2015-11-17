@@ -95,9 +95,9 @@ class CatchmentCollections(object):
                    Catchment.country == subject_catchment.country,  # SQL dist method does not cover cross-boundary dist
                    # Within the distance limit
                    dist_sq <= dist_limit ** 2). \
-            group_by(Catchment, 
-                     Catchment.descriptors.centroid_ngr_x, 
-                     Catchment.descriptors.centroid_ngr_y). \
+            group_by(Catchment,
+                     Descriptors.centroid_ngr_x,
+                     Descriptors.centroid_ngr_y). \
             order_by(dist_sq). \
             having(func.count(AmaxRecord.catchment_id) >= 10)  # At least 10 AMAX records
 

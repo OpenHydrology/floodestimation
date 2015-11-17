@@ -159,12 +159,12 @@ class Catchment(db.Base):
 
     @distance_to.expression
     def distance_to(cls, other_catchment):
-        return (
-            1e-6 * (cast(Descriptors.centroid_ngr_x - other_catchment.descriptors.centroid_ngr_x, Float) *
-                    cast(Descriptors.centroid_ngr_x - other_catchment.descriptors.centroid_ngr_x, Float) +
-                    cast(Descriptors.centroid_ngr_y - other_catchment.descriptors.centroid_ngr_y, Float) *
-                    cast(Descriptors.centroid_ngr_y - other_catchment.descriptors.centroid_ngr_y, Float))
-            )
+        return 1e-6 * (
+            (cast(Descriptors.centroid_ngr_x, Float) - cast(other_catchment.descriptors.centroid_ngr_x, Float)) *
+            (cast(Descriptors.centroid_ngr_x, Float) - cast(other_catchment.descriptors.centroid_ngr_x, Float)) +
+            (cast(Descriptors.centroid_ngr_y, Float) - cast(other_catchment.descriptors.centroid_ngr_y, Float)) *
+            (cast(Descriptors.centroid_ngr_y, Float) - cast(other_catchment.descriptors.centroid_ngr_y, Float))
+        )
 
     def amax_records_start(self):
         """
