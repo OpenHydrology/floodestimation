@@ -1,3 +1,11 @@
+version 0.7.0 (2015-11-18)
+--------------------------
+- Add method to parse from string instead of files
+
+version 0.6.1 (2015-11-17)
+--------------------------
+- Fix distance query to be compatible with Postgres
+
 version 0.6.0 (2015-09-10)
 --------------------------
 - Checking for NRFA updates method
