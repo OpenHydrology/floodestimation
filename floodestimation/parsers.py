@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014  Florenz A.P. Hollebrandse <f.a.p.hollebrandse@protonmail.ch>
+# Copyright (c) 2014-2015  Florenz A.P. Hollebrandse <f.a.p.hollebrandse@protonmail.ch>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -67,6 +67,31 @@ class FehFileParser(object):
         #: Object that will be returned at end of parsing.
         self.object = None
 
+    def parse_str(self, s):
+        """
+        Parse string and return relevant object
+
+        :param s: string to parse
+        :type s: str
+        :return: Parsed object
+        """
+        self.object = self.parsed_class()
+        in_section = None  # Holds name of FEH file section while traversing through file.
+        for line in s.split('\n'):
+            if line.lower().startswith('[end]'):
+                # Leave section
+                in_section = None
+            elif line.startswith('['):
+                # Enter section, sanitise `[Section Name]` to `section_name`
+                in_section = line.strip().strip('[]').lower().replace(' ', '_')
+            elif in_section:
+                try:
+                    # Call method `_section_section_name(line)`
+                    getattr(self, '_section_' + in_section)(line.strip())
+                except AttributeError:
+                    pass  # Skip unsupported section
+        return self.object
+
     def parse(self, file_name):
         """
         Parse entire file and return relevant object.
@@ -77,20 +102,7 @@ class FehFileParser(object):
         """
         self.object = self.parsed_class()
         with open(file_name, encoding='utf-8') as f:
-            in_section = None  # Holds name of FEH file section while traversing through file.
-            for line in f:
-                if line.lower().startswith('[end]'):
-                    # Leave section
-                    in_section = None
-                elif line.startswith('['):
-                    # Enter section, sanitise `[Section Name]` to `section_name`
-                    in_section = line.strip().strip('[]').lower().replace(' ', '_')
-                elif in_section:
-                    try:
-                        # Call method `_section_section_name(line)`
-                        getattr(self, '_section_' + in_section)(line.strip())
-                    except AttributeError:
-                        pass  # Skip unsupported section
+            self.parse_str(f.read())
         return self.object
 
     @staticmethod
@@ -214,7 +226,7 @@ class Cd3Parser(FehFileParser):
 
     def _section_descriptors(self, line):
         row = [s.strip() for s in line.split(',')]
-        # Make descriptor name a valid python variable, by lowercasing, replacing spaces and hypens with underscore,
+        # Make descriptor name a valid python variable, by lowercasing, replacing spaces and hyphens with underscore,
         # e.g. `CENTROID NGR` -> `centroid_ngr`
         #      `RMED-1H`      -> `rmed_1h`
         name = row[0].lower().replace(' ', '_').replace('-', '_')
@@ -264,8 +276,22 @@ class XmlCatchmentParser(object):
         :return: Parsed object
         :rtype: :class:`Catchment`
         """
-        tree = ET.parse(file_name)
-        root = tree.getroot()
+        root = ET.parse(file_name).getroot()
+        return self._parse(root)
+
+    def parse_str(self, s):
+        """
+        Parse entire file and return a :class:`Catchment` object.
+
+        :param file_name: File path
+        :type file_name: str
+        :return: Parsed object
+        :rtype: :class:`Catchment`
+        """
+        root = ET.fromstring(s)
+        return self._parse(root)
+
+    def _parse(self, root):
         descr_node = root.find('CatchmentDescriptors')
 
         catchment = entities.Catchment()
