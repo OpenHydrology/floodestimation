@@ -2,7 +2,7 @@ Param(
   $recipe = 'conda-recipe',
   [switch] $upload = $false
 )
-$user = 'faph'
+$user = 'openhydrology'
 $channel = 'dev'
 
 $pyversions = '3.3', '3.4', '3.5'
