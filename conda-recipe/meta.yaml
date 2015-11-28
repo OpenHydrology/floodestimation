@@ -13,7 +13,7 @@ requirements:
     - python
     - setuptools
     - appdirs 1.4*
-    - sqlalchemy 1.0*
+    - sqlalchemy 0.9*
     - numpy 1.9*
     - scipy >=0.16
     - lmoments3 >=1.0.2
@@ -21,7 +21,7 @@ requirements:
   run:
     - python
     - appdirs 1.4*
-    - sqlalchemy 1.0*
+    - sqlalchemy 0.9*
     - numpy 1.9*
     - scipy >=0.16
     - lmoments3 >=1.0.2
