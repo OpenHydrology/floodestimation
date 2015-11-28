@@ -3,9 +3,9 @@ Param(
   [switch] $upload = $false
 )
 $user = 'openhydrology'
-$channel = 'dev'
+$channel = 'main'
 
-$pyversions = '3.3', '3.4', '3.5'
+$pyversions = '3.3', '3.4'
 $build_platform = 'win-64'
 $other_platforms = 'osx-64', 'linux-64'
 
