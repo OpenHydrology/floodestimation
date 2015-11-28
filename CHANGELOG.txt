@@ -1,3 +1,7 @@
+version 0.7.1 (2015-11-28)
+--------------------------
+- Downgrade sqlalchemy to 0.9 series (bug in 1.0)
+
 version 0.7.0 (2015-11-18)
 --------------------------
 - Add method to parse from string instead of files
