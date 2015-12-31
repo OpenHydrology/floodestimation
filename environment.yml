@@ -4,7 +4,7 @@ channels:
 - https://conda.anaconda.org/openhydrology
 
 dependencies:
-- python
+- python=3.4*
 - appdirs=1.4*
 - sqlalchemy=0.9*
 - numpy=1.9*
